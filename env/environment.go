@@ -1,60 +1,30 @@
 package env
 
 import (
-	"github.com/cloudfoundry-community/go-cfenv"
-	"log"
 	"os"
 	"strings"
 )
 
-// possible combinations:
-// xsuaa + cf
-// xsuaa + kubernetes
-// ias + cf
-// ias + kubernetes
-
-type CloudEnvironment interface {
-	getClientID() string
-	getClientSecret() string
-	getSbURL() string
-	Parse(credentials map[string]interface{})
-}
-
-//
-//type CloudEnvironment struct {
-//	platform   Platform
-//	authServer AuthServer
+// Interface Pollution? Only use if a external package needs to create own implementations which has to be worked on in this package
+// Define this interface on the consumer side? There I will need to work on a more generic basis on different
+//type ServiceConfiguration interface {
+//	GetClientID() string
+//	GetClientSecret() string
+//	GetSbURL() string
+//	parse(credentials map[string]interface{})
 //}
-//
-//type Platform string
-//type AuthServer string
-//
-//const (
-//	CLOUD_FOUNDRY Platform   = "CLOUD_FOUNDRY"
-//	KUBERNETES    Platform   = "KUBERNETES"
-//	XSUAA         AuthServer = "XSUAA"
-//	IAS           AuthServer = "IAS"
-//)
 
-func GetEnvironment() CloudEnvironment {
-	var config CloudEnvironment
+type Platform string
+
+const (
+	CLOUD_FOUNDRY Platform = "CF"
+	KUBERNETES    Platform = "KUBERNETES"
+)
+
+func getPlatform() Platform {
 	if strings.TrimSpace(os.Getenv("VCAP_APPLICATION")) != "" {
-		// Cloud Foundry
-		appEnv, e := cfenv.Current()
-		if e != nil {
-			log.Fatal("Could not read cf env")
-		}
-
-		xsuaa, e := appEnv.Services.WithName("xsuaa")
-		if e != nil {
-			log.Fatal("No xsuaa instance bound to the application")
-		} else {
-			config = XsuaaConfig{}
-			config.Parse(xsuaa.Credentials)
-		}
-
+		return CLOUD_FOUNDRY
 	} else {
-		// kubernetes (supposably, as no other platforms are known so far)
+		return KUBERNETES
 	}
-	return config
 }

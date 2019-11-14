@@ -3,24 +3,31 @@ package core
 import (
 	"context"
 	"github.com/dgrijalva/jwt-go/request"
-	"go-cloud-security-integration/env"
 	"net/http"
 )
 
+// external options struct because of Runaway Arguments antipattern
 type Options struct {
 	UserContext string
-	env.IASConfig
+	OAuthConfig OAuthConfig
+}
+
+// Config Parser for IAS can be used from env package
+type OAuthConfig interface {
+	GetClientID() string
+	GetClientSecret() string
+	GetSbURL() string
 }
 
 type Middleware struct {
 	Options
 }
 
-func New(userContext string, iasConfig env.IASConfig) *Middleware {
+func New(options Options) *Middleware {
 	return &Middleware{
 		Options{
-			UserContext: userContext,
-			IASConfig:   iasConfig,
+			UserContext: options.UserContext,
+			OAuthConfig: options.OAuthConfig,
 		},
 	}
 }
