@@ -3,13 +3,17 @@ package core
 import (
 	"context"
 	"github.com/dgrijalva/jwt-go/request"
+	"log"
 	"net/http"
 )
 
+type errorHandler func(w http.ResponseWriter, r *http.Request, err error)
+
 // external options struct because of Runaway Arguments antipattern
 type Options struct {
-	UserContext string
-	OAuthConfig OAuthConfig
+	UserContext  string
+	OAuthConfig  OAuthConfig
+	ErrorHandler errorHandler // called when the jwt verification fails
 }
 
 // Config Parser for IAS can be used from env package
@@ -24,12 +28,20 @@ type Middleware struct {
 }
 
 func New(options Options) *Middleware {
-	return &Middleware{
-		Options{
-			UserContext: options.UserContext,
-			OAuthConfig: options.OAuthConfig,
-		},
+	m := new(Middleware)
+
+	if options.OAuthConfig == nil {
+		log.Fatal("OAuthConfig must not be nil, please refer to package env for default implementations")
 	}
+	if options.ErrorHandler == nil {
+		options.ErrorHandler = DefaultErrorHandler
+	}
+	if options.UserContext == "" {
+		options.UserContext = "user"
+	}
+
+	m.Options = options
+	return m
 }
 
 func (m *Middleware) Handler(h http.Handler) http.Handler {
@@ -51,5 +63,10 @@ func (m *Middleware) ValidateJWT(w http.ResponseWriter, r *http.Request) error {
 		reqWithContext := r.WithContext(context.WithValue(r.Context(), m.UserContext, token))
 		*r = *reqWithContext
 	}
-	return nil
+	m.ErrorHandler(w, r, err) // call error handler specified by consumer
+	return err
+}
+
+func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
+	http.Error(w, err.Error(), http.StatusUnauthorized)
 }
