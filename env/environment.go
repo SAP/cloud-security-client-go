@@ -11,7 +11,7 @@ import (
 //	GetClientID() string
 //	GetClientSecret() string
 //	GetSbURL() string
-//	parse(credentials map[string]interface{})
+//	parseEnv(credentials map[string]interface{})
 //}
 
 type Platform string

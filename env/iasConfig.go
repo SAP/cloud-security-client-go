@@ -3,12 +3,13 @@ package env
 import (
 	"github.com/cloudfoundry-community/go-cfenv"
 	"log"
+	//"github.com/lestrrat-go/jwx/jwt"
 )
 
 type IASConfig struct {
-	clientID     string // pointer because it can be nil in contrast to string (needed when property is not set in json)
+	clientID     string
 	clientSecret string
-	sbUrl        string
+	baseURL      string
 }
 
 func getIASConfig() *IASConfig {
@@ -24,7 +25,7 @@ func getIASConfig() *IASConfig {
 			log.Fatal("No ias instance bound to the application")
 		} else {
 			config = IASConfig{}
-			config.parse(ias.Credentials)
+			config.parseEnv(ias.Credentials)
 		}
 		// do stuff
 	case KUBERNETES:
@@ -33,19 +34,19 @@ func getIASConfig() *IASConfig {
 	return &config
 }
 
-func (iasConfig IASConfig) GetClientID() string {
-	return iasConfig.clientID
+func (c IASConfig) GetClientID() string {
+	return c.clientID
 }
 
-func (iasConfig IASConfig) GetClientSecret() string {
-	return iasConfig.clientSecret
+func (c IASConfig) GetClientSecret() string {
+	return c.clientSecret
 }
 
-func (iasConfig IASConfig) GetSbURL() string {
-	return iasConfig.sbUrl
+func (c IASConfig) GetBaseURL() string {
+	return c.baseURL
 }
 
-func (config *IASConfig) parse(credentials map[string]interface{}) {
-	(*config).clientID = credentials["username"].(string)
-	(*config).clientSecret = credentials["password"].(string)
+func (c *IASConfig) parseEnv(credentials map[string]interface{}) {
+	(*c).clientID = credentials["username"].(string)
+	(*c).clientSecret = credentials["password"].(string)
 }
