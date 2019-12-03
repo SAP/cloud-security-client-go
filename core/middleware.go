@@ -101,19 +101,19 @@ func (m *Middleware) verifySignature(t *jwtgo.Token) error {
 	if keySet, ok = m.saasKeySet[iss]; !ok {
 		newKeySet, err := NewKeySet(m.httpClient, iss, m.OAuthConfig)
 		if err != nil {
-			return fmt.Errorf("Couldn't build remote keyset: %v", err)
+			return fmt.Errorf("unable to build remote keyset: %v", err)
 		}
 		m.saasKeySet[iss] = newKeySet
 		keySet = newKeySet
 	}
-	keysFromCache := keySet.KeysFromCache()
+	cachedKeys := keySet.KeysFromCache()
 
-	if keysFromCache > 0 {
-		if t.Header[KEY_ID] == nil && len(keysFromCache) != 1 {
+	if len(cachedKeys) > 0 {
+		if t.Header[KEY_ID] == nil && len(cachedKeys) != 1 {
 			return errors.New("no kid specified in token and more than one verification key available")
 		}
-		key := keysFromCache[0]
-		if err := t.Method.Verify(t.Raw, t.Signature, key); err == nil {
+		jwk := cachedKeys[0]
+		if err := t.Method.Verify(t.Raw, t.Signature, jwk.key); err == nil {
 			// valid
 			return nil
 		}
@@ -125,7 +125,23 @@ func (m *Middleware) verifySignature(t *jwtgo.Token) error {
 		return errors.New("failed to verify token signature")
 	}
 
-	return nil
+	remoteKeys, err := keySet.KeysFromRemote(m.httpClient)
+	if err != nil {
+
+	}
+
+	if len(remoteKeys) > 0 {
+		if t.Header[KEY_ID] == nil && len(remoteKeys) != 1 {
+			return errors.New("no kid specified in token and more than one verification key available")
+		}
+		jwk := remoteKeys[0]
+		if err := t.Method.Verify(t.Raw, t.Signature, jwk.key); err == nil {
+			// valid
+			return nil
+		}
+	}
+
+	return errors.New("failed to verify token signature")
 }
 
 func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err error) {

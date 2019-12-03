@@ -21,6 +21,8 @@ const GIVEN_NAME = "first_name"
 const FAMILY_NAME = "last_name"
 const EMAIL = "mail"
 
+const ktyRSA = "RSA"
+
 type OIDCClaims struct {
 	jwtgo.StandardClaims
 	//Issuer     string `json:"iss,omitempty"`

@@ -1,14 +1,18 @@
 package core
 
 import (
+	"crypto/rsa"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	jwtgo "github.com/dgrijalva/jwt-go"
+	"github.com/pquerna/cachecontrol"
 	"io/ioutil"
+	"math/big"
 	"mime"
 	"net/http"
 	"net/url"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -16,7 +20,7 @@ type remoteKeySet struct {
 	jwksURL string
 
 	// A set of cached keys and their expiry.
-	cachedKeys []string
+	cachedKeys []JSONWebKey
 	expiry     time.Time
 }
 
@@ -38,12 +42,55 @@ func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySe
 	return ks, nil
 }
 
-func (ks *remoteKeySet) KeyFromRemote(httpClient *http.Client) string {
-	// fetch new keys from remote
-	return ""
+func (ks *remoteKeySet) KeysFromRemote(httpClient *http.Client) ([]JSONWebKey, error) {
+	req, err := http.NewRequest("GET", ks.jwksURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("can't create request to fetch jwk: %v", err)
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch jwks from remote: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read fetched jwks: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch jwks: %s %s", resp.Status, body)
+	}
+
+	var keySet JSONWebKeySet
+	err = unmarshalResponse(resp, body, &keySet)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode jwks: %v %s", err, body)
+	}
+	for _, jwk := range keySet.Keys {
+		err := jwk.assertKeyType()
+		if err != nil {
+			return nil, fmt.Errorf("failed to build verfication key from jwk: %v", err)
+		}
+	}
+
+	// If the server doesn't provide cache control headers, assume the
+	// keys expire immediately.
+	expiry := time.Now()
+
+	_, e, err := cachecontrol.CachableResponse(req, resp, cachecontrol.Options{})
+	if err == nil && e.After(expiry) {
+		expiry = e
+	}
+
+	ks.expiry = expiry
+	ks.cachedKeys = keySet.Keys
+
+	return ks.cachedKeys, nil
 }
 
-func (ks *remoteKeySet) KeysFromCache() []string {
+func (ks *remoteKeySet) KeysFromCache() []JSONWebKey {
 	return ks.cachedKeys
 }
 
@@ -82,6 +129,39 @@ type providerJSON struct {
 	TokenURL    string `json:"token_endpoint"`
 	JWKSURL     string `json:"jwks_uri"`
 	UserInfoURL string `json:"userinfo_endpoint"`
+}
+
+type JSONWebKeySet struct {
+	Keys []JSONWebKey `json:"keys"`
+}
+
+type JSONWebKey struct {
+	kty string
+	e   string
+	n   string
+	use string
+	kid string
+	alg string
+	key interface{}
+}
+
+func (jwk *JSONWebKey) assertKeyType() error {
+	switch jwk.alg {
+	case ktyRSA:
+		NBytes, err := base64.RawURLEncoding.DecodeString(jwk.n)
+		if err != nil {
+			return
+		}
+		EBytes, err := base64.RawURLEncoding.DecodeString(jwk.e)
+		if err != nil {
+			return
+		}
+		jwk.key = &rsa.PublicKey{
+			N: new(big.Int).SetBytes(NBytes),
+			E: int(new(big.Int).SetBytes(EBytes).Int64()),
+		}
+	}
+	return nil
 }
 
 func unmarshalResponse(r *http.Response, body []byte, v interface{}) error {
