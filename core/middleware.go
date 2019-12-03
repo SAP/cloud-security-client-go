@@ -86,9 +86,15 @@ func (m *Middleware) ValidateJWT(w http.ResponseWriter, r *http.Request) error {
 
 	err = m.verifySignature(token)
 
+	// verify claims
+	if err := token.Claims.Valid(); err != nil {
+		return fmt.Errorf("claim check failed: %v", err)
+	}
+
 	if err == nil && token.Valid {
 		reqWithContext := r.WithContext(context.WithValue(r.Context(), m.UserContext, token))
 		*r = *reqWithContext
+		return nil
 	}
 	m.ErrorHandler(w, r, err) // call error handler specified by consumer
 	return err
