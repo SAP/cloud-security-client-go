@@ -39,7 +39,13 @@ type OIDCClaims struct {
 }
 
 //
-//func (c OIDCClaims) Valid() error {
-//	// Validate time based claims "exp, nbf, (iat)".
-//	return nil
-//}
+func (c OIDCClaims) Valid() error {
+	err := c.StandardClaims.Valid()
+	if err != nil {
+		return err
+	}
+	// TODO: check aud and iss additionally to StandardClaims check
+	//c.VerifyAudience()
+	//c.VerifyIssuer()
+	return nil
+}

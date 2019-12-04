@@ -1,9 +1,9 @@
 package env
 
 import (
+	"errors"
 	"github.com/cloudfoundry-community/go-cfenv"
 	"log"
-	//"github.com/lestrrat-go/jwx/jwt"
 )
 
 type IASConfig struct {
@@ -12,7 +12,7 @@ type IASConfig struct {
 	baseURL      string
 }
 
-func getIASConfig() *IASConfig {
+func GetIASConfig() *IASConfig {
 	config := IASConfig{}
 	switch getPlatform() {
 	case CLOUD_FOUNDRY:
@@ -25,10 +25,14 @@ func getIASConfig() *IASConfig {
 			log.Fatal("No ias instance bound to the application")
 		} else {
 			config = IASConfig{}
-			config.parseEnv(ias.Credentials)
+			e := config.parseEnv(ias.Credentials)
+			if e != nil {
+				log.Fatal("error during parsing of ias environment: ", e)
+			}
 		}
 		// do stuff
 	case KUBERNETES:
+		log.Fatal("kubernetes env detected but not yet supported")
 		// do stuff
 	}
 	return &config
@@ -46,7 +50,21 @@ func (c IASConfig) GetBaseURL() string {
 	return c.baseURL
 }
 
-func (c *IASConfig) parseEnv(credentials map[string]interface{}) {
-	(*c).clientID = credentials["username"].(string)
-	(*c).clientSecret = credentials["password"].(string)
+func (c *IASConfig) parseEnv(credentials map[string]interface{}) error {
+	if clientID, ok := credentials["clientid"]; !ok {
+		return errors.New("unable to find property clientid in environment")
+	} else {
+		c.clientID = clientID.(string)
+	}
+	if clientSecret, ok := credentials["clientsecret"]; !ok {
+		return errors.New("unable to find property clientsecret in environment")
+	} else {
+		c.clientSecret = clientSecret.(string)
+	}
+	if baseURL, ok := credentials["url"]; !ok {
+		return errors.New("unable to find property url in environment")
+	} else {
+		c.baseURL = baseURL.(string)
+	}
+	return nil
 }

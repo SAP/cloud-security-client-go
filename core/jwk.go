@@ -4,13 +4,13 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/pquerna/cachecontrol"
 	"io/ioutil"
 	"math/big"
 	"mime"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -19,21 +19,18 @@ type remoteKeySet struct {
 	jwksURL string
 
 	// A set of cached keys and their expiry.
-	cachedKeys []JSONWebKey
+	cachedKeys []*JSONWebKey
 	expiry     time.Time
 }
 
 func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySet, error) {
-	address, err := url.Parse(iss)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse iss url from token: %v", err)
+	issTrimmed := strings.TrimSuffix(iss, "/")
+	if !strings.HasSuffix(issTrimmed, c.GetBaseURL()) {
+		return nil, fmt.Errorf("token is issued from a different oauth server. expected to end with %s, got %s", c.GetBaseURL(), issTrimmed)
 	}
-	if !strings.EqualFold(address.Hostname(), c.GetBaseURL()) {
-		return nil, fmt.Errorf("token is issued from a different oauth server. expected %s, got %s", c.GetBaseURL(), address.Hostname())
-	}
-	subdomain := strings.TrimSuffix(address.Hostname(), c.GetBaseURL())
+	subdomain := strings.TrimSuffix(issTrimmed, "."+c.GetBaseURL())
 	ks := new(remoteKeySet)
-	err = ks.performDiscovery(httpClient, c.GetBaseURL(), subdomain)
+	err := ks.performDiscovery(httpClient, c.GetBaseURL(), subdomain)
 
 	if err != nil {
 		return nil, err
@@ -41,7 +38,7 @@ func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySe
 	return ks, nil
 }
 
-func (ks *remoteKeySet) KeysFromRemote(httpClient *http.Client) ([]JSONWebKey, error) {
+func (ks *remoteKeySet) KeysFromRemote(httpClient *http.Client) ([]*JSONWebKey, error) {
 	req, err := http.NewRequest("GET", ks.jwksURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("can't create request to fetch jwk: %v", err)
@@ -70,7 +67,7 @@ func (ks *remoteKeySet) KeysFromRemote(httpClient *http.Client) ([]JSONWebKey, e
 	for _, jwk := range keySet.Keys {
 		err := jwk.assertKeyType()
 		if err != nil {
-			return nil, fmt.Errorf("failed to build verfication key from jwk: %v", err)
+			return nil, fmt.Errorf("failed to build verfication Key from jwk: %v", err)
 		}
 	}
 
@@ -89,12 +86,13 @@ func (ks *remoteKeySet) KeysFromRemote(httpClient *http.Client) ([]JSONWebKey, e
 	return ks.cachedKeys, nil
 }
 
-func (ks *remoteKeySet) KeysFromCache() []JSONWebKey {
+func (ks *remoteKeySet) KeysFromCache() []*JSONWebKey {
 	return ks.cachedKeys
 }
 
 func (ks *remoteKeySet) performDiscovery(httpClient *http.Client, baseURL string, subdomain string) error {
-	wellKnown := strings.TrimSuffix(baseURL, "/") + "/.well-known/openid-configuration"
+
+	wellKnown := fmt.Sprintf("https://%s.%s/.well-known/openid-configuration", subdomain, strings.TrimSuffix(baseURL, "/"))
 	req, err := http.NewRequest("GET", wellKnown, nil)
 	if err != nil {
 		return fmt.Errorf("unable to construct discovery request: %v", err)
@@ -119,6 +117,8 @@ func (ks *remoteKeySet) performDiscovery(httpClient *http.Client, baseURL string
 	if err != nil {
 		return fmt.Errorf("failed to decode provider discovery object: %v", err)
 	}
+	ks.jwksURL = p.JWKSURL
+
 	return nil
 }
 
@@ -131,34 +131,36 @@ type providerJSON struct {
 }
 
 type JSONWebKeySet struct {
-	Keys []JSONWebKey `json:"keys"`
+	Keys []*JSONWebKey `json:"keys"`
 }
 
 type JSONWebKey struct {
-	kty string
-	e   string
-	n   string
-	use string
-	kid string
-	alg string
-	key interface{}
+	Kty string
+	E   string
+	N   string
+	Use string
+	Kid string
+	Alg string
+	Key interface{}
 }
 
 func (jwk *JSONWebKey) assertKeyType() error {
-	switch jwk.alg {
+	switch jwk.Kty {
 	case ktyRSA:
-		NBytes, err := base64.RawURLEncoding.DecodeString(jwk.n)
+		NBytes, err := base64.RawURLEncoding.DecodeString(jwk.N)
 		if err != nil {
-			return
+			return err
 		}
-		EBytes, err := base64.RawURLEncoding.DecodeString(jwk.e)
+		EBytes, err := base64.RawURLEncoding.DecodeString(jwk.E)
 		if err != nil {
-			return
+			return err
 		}
-		jwk.key = &rsa.PublicKey{
+		jwk.Key = &rsa.PublicKey{
 			N: new(big.Int).SetBytes(NBytes),
 			E: int(new(big.Int).SetBytes(EBytes).Int64()),
 		}
+	default:
+		return errors.New("jwk remote presented unsupported key type: " + jwk.Kty)
 	}
 	return nil
 }

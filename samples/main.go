@@ -1,31 +1,34 @@
 package main
 
 import (
-	"crypto/rsa"
 	"fmt"
-	"gopkg.in/square/go-jose.v2"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"github.wdf.sap.corp/CPSecurity/go-cloud-security-integration/core"
+	"github.wdf.sap.corp/CPSecurity/go-cloud-security-integration/env"
+	"log"
+	"net/http"
+	"os"
 )
 
 // Class for test cases during development
 func main() {
-	var something interface{}
+	r := mux.NewRouter()
+	middleware := core.New(core.Options{
+		UserContext:  "user",
+		OAuthConfig:  env.GetIASConfig(),
+		ErrorHandler: nil,
+	})
+	r.Use(middleware.Handler)
 
-	//bytes, e := ioutil.ReadFile("samples/rsa-publickey.txt")
-	//if e != nil {
-	//	log.Fatal(e)
-	//}
+	r.HandleFunc("/helloWorld", helloWorld).Methods("GET")
 
-	myKey := jwk{
-		e: "AQAB",
-		n: "j9XvbTYr3uXbkrAM10zQmOXkt4Gaj-SKZHbOK1y_eIdvrZge_LeSKVIgce6ZtC5b7F3HfJ1TAPy2kCSfusQ-P17egl6ka6-kMvPhDltWnurgAgfjDPnt6NckHxadut7L_-s9kd2L84GO-PznvcHGbc8ntTjtlgLmxDq-gZgCJKJqhWM3NYifUkLbbQT-c4dK6my-JtNyuye2fd2cR_G7IQE1UrZm7zqu9DttjN5A-R1eLYmtTuTC3xSHRCLVks6OyzIjzXP1TcyxXUvbwZWD6LpTidcapztRcwckO_AJHsztAvtC2hsPbl03lKzloHqQeRSEWVzRcgtK5ViRxcH7VQ",
+	address := ":8080"
+	log.Println("Starting server on address", address)
+	err := http.ListenAndServe(address, handlers.LoggingHandler(os.Stdout, r))
+	if err != nil {
+		panic(err)
 	}
-	var key jose.JSONWebSignature
-	something = myKey
-
-	fmt.Printf("string: %s\n", something)
-
-	key := something.(*rsa.PublicKey)
-	fmt.Println(key)
 
 	//s := "foo"
 	//var test *string
@@ -47,11 +50,12 @@ func main() {
 	//fmt.Println(test2)
 }
 
-type jwk struct {
-	kty string
-	e   string
-	n   string
-	use string
-	kid string
-	alg string
+func helloWorld(w http.ResponseWriter, r *http.Request) {
+	context := r.Context().Value("user")
+	user, ok := context.(*core.OIDCClaims)
+	if !ok {
+		log.Fatal("not ok")
+	}
+	email := user.Email
+	_, _ = w.Write([]byte(fmt.Sprintf("Hello world %s ! \n You're logged in as %s", r.Header.Get("X-Forwarded-For"), email)))
 }
