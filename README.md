@@ -18,7 +18,7 @@ Upon successful validation of the OIDC Token the token is available in the conte
  
 ### Sample Code
 
-````go
+```go
 r := mux.NewRouter()
 
 authMiddleware := core.NewAuthMiddleware(core.Options{
@@ -36,4 +36,4 @@ err := http.ListenAndServe(address, handlers.LoggingHandler(os.Stdout, r))
 if err != nil {
     panic(err)
 }
-````
+```
