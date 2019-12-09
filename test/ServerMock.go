@@ -7,10 +7,13 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	jwtgo "github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.wdf.sap.corp/CPSecurity/go-cloud-security-integration/core"
 	"net/http"
 	"net/http/httptest"
+	"time"
 )
 
 type MockServer struct {
@@ -54,4 +57,32 @@ func JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 	keySet := core.JSONWebKeySet{Keys: []*core.JSONWebKey{key}}
 	payload, _ := json.Marshal(keySet)
 	_, _ = w.Write(payload)
+}
+
+func (m MockServer) SignToken(claims core.OIDCClaims) (string, error) {
+	token := jwtgo.NewWithClaims(jwtgo.SigningMethodRS256, claims)
+	signedString, err := token.SignedString(m.RSAKey)
+	if err != nil {
+		return "", fmt.Errorf("error signing token: %w", err)
+	}
+	return signedString, nil
+}
+
+func (m MockServer) DefaultClaims() core.OIDCClaims {
+	now := time.Now()
+	claims := core.OIDCClaims{
+		StandardClaims: jwtgo.StandardClaims{
+			Audience:  "",
+			ExpiresAt: now.Add(time.Minute * 5).Unix(),
+			Id:        uuid.New().String(),
+			IssuedAt:  now.Unix(),
+			Issuer:    m.Server.URL,
+			NotBefore: now.Unix(),
+		},
+		UserName:   "foobar",
+		GivenName:  "Foo",
+		FamilyName: "Bar",
+		Email:      "foo@bar.org",
+	}
+	return claims
 }

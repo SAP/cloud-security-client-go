@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/cloudfoundry-community/go-cfenv v1.18.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.3
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35
