@@ -1,4 +1,4 @@
-package test
+package core
 
 import (
 	"crypto/rand"
@@ -10,14 +10,15 @@ import (
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.wdf.sap.corp/CPSecurity/go-cloud-security-integration/core"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"time"
 )
 
 type MockServer struct {
 	Server *httptest.Server
+	Config *MockConfig
 	RSAKey *rsa.PrivateKey
 }
 
@@ -29,16 +30,22 @@ func NewOIDCMockServer() *MockServer {
 	r.HandleFunc("/oauth2/certs", JWKsHandler).Methods("GET")
 
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	server := httptest.NewTLSServer(r)
 	mockServer = &MockServer{
-		Server: httptest.NewTLSServer(r),
+		Server: server,
+		Config: &MockConfig{
+			ClientID:     "clientid",
+			ClientSecret: "clientsecret",
+			BaseURL:      strings.TrimLeft(server.URL, "https://"),
+		},
 		RSAKey: rsaKey,
 	}
 	return mockServer
 }
 
 func WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
-	wellKnown := core.ProviderJSON{
-		Issuer:  "",
+	wellKnown := ProviderJSON{
+		Issuer:  "mytenant." + mockServer.Config.BaseURL,
 		JWKsURL: fmt.Sprintf("%s/oauth2/certs", mockServer.Server.URL),
 	}
 	payload, _ := json.Marshal(wellKnown)
@@ -48,18 +55,18 @@ func WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 func JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 	eBytes := make([]byte, 64)
 	_ = binary.PutVarint(eBytes, int64(mockServer.RSAKey.PublicKey.E))
-	key := &core.JSONWebKey{
+	key := &JSONWebKey{
 		Kty: "RSA",
 		E:   base64.RawURLEncoding.EncodeToString(eBytes),
 		N:   base64.RawURLEncoding.EncodeToString(mockServer.RSAKey.PublicKey.N.Bytes()),
 		Use: "sig",
 	}
-	keySet := core.JSONWebKeySet{Keys: []*core.JSONWebKey{key}}
+	keySet := JSONWebKeySet{Keys: []*JSONWebKey{key}}
 	payload, _ := json.Marshal(keySet)
 	_, _ = w.Write(payload)
 }
 
-func (m MockServer) SignToken(claims core.OIDCClaims) (string, error) {
+func (m MockServer) SignToken(claims OIDCClaims) (string, error) {
 	token := jwtgo.NewWithClaims(jwtgo.SigningMethodRS256, claims)
 	signedString, err := token.SignedString(m.RSAKey)
 	if err != nil {
@@ -68,15 +75,16 @@ func (m MockServer) SignToken(claims core.OIDCClaims) (string, error) {
 	return signedString, nil
 }
 
-func (m MockServer) DefaultClaims() core.OIDCClaims {
+func (m MockServer) DefaultClaims() OIDCClaims {
 	now := time.Now()
-	claims := core.OIDCClaims{
+	iss := "mytenant." + m.Config.BaseURL
+	claims := OIDCClaims{
 		StandardClaims: jwtgo.StandardClaims{
 			Audience:  "",
 			ExpiresAt: now.Add(time.Minute * 5).Unix(),
 			Id:        uuid.New().String(),
 			IssuedAt:  now.Unix(),
-			Issuer:    m.Server.URL,
+			Issuer:    iss,
 			NotBefore: now.Unix(),
 		},
 		UserName:   "foobar",
@@ -85,4 +93,22 @@ func (m MockServer) DefaultClaims() core.OIDCClaims {
 		Email:      "foo@bar.org",
 	}
 	return claims
+}
+
+type MockConfig struct {
+	ClientID     string
+	ClientSecret string
+	BaseURL      string
+}
+
+func (c MockConfig) GetClientID() string {
+	return c.ClientID
+}
+
+func (c MockConfig) GetClientSecret() string {
+	return c.ClientSecret
+}
+
+func (c MockConfig) GetBaseURL() string {
+	return c.BaseURL
 }
