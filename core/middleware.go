@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	jwtgo "github.com/dgrijalva/jwt-go"
+	"golang.org/x/sync/singleflight"
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -15,10 +17,10 @@ type errorHandler func(w http.ResponseWriter, r *http.Request, err error)
 
 // external options struct because of Runaway Arguments antipattern
 type Options struct {
-	UserContext  string
-	OAuthConfig  OAuthConfig
-	ErrorHandler errorHandler // called when the jwt verification fails
-	httpClient   *http.Client // httpClient which is used to get jwks (JSON Web Keys)
+	UserContext  string       // property under which the token is accessible in the request context. Default: "user"
+	OAuthConfig  OAuthConfig  // config for the oidc server bound to the application. Default: nil
+	ErrorHandler errorHandler // called when the jwt verification fails. Default: DefaultErrorHandler
+	httpClient   *http.Client // httpClient which is used to get jwks (JSON Web Keys). Default: http.DefaultClient
 }
 
 // Config Parser for IAS can be used from env package
@@ -28,14 +30,16 @@ type OAuthConfig interface {
 	GetBaseURL() string
 }
 
-type Middleware struct {
+type AuthMiddleware struct {
 	Options
-	parser     *jwtgo.Parser
-	saasKeySet map[string]*remoteKeySet
+	parser      *jwtgo.Parser
+	saasKeySet  map[string]*remoteKeySet
+	saasKeySetC sync.Map
+	sf          singleflight.Group
 }
 
-func New(options Options) *Middleware {
-	m := new(Middleware)
+func NewAuthMiddleware(options Options) *AuthMiddleware {
+	m := new(AuthMiddleware)
 
 	if options.OAuthConfig == nil {
 		log.Fatal("OAuthConfig must not be nil, please refer to package env for default implementations")
@@ -57,7 +61,7 @@ func New(options Options) *Middleware {
 	return m
 }
 
-func (m *Middleware) Handler(h http.Handler) http.Handler {
+func (m *AuthMiddleware) Handler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := m.ValidateJWT(w, r)
 
@@ -70,9 +74,8 @@ func (m *Middleware) Handler(h http.Handler) http.Handler {
 	})
 }
 
-func (m *Middleware) ValidateJWT(w http.ResponseWriter, r *http.Request) error {
+func (m *AuthMiddleware) ValidateJWT(w http.ResponseWriter, r *http.Request) error {
 	// get Token from Header
-	// parse Token into struct -> Refer to other package for structure (Signature, Raw, Claims, ..)
 	rawToken, err := extractRawToken(r)
 	if err != nil {
 		m.ErrorHandler(w, r, err)
@@ -111,17 +114,21 @@ func (m *Middleware) ValidateJWT(w http.ResponseWriter, r *http.Request) error {
 	return err
 }
 
-func (m *Middleware) verifySignature(t *jwtgo.Token, parts []string) error {
+func (m *AuthMiddleware) verifySignature(t *jwtgo.Token, parts []string) error {
 	iss := t.Claims.(*OIDCClaims).Issuer
 	var keySet *remoteKeySet
 	var ok bool
 	if keySet, ok = m.saasKeySet[iss]; !ok {
-		newKeySet, err := NewKeySet(m.httpClient, iss, m.OAuthConfig)
+		newKeySet, err, _ := m.sf.Do(iss, func() (i interface{}, err error) {
+			set, err := NewKeySet(m.httpClient, iss, m.OAuthConfig)
+			m.saasKeySet[iss] = set
+			return set, err
+		})
+
 		if err != nil {
 			return fmt.Errorf("unable to build remote keyset: %w", err)
 		}
-		m.saasKeySet[iss] = newKeySet
-		keySet = newKeySet
+		keySet = newKeySet.(*remoteKeySet)
 	}
 	cachedKeys := keySet.KeysFromCache()
 
@@ -142,14 +149,14 @@ func (m *Middleware) verifySignature(t *jwtgo.Token, parts []string) error {
 		return errors.New("failed to verify token signature")
 	}
 
-	remoteKeys, err := keySet.KeysFromRemote(m.httpClient)
+	remoteKeys, err := keySet.KeysFromRemote()
 	if err != nil {
 		return fmt.Errorf("failed to update token keys from remote: %w", err)
 	}
 
 	if len(remoteKeys) > 0 {
 		if t.Header[KEY_ID] == nil && len(remoteKeys) != 1 {
-			return errors.New("no kid specified in token and more than one verification Key available")
+			return errors.New("no kid specified in token and more than one verification Key available. Please contact your oidc provider")
 		}
 		jwk := remoteKeys[0]
 		if err := t.Method.Verify(strings.Join(parts[0:2], "."), t.Signature, jwk.Key); err == nil {

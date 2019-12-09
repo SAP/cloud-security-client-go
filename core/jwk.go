@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/pquerna/cachecontrol"
+	"golang.org/x/sync/singleflight"
 	"io/ioutil"
 	"math/big"
 	"mime"
@@ -18,9 +19,16 @@ import (
 type remoteKeySet struct {
 	jwksURL string
 
+	httpClient   *http.Client
+	singleFlight singleflight.Group
 	// A set of cached keys and their expiry.
 	cachedKeys []*JSONWebKey
 	expiry     time.Time
+}
+
+type updateKeysResult struct {
+	keys   []*JSONWebKey
+	expiry time.Time
 }
 
 func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySet, error) {
@@ -30,7 +38,8 @@ func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySe
 	}
 	subdomain := strings.TrimSuffix(issTrimmed, "."+c.GetBaseURL())
 	ks := new(remoteKeySet)
-	err := ks.performDiscovery(httpClient, c.GetBaseURL(), subdomain)
+	ks.httpClient = httpClient
+	err := ks.performDiscovery(c.GetBaseURL(), subdomain)
 
 	if err != nil {
 		return nil, err
@@ -38,66 +47,80 @@ func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySe
 	return ks, nil
 }
 
-func (ks *remoteKeySet) KeysFromRemote(httpClient *http.Client) ([]*JSONWebKey, error) {
+func (ks *remoteKeySet) KeysFromRemote() ([]*JSONWebKey, error) {
+	rChan := ks.singleFlight.DoChan("updateKeys", ks.updateKeys)
+
+	res := <-rChan
+	if res.Err != nil {
+		return nil, res.Err
+	}
+	keysResult := res.Val.(updateKeysResult)
+
+	ks.expiry = keysResult.expiry
+	ks.cachedKeys = keysResult.keys
+
+	return ks.cachedKeys, nil
+}
+
+func (ks *remoteKeySet) updateKeys() (r interface{}, err error) {
+	result := updateKeysResult{}
 	req, err := http.NewRequest("GET", ks.jwksURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("can't create request to fetch jwk: %v", err)
+		return result, fmt.Errorf("can't create request to fetch jwk: %v", err)
 	}
 
-	resp, err := httpClient.Do(req)
+	resp, err := ks.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch jwks from remote: %v", err)
+		return result, fmt.Errorf("failed to fetch jwks from remote: %v", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read fetched jwks: %v", err)
+		return result, fmt.Errorf("failed to read fetched jwks: %v", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch jwks: %s %s", resp.Status, body)
+		return result, fmt.Errorf("failed to fetch jwks: %s %s", resp.Status, body)
 	}
 
 	var keySet JSONWebKeySet
 	err = unmarshalResponse(resp, body, &keySet)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode jwks: %v %s", err, body)
+		return result, fmt.Errorf("failed to decode jwks: %v %s", err, body)
 	}
 	for _, jwk := range keySet.Keys {
 		err := jwk.assertKeyType()
 		if err != nil {
-			return nil, fmt.Errorf("failed to build verfication Key from jwk: %v", err)
+			return result, fmt.Errorf("failed to build verfication Key from jwk: %v", err)
 		}
 	}
 
+	result.keys = keySet.Keys
+
 	// If the server doesn't provide cache control headers, assume the
 	// keys expire immediately.
-	expiry := time.Now()
+	result.expiry = time.Now()
 
 	_, e, err := cachecontrol.CachableResponse(req, resp, cachecontrol.Options{})
-	if err == nil && e.After(expiry) {
-		expiry = e
+	if err == nil && e.After(result.expiry) {
+		result.expiry = e
 	}
 
-	ks.expiry = expiry
-	ks.cachedKeys = keySet.Keys
-
-	return ks.cachedKeys, nil
+	return result, nil
 }
 
 func (ks *remoteKeySet) KeysFromCache() []*JSONWebKey {
 	return ks.cachedKeys
 }
 
-func (ks *remoteKeySet) performDiscovery(httpClient *http.Client, baseURL string, subdomain string) error {
-
+func (ks *remoteKeySet) performDiscovery(baseURL string, subdomain string) error {
 	wellKnown := fmt.Sprintf("https://%s.%s/.well-known/openid-configuration", subdomain, strings.TrimSuffix(baseURL, "/"))
 	req, err := http.NewRequest("GET", wellKnown, nil)
 	if err != nil {
 		return fmt.Errorf("unable to construct discovery request: %v", err)
 	}
-	resp, err := httpClient.Do(req)
+	resp, err := ks.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("unable to perform oidc discovery request: %v", err)
 	}
@@ -112,21 +135,21 @@ func (ks *remoteKeySet) performDiscovery(httpClient *http.Client, baseURL string
 		return fmt.Errorf("%s: %s", resp.Status, body)
 	}
 
-	var p providerJSON
+	var p ProviderJSON
 	err = unmarshalResponse(resp, body, &p)
 	if err != nil {
 		return fmt.Errorf("failed to decode provider discovery object: %v", err)
 	}
-	ks.jwksURL = p.JWKSURL
+	ks.jwksURL = p.JWKsURL
 
 	return nil
 }
 
-type providerJSON struct {
+type ProviderJSON struct {
 	Issuer      string `json:"issuer"`
 	AuthURL     string `json:"authorization_endpoint"`
 	TokenURL    string `json:"token_endpoint"`
-	JWKSURL     string `json:"jwks_uri"`
+	JWKsURL     string `json:"jwks_uri"`
 	UserInfoURL string `json:"userinfo_endpoint"`
 }
 
