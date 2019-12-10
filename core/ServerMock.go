@@ -4,12 +4,12 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -45,7 +45,7 @@ func NewOIDCMockServer() *MockServer {
 
 func WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 	wellKnown := ProviderJSON{
-		Issuer:  "mytenant." + mockServer.Config.BaseURL,
+		Issuer:  mockServer.Config.BaseURL,
 		JWKsURL: fmt.Sprintf("%s/oauth2/certs", mockServer.Server.URL),
 	}
 	payload, _ := json.Marshal(wellKnown)
@@ -53,11 +53,9 @@ func WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func JWKsHandler(w http.ResponseWriter, _ *http.Request) {
-	eBytes := make([]byte, 64)
-	_ = binary.PutVarint(eBytes, int64(mockServer.RSAKey.PublicKey.E))
 	key := &JSONWebKey{
 		Kty: "RSA",
-		E:   base64.RawURLEncoding.EncodeToString(eBytes),
+		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(mockServer.RSAKey.PublicKey.E)).Bytes()),
 		N:   base64.RawURLEncoding.EncodeToString(mockServer.RSAKey.PublicKey.N.Bytes()),
 		Use: "sig",
 	}
@@ -77,7 +75,8 @@ func (m MockServer) SignToken(claims OIDCClaims) (string, error) {
 
 func (m MockServer) DefaultClaims() OIDCClaims {
 	now := time.Now()
-	iss := "mytenant." + m.Config.BaseURL
+	//iss := "mytenant." + m.Config.BaseURL
+	iss := m.Config.BaseURL
 	claims := OIDCClaims{
 		StandardClaims: jwtgo.StandardClaims{
 			Audience:  "",

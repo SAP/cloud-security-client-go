@@ -1,8 +1,12 @@
 package main
 
 import (
-	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"encoding/base64"
+	"encoding/binary"
 	"fmt"
+	"math/big"
 )
 
 type foo struct {
@@ -11,12 +15,16 @@ type foo struct {
 }
 
 func main() {
+	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 
-	context.Background()
-	f := give()
+	eBytes := make([]byte, 64)
+	_ = binary.PutVarint(eBytes, int64(rsaKey.PublicKey.E))
+	key := &jwkPlayground{
+		E: base64.RawURLEncoding.EncodeToString(big.NewInt(int64(rsaKey.PublicKey.E)).Bytes()),
+		N: base64.RawURLEncoding.EncodeToString(rsaKey.PublicKey.N.Bytes()),
+	}
 
-	fmt.Println(f)
-	fmt.Println(*f.bar)
+	fmt.Println(key)
 
 	//done := make(chan bool)
 	//var mu sync.Mutex
@@ -36,20 +44,9 @@ func main() {
 
 }
 
-func give() *foo {
-	value := "Test"
-	test := foo{
-		bar: &value,
-		yo:  "hi",
-	}
-	fmt.Println(test)
-	fmt.Println(*test.bar)
-	defer func(foo *foo) {
-		v := "rekt"
-		foo.bar = &v
-		foo.yo = "rekt"
-	}(&test)
-	return &test
+type jwkPlayground struct {
+	E string
+	N string
 }
 
 //func main() {

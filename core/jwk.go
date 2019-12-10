@@ -37,6 +37,9 @@ func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySe
 		return nil, fmt.Errorf("token is issued from a different oauth server. expected to end with %s, got %s", c.GetBaseURL(), issTrimmed)
 	}
 	subdomain := strings.TrimSuffix(issTrimmed, "."+c.GetBaseURL())
+	if subdomain == c.GetBaseURL() {
+		subdomain = ""
+	}
 	ks := new(remoteKeySet)
 	ks.httpClient = httpClient
 	err := ks.performDiscovery(c.GetBaseURL(), subdomain)
@@ -115,7 +118,10 @@ func (ks *remoteKeySet) KeysFromCache() []*JSONWebKey {
 }
 
 func (ks *remoteKeySet) performDiscovery(baseURL string, subdomain string) error {
-	wellKnown := fmt.Sprintf("https://%s.%s/.well-known/openid-configuration", subdomain, strings.TrimSuffix(baseURL, "/"))
+	if subdomain != "" {
+		subdomain += "."
+	}
+	wellKnown := fmt.Sprintf("https://%s%s/.well-known/openid-configuration", subdomain, strings.TrimSuffix(baseURL, "/"))
 	req, err := http.NewRequest("GET", wellKnown, nil)
 	if err != nil {
 		return fmt.Errorf("unable to construct discovery request: %v", err)
