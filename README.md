@@ -1,3 +1,5 @@
+<h1>Client library under development. Not yet ready for productive use<h1>
+
 # Go Cloud Security Integration
 
 ## Core
