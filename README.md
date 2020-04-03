@@ -16,7 +16,7 @@ Parsing of environment provided by the Authorization Server e.g. IAS broker
 
 The client library works as a middleware and has to be instantiated with `NewAuthMiddelware`. The Middleware exposes a `Handler` which implements the standard `http/Handler` interface. Thus it can be used easily e.g. in an `gorilla/mux` router or a plain `http/Server` implementation.
 
-Upon successful validation of the OIDC Token the token is available in the context of the current request. The property can be specified with the `UserContext` option and has to be cased to `(*core.OIDCClaims)` for the property accessors to be available.  
+Upon successful validation of the OIDC Token the token is available in the context of the current request. The property name can be specified with the `UserContext` option and has to be casted to `(*core.OIDCClaims)` for the property accessors to be available.  
  
 ### Sample Code
 
