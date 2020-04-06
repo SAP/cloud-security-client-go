@@ -33,6 +33,10 @@ type updateKeysResult struct {
 }
 
 func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySet, error) {
+	// currently only tenants from ias accounts400 are supported -> Clarify SaaS tenant support for e.g. custom domains
+	if strings.Contains(c.GetBaseURL(), "accounts400") {
+
+	}
 	uri, err := url.ParseRequestURI(iss)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse issuer uri: %s", iss)
