@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"mime"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -32,7 +33,11 @@ type updateKeysResult struct {
 }
 
 func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySet, error) {
-	issTrimmed := strings.TrimSuffix(iss, "/")
+	uri, err := url.ParseRequestURI(iss)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse issuer uri: %s", iss)
+	}
+	issTrimmed := uri.Host
 	if !strings.HasSuffix(issTrimmed, c.GetBaseURL()) {
 		return nil, fmt.Errorf("token is issued from a different oauth server. expected to end with %s, got %s", c.GetBaseURL(), issTrimmed)
 	}
@@ -42,7 +47,7 @@ func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySe
 	}
 	ks := new(remoteKeySet)
 	ks.httpClient = httpClient
-	err := ks.performDiscovery(c.GetBaseURL(), subdomain)
+	err = ks.performDiscovery(c.GetBaseURL(), subdomain)
 
 	if err != nil {
 		return nil, err
@@ -50,7 +55,12 @@ func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySe
 	return ks, nil
 }
 
-func (ks *remoteKeySet) KeysFromRemote() ([]*JSONWebKey, error) {
+func (ks *remoteKeySet) GetKeys() ([]*JSONWebKey, error) {
+	if !time.Now().After(ks.expiry) {
+		return ks.cachedKeys, nil
+		// cached keys still valid, still verification failed
+	}
+
 	rChan := ks.singleFlight.DoChan("updateKeys", ks.updateKeys)
 
 	res := <-rChan
@@ -101,9 +111,8 @@ func (ks *remoteKeySet) updateKeys() (r interface{}, err error) {
 
 	result.keys = keySet.Keys
 
-	// If the server doesn't provide cache control headers, assume the
-	// keys expire immediately.
-	result.expiry = time.Now()
+	// If the server doesn't provide cache control headers, assume the keys expire in 15min.
+	result.expiry = time.Now().Add(15 * time.Minute)
 
 	_, e, err := cachecontrol.CachableResponse(req, resp, cachecontrol.Options{})
 	if err == nil && e.After(result.expiry) {
@@ -111,10 +120,6 @@ func (ks *remoteKeySet) updateKeys() (r interface{}, err error) {
 	}
 
 	return result, nil
-}
-
-func (ks *remoteKeySet) KeysFromCache() []*JSONWebKey {
-	return ks.cachedKeys
 }
 
 func (ks *remoteKeySet) performDiscovery(baseURL string, subdomain string) error {

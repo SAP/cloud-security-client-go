@@ -33,11 +33,6 @@ func main() {
 }
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
-	context := r.Context().Value("user")
-	user, ok := context.(*core.OIDCClaims)
-	if !ok {
-		log.Fatal("not ok")
-	}
-	email := user.Email
-	_, _ = w.Write([]byte(fmt.Sprintf("Hello world %s ! \n You're logged in as %s", r.Header.Get("X-Forwarded-For"), email)))
+	user := r.Context().Value("user").(*core.OIDCClaims)
+	_, _ = w.Write([]byte(fmt.Sprintf("Hello world %s ! \n You're logged in as %s", r.Header.Get("X-Forwarded-For"), user.Email)))
 }
