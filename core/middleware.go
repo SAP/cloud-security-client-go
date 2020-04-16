@@ -28,7 +28,7 @@ type Options struct {
 type OAuthConfig interface {
 	GetClientID() string
 	GetClientSecret() string
-	GetBaseURL() string
+	GetURL() string
 }
 
 type AuthMiddleware struct {

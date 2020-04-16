@@ -6,10 +6,12 @@ import (
 	"log"
 )
 
+const serviceName = "identity-beta"
+
 type IASConfig struct {
 	clientID     string
 	clientSecret string
-	baseURL      string
+	URL          string
 }
 
 func GetIASConfig() *IASConfig {
@@ -20,14 +22,14 @@ func GetIASConfig() *IASConfig {
 		if e != nil {
 			log.Fatal("Could not read cf env")
 		}
-		ias, e := appEnv.Services.WithName("iasb")
+		ias, e := appEnv.Services.WithName(serviceName)
 		if e != nil {
-			log.Fatal("No ias instance bound to the application")
+			log.Fatal("No " + serviceName + " instance bound to the application")
 		} else {
 			config = IASConfig{}
 			e := config.parseEnv(ias.Credentials)
 			if e != nil {
-				log.Fatal("error during parsing of ias environment: ", e)
+				log.Fatal("error during parsing of "+serviceName+" environment: ", e)
 			}
 		}
 		// do stuff
@@ -46,8 +48,8 @@ func (c IASConfig) GetClientSecret() string {
 	return c.clientSecret
 }
 
-func (c IASConfig) GetBaseURL() string {
-	return c.baseURL
+func (c IASConfig) GetURL() string {
+	return c.URL
 }
 
 func (c *IASConfig) parseEnv(credentials map[string]interface{}) error {
@@ -64,7 +66,7 @@ func (c *IASConfig) parseEnv(credentials map[string]interface{}) error {
 	if baseURL, ok := credentials["url"]; !ok {
 		return errors.New("unable to find property url in environment")
 	} else {
-		c.baseURL = baseURL.(string)
+		c.URL = baseURL.(string)
 	}
 	return nil
 }

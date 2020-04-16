@@ -36,25 +36,23 @@ type updateKeysResult struct {
 }
 
 func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySet, error) {
-	// currently only tenants from ias accounts400 are supported -> Clarify SaaS tenant support for e.g. custom domains
-	if strings.Contains(c.GetBaseURL(), "accounts400") {
-
-	}
-	uri, err := url.ParseRequestURI(iss)
+	issURI, err := url.ParseRequestURI(iss)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse issuer uri: %s", iss)
+		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
 	}
-	issTrimmed := uri.Host
-	if !strings.HasSuffix(issTrimmed, c.GetBaseURL()) {
-		return nil, fmt.Errorf("token is issued from a different oauth server. expected to end with %s, got %s", c.GetBaseURL(), issTrimmed)
+	issTrimmed := issURI.Host
+	configURI, err := url.ParseRequestURI(c.GetURL())
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse config URI: %s", c.GetURL())
 	}
-	subdomain := strings.TrimSuffix(issTrimmed, "."+c.GetBaseURL())
-	if subdomain == c.GetBaseURL() {
-		subdomain = ""
+	configURLTrimmed := configURI.Host
+	// TODO: No multitenancy support with different tenants of same auth server like accounts400
+	if !strings.HasSuffix(issTrimmed, configURLTrimmed) {
+		return nil, fmt.Errorf("token is issued from a different oauth server. expected to end with %s, got %s", c.GetURL(), issTrimmed)
 	}
 	ks := new(remoteKeySet)
 	ks.httpClient = httpClient
-	err = ks.performDiscovery(c.GetBaseURL(), subdomain)
+	err = ks.performDiscovery(iss)
 
 	if err != nil {
 		return nil, err
@@ -129,11 +127,8 @@ func (ks *remoteKeySet) updateKeys() (r interface{}, err error) {
 	return result, nil
 }
 
-func (ks *remoteKeySet) performDiscovery(baseURL string, subdomain string) error {
-	if subdomain != "" {
-		subdomain += "."
-	}
-	wellKnown := fmt.Sprintf("https://%s%s/.well-known/openid-configuration", subdomain, strings.TrimSuffix(baseURL, "/"))
+func (ks *remoteKeySet) performDiscovery(baseURL string) error {
+	wellKnown := fmt.Sprintf("%s/.well-known/openid-configuration", strings.TrimSuffix(baseURL, "/"))
 	req, err := http.NewRequest("GET", wellKnown, nil)
 	if err != nil {
 		return fmt.Errorf("unable to construct discovery request: %v", err)

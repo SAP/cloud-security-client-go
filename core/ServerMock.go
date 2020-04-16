@@ -12,7 +12,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"time"
 )
 
@@ -36,7 +35,7 @@ func NewOIDCMockServer() *MockServer {
 		Config: &MockConfig{
 			ClientID:     "clientid",
 			ClientSecret: "clientsecret",
-			BaseURL:      strings.TrimLeft(server.URL, "https://"),
+			URL:          server.URL,
 		},
 		RSAKey: rsaKey,
 	}
@@ -45,7 +44,7 @@ func NewOIDCMockServer() *MockServer {
 
 func WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 	wellKnown := ProviderJSON{
-		Issuer:  mockServer.Config.BaseURL,
+		Issuer:  mockServer.Config.URL,
 		JWKsURL: fmt.Sprintf("%s/oauth2/certs", mockServer.Server.URL),
 	}
 	payload, _ := json.Marshal(wellKnown)
@@ -75,7 +74,7 @@ func (m MockServer) SignToken(claims OIDCClaims) (string, error) {
 
 func (m MockServer) DefaultClaims() OIDCClaims {
 	now := time.Now()
-	//iss := "mytenant." + m.Config.BaseURL
+	//iss := "mytenant." + m.Config.URL
 	iss := m.Server.URL
 	claims := OIDCClaims{
 		StandardClaims: jwtgo.StandardClaims{
@@ -97,7 +96,7 @@ func (m MockServer) DefaultClaims() OIDCClaims {
 type MockConfig struct {
 	ClientID     string
 	ClientSecret string
-	BaseURL      string
+	URL          string
 }
 
 func (c MockConfig) GetClientID() string {
@@ -108,6 +107,6 @@ func (c MockConfig) GetClientSecret() string {
 	return c.ClientSecret
 }
 
-func (c MockConfig) GetBaseURL() string {
-	return c.BaseURL
+func (c MockConfig) GetURL() string {
+	return c.URL
 }
