@@ -1,5 +1,7 @@
 package core
 
+//TODO: Rename package to e.g. "auth"
+
 import (
 	"context"
 	"errors"
@@ -30,7 +32,7 @@ type OAuthConfig interface {
 }
 
 type AuthMiddleware struct {
-	Options
+	options    Options
 	parser     *jwtgo.Parser
 	saasKeySet map[string]*remoteKeySet
 	sf         singleflight.Group
@@ -52,7 +54,7 @@ func NewAuthMiddleware(options Options) *AuthMiddleware {
 		options.HttpClient = http.DefaultClient
 		options.HttpClient.Timeout = time.Second * 30
 	}
-	m.Options = options
+	m.options = options
 
 	m.parser = new(jwtgo.Parser)
 	m.saasKeySet = make(map[string]*remoteKeySet)
@@ -65,16 +67,16 @@ func (m *AuthMiddleware) Handler(h http.Handler) http.Handler {
 		// get Token from Header
 		rawToken, err := extractRawToken(r)
 		if err != nil {
-			m.ErrorHandler(w, r, err)
+			m.options.ErrorHandler(w, r, err)
 			return
 		}
 
 		token, err := m.ValidateJWT(rawToken)
 		if err != nil {
-			m.ErrorHandler(w, r, err)
+			m.options.ErrorHandler(w, r, err)
 			return
 		}
-		reqWithContext := r.WithContext(context.WithValue(r.Context(), m.UserContext, token.Claims))
+		reqWithContext := r.WithContext(context.WithValue(r.Context(), m.options.UserContext, token.Claims))
 		*r = *reqWithContext
 
 		// Continue serving http if jwt was valid
@@ -91,7 +93,7 @@ func (m *AuthMiddleware) ValidateJWT(rawToken string) (*jwtgo.Token, error) {
 
 	vErr := &jwtgo.ValidationError{}
 
-	if err := m.verifySignature(token, parts); err != nil {
+	if err := m.verifySignature(token); err != nil {
 		return nil, fmt.Errorf("signature validation failed: %w", err)
 	}
 
@@ -108,13 +110,16 @@ func (m *AuthMiddleware) ValidateJWT(rawToken string) (*jwtgo.Token, error) {
 	return nil, err
 }
 
-func (m *AuthMiddleware) verifySignature(t *jwtgo.Token, parts []string) error {
-	iss := t.Claims.(*OIDCClaims).Issuer
+func (m *AuthMiddleware) verifySignature(t *jwtgo.Token) error {
+	claims, ok := t.Claims.(*OIDCClaims)
+	if !ok {
+		return fmt.Errorf("unable to assert claim type: expected *OIDCClaims, got %T", t.Claims)
+	}
+	iss := claims.Issuer
 	var keySet *remoteKeySet
-	var ok bool
 	if keySet, ok = m.saasKeySet[iss]; !ok {
 		newKeySet, err, _ := m.sf.Do(iss, func() (i interface{}, err error) {
-			set, err := NewKeySet(m.HttpClient, iss, m.OAuthConfig)
+			set, err := NewKeySet(m.options.HttpClient, iss, m.options.OAuthConfig)
 			m.saasKeySet[iss] = set
 			return set, err
 		})
@@ -135,7 +140,7 @@ func (m *AuthMiddleware) verifySignature(t *jwtgo.Token, parts []string) error {
 		}
 		jwk := jwks[0]
 		// join token together again, as t.Raw does not contain signature
-		if err := t.Method.Verify(strings.Join(parts[0:2], "."), t.Signature, jwk.Key); err == nil {
+		if err := t.Method.Verify(strings.TrimSuffix(t.Raw, "."+t.Signature), t.Signature, jwk.Key); err == nil {
 			// valid
 			return nil
 		}

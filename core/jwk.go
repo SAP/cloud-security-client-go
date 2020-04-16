@@ -1,5 +1,8 @@
 package core
 
+//TODO: Move everthing related to auth to another package and keep only request/response related stuff here
+//TODO: create file named after package as entry point with description of package tasks
+
 import (
 	"crypto/rsa"
 	"encoding/base64"
