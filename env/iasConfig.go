@@ -9,8 +9,8 @@ import (
 const serviceName = "identity-beta"
 
 type IASConfig struct {
-	clientID     string
-	clientSecret string
+	ClientId     string
+	ClientSecret string
 	URL          string
 }
 
@@ -41,11 +41,11 @@ func GetIASConfig() *IASConfig {
 }
 
 func (c IASConfig) GetClientID() string {
-	return c.clientID
+	return c.ClientId
 }
 
 func (c IASConfig) GetClientSecret() string {
-	return c.clientSecret
+	return c.ClientSecret
 }
 
 func (c IASConfig) GetURL() string {
@@ -56,12 +56,12 @@ func (c *IASConfig) parseEnv(credentials map[string]interface{}) error {
 	if clientID, ok := credentials["clientid"]; !ok {
 		return errors.New("unable to find property clientid in environment")
 	} else {
-		c.clientID = clientID.(string)
+		c.ClientId = clientID.(string)
 	}
 	if clientSecret, ok := credentials["clientsecret"]; !ok {
 		return errors.New("unable to find property clientsecret in environment")
 	} else {
-		c.clientSecret = clientSecret.(string)
+		c.ClientSecret = clientSecret.(string)
 	}
 	if baseURL, ok := credentials["url"]; !ok {
 		return errors.New("unable to find property url in environment")
