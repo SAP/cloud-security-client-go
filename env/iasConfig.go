@@ -22,12 +22,24 @@ func GetIASConfig() *IASConfig {
 		if e != nil {
 			log.Fatal("Could not read cf env")
 		}
-		ias, e := appEnv.Services.WithName(serviceName)
+		ias, e := appEnv.Services.WithLabel(serviceName)
 		if e != nil {
-			log.Fatal("No " + serviceName + " instance bound to the application")
+			userProvided, e := appEnv.Services.WithLabel("user-provided")
+			if e != nil {
+				log.Fatal("No " + serviceName + " instance bound to the application")
+			}
+			ias, ok := userProvided[0].Credentials["identity-beta"]
+			if !ok {
+				log.Fatal("No " + serviceName + " instance bound to the application")
+			}
+			credentials := ias.([]interface{})[0].(map[string]interface{})["credentials"].(map[string]interface{})
+			e = config.parseEnv(credentials)
+			if e != nil {
+				log.Fatal("error during parsing of "+serviceName+" in user-provided environment: ", e)
+			}
 		} else {
 			config = IASConfig{}
-			e := config.parseEnv(ias.Credentials)
+			e := config.parseEnv(ias[0].Credentials)
 			if e != nil {
 				log.Fatal("error during parsing of "+serviceName+" environment: ", e)
 			}
