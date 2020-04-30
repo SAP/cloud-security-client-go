@@ -74,11 +74,10 @@ func (m MockServer) SignToken(claims OIDCClaims) (string, error) {
 
 func (m MockServer) DefaultClaims() OIDCClaims {
 	now := time.Now()
-	//iss := "mytenant." + m.Config.URL
 	iss := m.Server.URL
 	claims := OIDCClaims{
 		StandardClaims: jwtgo.StandardClaims{
-			Audience:  "",
+			Audience:  m.Config.ClientID,
 			ExpiresAt: now.Add(time.Minute * 5).Unix(),
 			Id:        uuid.New().String(),
 			IssuedAt:  now.Unix(),

@@ -44,6 +44,7 @@ func (c OIDCClaims) Valid() error {
 	if err != nil {
 		return err
 	}
+
 	// TODO: check aud and iss additionally to StandardClaims check
 	//c.VerifyAudience()
 	//c.VerifyIssuer()
