@@ -35,7 +35,7 @@ type updateKeysResult struct {
 	expiry time.Time
 }
 
-func NewKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySet, error) {
+func newKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySet, error) {
 	issURI, err := url.ParseRequestURI(iss)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
