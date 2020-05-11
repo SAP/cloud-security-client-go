@@ -46,7 +46,7 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token) error {
 	var keySet *remoteKeySet
 	if keySet, ok = m.saasKeySet[iss]; !ok {
 		newKeySet, err, _ := m.sf.Do(iss, func() (i interface{}, err error) {
-			set, err := newKeySet(m.options.HttpClient, iss, m.options.OAuthConfig)
+			set, err := newKeySet(m.options.HTTPClient, iss, m.options.OAuthConfig)
 			m.saasKeySet[iss] = set
 			return set, err
 		})

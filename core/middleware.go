@@ -13,15 +13,15 @@ import (
 
 type errorHandler func(w http.ResponseWriter, r *http.Request, err error)
 
-// external options struct because of Runaway Arguments antipattern
+// Options can be used as a argument to instantiate a AuthMiddle with NewAuthMiddleware
 type Options struct {
 	UserContext  string       // property under which the token is accessible in the request context. Default: "user"
 	OAuthConfig  OAuthConfig  // config for the oidc server bound to the application. Default: nil
 	ErrorHandler errorHandler // called when the jwt verification fails. Default: DefaultErrorHandler
-	HttpClient   *http.Client // HttpClient which is used to get jwks (JSON Web Keys). Default: http.DefaultClient
+	HTTPClient   *http.Client // HTTPClient which is used to get jwks (JSON Web Keys). Default: http.DefaultClient
 }
 
-// Config Parser for IAS can be used from env package
+// OAuthConfig interface has to be implemented to be used in Options. For IAS the standard implementation from env package can be used
 type OAuthConfig interface {
 	GetClientID() string
 	GetClientSecret() string
@@ -47,9 +47,9 @@ func NewAuthMiddleware(options Options) *AuthMiddleware {
 	if options.UserContext == "" {
 		options.UserContext = "user"
 	}
-	if options.HttpClient == nil {
-		options.HttpClient = http.DefaultClient
-		options.HttpClient.Timeout = time.Second * 30
+	if options.HTTPClient == nil {
+		options.HTTPClient = http.DefaultClient
+		options.HTTPClient.Timeout = time.Second * 30
 	}
 	m.options = options
 

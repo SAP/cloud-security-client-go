@@ -40,7 +40,7 @@ func GetTestServer() (clientServer *httptest.Server, oidcServer *MockServer) {
 		UserContext:  "myprop",
 		OAuthConfig:  mockServer.Config,
 		ErrorHandler: nil,
-		HttpClient:   mockServer.Server.Client(),
+		HTTPClient:   mockServer.Server.Client(),
 	}
 	middleware := NewAuthMiddleware(options)
 	server := httptest.NewTLSServer(middleware.Handler(GetTestHandler()))
@@ -52,6 +52,6 @@ func GetTestOptions() Options {
 	return Options{
 		UserContext: "custom",
 		OAuthConfig: mockServer.Config,
-		HttpClient:  mockServer.Server.Client(),
+		HTTPClient:  mockServer.Server.Client(),
 	}
 }
