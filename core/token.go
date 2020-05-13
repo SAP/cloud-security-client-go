@@ -36,6 +36,7 @@ type OIDCClaims struct {
 	GivenName  string `json:"first_name,omitempty"`
 	FamilyName string `json:"last_name,omitempty"`
 	Email      string `json:"mail,omitempty"`
+	ZoneId     string `json:"zone_uuid,omitempty"`
 }
 
 //
