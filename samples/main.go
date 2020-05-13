@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-// Class for test cases during development
+// Main class for demonstration purposes
 func main() {
 	r := mux.NewRouter()
 
