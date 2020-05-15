@@ -4,7 +4,7 @@ package core
 
 import (
 	"context"
-	jwtgo "github.com/dgrijalva/jwt-go"
+	jwtgo "github.com/dgrijalva/jwt-go/v4"
 	"golang.org/x/sync/singleflight"
 	"log"
 	"net/http"

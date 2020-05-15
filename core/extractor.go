@@ -1,7 +1,7 @@
 package core
 
 import (
-	jwtRequest "github.com/dgrijalva/jwt-go/request"
+	jwtRequest "github.com/dgrijalva/jwt-go/v4/request"
 	"net/http"
 )
 

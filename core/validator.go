@@ -1,11 +1,9 @@
 package core
 
 import (
-	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go/v4"
 	"strings"
-	"time"
 )
 
 func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error) {
@@ -15,32 +13,24 @@ func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error
 	}
 	token.Signature = parts[2]
 
-	vErr := &jwt.ValidationError{}
-
 	// verify claims
 	if err := m.validateClaims(token); err != nil {
-		vErr = err
-		return nil, fmt.Errorf("claim check failed: %v", err)
+		return nil, err
 	}
 
 	// verify signature
 	if err = m.verifySignature(token); err != nil {
-		vErr.Inner = err
-		vErr.Errors |= jwt.ValidationErrorSignatureInvalid
-		return nil, fmt.Errorf("signature validation failed: %w", vErr)
+		return nil, err
 	}
 
-	if token.Valid = vErr.Errors == 0; token.Valid {
-		return token, nil
-	}
-
-	return nil, err
+	token.Valid = true
+	return token, nil
 }
 
 func (m *AuthMiddleware) verifySignature(t *jwt.Token) error {
 	claims, ok := t.Claims.(*OIDCClaims)
 	if !ok {
-		return fmt.Errorf("unable to assert claim type: expected *OIDCClaims, got %T", t.Claims)
+		return &jwt.UnverfiableTokenError{Message: fmt.Sprintf("internal validation error during type assertion: expected *OIDCClaims, got %T", t.Claims)}
 	}
 	iss := claims.Issuer
 	var keySet *remoteKeySet
@@ -52,63 +42,66 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("unable to build remote keyset: %w", err)
+			return wrapError(&jwt.UnverfiableTokenError{Message: "unable to build remote keyset"}, err)
 		}
 		keySet = newKeySet.(*remoteKeySet)
 	}
 
+	// TODO: Check if token signature algorithm meets expectation (always RSA in our case?)
 	jwks, err := keySet.GetKeys()
 	if err != nil {
-		return fmt.Errorf("failed to fetch token keys from remote: %w", err)
+		return wrapError(&jwt.UnverfiableTokenError{Message: "failed to fetch token keys from remote"}, err)
 	}
-	if len(jwks) > 0 {
-		if t.Header[KEY_ID] == nil && len(jwks) != 1 {
-			return errors.New("no kid specified in token and more than one verification key available")
-		}
-		jwk := jwks[0]
-		// join token together again, as t.Raw does not contain signature
-		if err := t.Method.Verify(strings.TrimSuffix(t.Raw, "."+t.Signature), t.Signature, jwk.Key); err == nil {
-			// valid
-			return nil
-		}
+	if len(jwks) == 0 {
+		return &jwt.UnverfiableTokenError{Message: "remote returned no jwk to verify the token"}
 	}
-	return errors.New("failed to verify token signature")
+
+	var jwk *JSONWebKey
+	if kid := t.Header[KEY_ID]; kid != nil {
+		for i, jwk := range jwks {
+			if jwk.Kid == kid {
+				jwk = jwks[i]
+				break
+			}
+		}
+		return &jwt.UnverfiableTokenError{Message: "kid id specified in token not presented by remote"}
+	} else if t.Header[KEY_ID] == nil && len(jwks) == 1 {
+		jwk = jwks[0]
+	} else {
+		return &jwt.UnverfiableTokenError{Message: "no kid specified in token and more than one verification key available"}
+	}
+
+	// join token together again, as t.Raw does not contain signature
+	if err := t.Method.Verify(strings.TrimSuffix(t.Raw, "."+t.Signature), t.Signature, jwk.Key); err != nil {
+		// invalid
+		return wrapError(&jwt.InvalidSignatureError{}, err)
+	}
+	return nil
 }
 
-func (m *AuthMiddleware) validateClaims(t *jwt.Token) *jwt.ValidationError {
-	vErr := &jwt.ValidationError{}
-	now := time.Now().Unix()
-	claims := t.Claims.(*OIDCClaims)
+func (m *AuthMiddleware) validateClaims(t *jwt.Token) error {
+	validationHelper := jwt.NewValidationHelper(
+		jwt.WithAudience(m.options.OAuthConfig.GetClientID()),
+		jwt.WithIssuer(m.options.OAuthConfig.GetURL()))
 
-	if claims.VerifyExpiresAt(now, true) == false {
-		delta := time.Unix(now, 0).Sub(time.Unix(claims.ExpiresAt, 0))
-		vErr.Inner = fmt.Errorf("token is expired by %v", delta)
-		vErr.Errors |= jwt.ValidationErrorExpired
+	err := t.Claims.(*OIDCClaims).Valid(validationHelper)
+
+	return err
+}
+
+func wrapError(a, b error) error {
+	if b == nil {
+		return a
+	}
+	if a == nil {
+		return b
 	}
 
-	if claims.VerifyIssuedAt(now, true) == false {
-		vErr.Inner = fmt.Errorf("token used before issued")
-		vErr.Errors |= jwt.ValidationErrorIssuedAt
+	type iErrorWrapper interface {
+		Wrap(error)
 	}
-
-	if claims.VerifyNotBefore(now, true) == false {
-		vErr.Inner = fmt.Errorf("token is not valid yet")
-		vErr.Errors |= jwt.ValidationErrorNotValidYet
+	if w, ok := a.(iErrorWrapper); ok {
+		w.Wrap(b)
 	}
-
-	if claims.VerifyIssuer(m.options.OAuthConfig.GetURL(), true) == false {
-		vErr.Inner = fmt.Errorf("token issuer does not match configured oauth server")
-		vErr.Errors |= jwt.ValidationErrorIssuer
-	}
-
-	if claims.VerifyAudience(m.options.OAuthConfig.GetClientID(), true) == false {
-		vErr.Inner = fmt.Errorf("token audience does not cotain this client")
-		vErr.Errors |= jwt.ValidationErrorAudience
-	}
-
-	if vErr.Errors == 0 {
-		return nil
-	}
-
-	return vErr
+	return a
 }

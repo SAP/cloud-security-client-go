@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	jwtgo "github.com/dgrijalva/jwt-go"
+	jwtgo "github.com/dgrijalva/jwt-go/v4"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"math/big"
@@ -73,16 +73,17 @@ func (m MockServer) SignToken(claims OIDCClaims) (string, error) {
 }
 
 func (m MockServer) DefaultClaims() OIDCClaims {
-	now := time.Now()
+	now := jwtgo.Now()
 	iss := m.Server.URL
+	aud := jwtgo.ClaimStrings{m.Config.ClientID}
 	claims := OIDCClaims{
 		StandardClaims: jwtgo.StandardClaims{
-			Audience:  m.Config.ClientID,
-			ExpiresAt: now.Add(time.Minute * 5).Unix(),
-			Id:        uuid.New().String(),
-			IssuedAt:  now.Unix(),
+			Audience:  aud,
+			ExpiresAt: jwtgo.At(now.Add(time.Minute * 5)),
+			ID:        uuid.New().String(),
+			IssuedAt:  now,
 			Issuer:    iss,
-			NotBefore: now.Unix(),
+			NotBefore: now,
 		},
 		UserName:   "foobar",
 		GivenName:  "Foo",
