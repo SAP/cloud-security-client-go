@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestEnd2End(t *testing.T) {
@@ -19,9 +20,33 @@ func TestEnd2End(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Positive",
+			name:    "valid",
 			claims:  oidcMockServer.DefaultClaims(),
 			wantErr: false,
+		}, {
+			name: "expired",
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				ExpiresAt(time.Now().Add(-5 * time.Minute)).
+				Build(),
+			wantErr: true,
+		}, {
+			name: "before validity",
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				NotBefore(time.Now().Add(5 * time.Minute)).
+				Build(),
+			wantErr: true,
+		}, {
+			name: "wrong audience",
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Audience("notMyClient").
+				Build(),
+			wantErr: true,
+		}, {
+			name: "wrong issuer",
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Issuer("https://another.oidc-server.com/").
+				Build(),
+			wantErr: true,
 		},
 	}
 
@@ -37,18 +62,16 @@ func TestEnd2End(t *testing.T) {
 
 			if tt.wantErr == false {
 				if response.StatusCode != 200 {
-					body, _ := ioutil.ReadAll(response.Body)
-					t.Log(string(body))
 					t.Errorf("req to test server failed: expected: 200, got: %d", response.StatusCode)
-				} else {
-					body, _ := ioutil.ReadAll(response.Body)
-					t.Log(string(body))
 				}
 			} else {
 				if response.StatusCode != 401 {
+
 					t.Errorf("req to test server succeeded unexpectatly: expected: 401, got: %d", response.StatusCode)
 				}
 			}
+			body, _ := ioutil.ReadAll(response.Body)
+			t.Log(string(body))
 		})
 	}
 }
