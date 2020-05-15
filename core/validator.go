@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func (m *AuthMiddleware) ValidateJWT(rawToken string) (*jwt.Token, error) {
+func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error) {
 	token, parts, err := m.parser.ParseUnverified(rawToken, new(OIDCClaims))
 	if err != nil {
 		return nil, err

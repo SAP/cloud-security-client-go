@@ -66,7 +66,7 @@ func (m *AuthMiddleware) Authenticate(r *http.Request) AuthResult {
 		return AuthResult{false, err, nil}
 	}
 
-	token, err := m.ValidateJWT(rawToken)
+	token, err := m.ParseAndValidateJWT(rawToken)
 	if err != nil {
 		return AuthResult{false, err, nil}
 	}

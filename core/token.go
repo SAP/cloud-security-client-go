@@ -1,27 +1,16 @@
 package core
 
 import (
+	"errors"
 	jwtgo "github.com/dgrijalva/jwt-go"
 )
 
 // https://www.iana.org/assignments/jwt/jwt.xhtml#claims
+const (
+	KEY_ID = "kid"
 
-const ALGORITHM = "alg"
-const JWKS_URL = "jku"
-const KEY_ID = "kid"
-const TYPE = "typ"
-
-const ISSUER = "iss"
-const EXPIRATION = "exp"
-const AUDIENCE = "aud"
-const SUBJECT = "sub"
-const NOT_BEFORE = "nbf"
-const USER_NAME = "user_name"
-const GIVEN_NAME = "first_name"
-const FAMILY_NAME = "last_name"
-const EMAIL = "mail"
-
-const ktyRSA = "RSA"
+	ktyRSA = "RSA"
+)
 
 type OIDCClaims struct {
 	jwtgo.StandardClaims
@@ -39,15 +28,7 @@ type OIDCClaims struct {
 	ZoneId     string `json:"zone_uuid,omitempty"`
 }
 
-//
+// Deprecated
 func (c OIDCClaims) Valid() error {
-	err := c.StandardClaims.Valid()
-	if err != nil {
-		return err
-	}
-
-	// TODO: check aud and iss additionally to StandardClaims check
-	//c.VerifyAudience()
-	//c.VerifyIssuer()
-	return nil
+	return errors.New("Not implemented. Please use the validateClaims func")
 }
