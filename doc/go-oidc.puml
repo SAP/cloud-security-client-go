@@ -1,0 +1,145 @@
+@startuml
+namespace oidc {
+    class Config << (S,Aquamarine) >> {
+        + ClientID string
+        + SupportedSigningAlgs []string
+        + SkipClientIDCheck bool
+        + SkipExpiryCheck bool
+        + SkipIssuerCheck bool
+        + Now <font color=blue>func</font>() time.Time
+
+    }
+    class IDToken << (S,Aquamarine) >> {
+        - sigAlgorithm string
+        - claims []byte
+        - distributedClaims <font color=blue>map</font>[string]claimSource
+
+        + Issuer string
+        + Audience []string
+        + Subject string
+        + Expiry time.Time
+        + IssuedAt time.Time
+        + Nonce string
+        + AccessTokenHash string
+
+        + Claims(v <font color=blue>interface</font>{}) error
+        + VerifyAccessToken(accessToken string) error
+
+    }
+    class IDTokenVerifier << (S,Aquamarine) >> {
+        - keySet KeySet
+        - config *Config
+        - issuer string
+
+        + Verify(ctx context.Context, rawIDToken string) (*IDToken, error)
+
+    }
+    interface KeySet  {
+        + VerifySignature(ctx context.Context, jwt string) ([]byte, error)
+
+    }
+    class Provider << (S,Aquamarine) >> {
+        - issuer string
+        - authURL string
+        - tokenURL string
+        - userInfoURL string
+        - rawClaims []byte
+        - remoteKeySet KeySet
+
+        + Verifier(config *Config) *IDTokenVerifier
+        + Claims(v <font color=blue>interface</font>{}) error
+        + Endpoint() oauth2.Endpoint
+        + UserInfo(ctx context.Context, tokenSource oauth2.TokenSource) (*UserInfo, error)
+
+    }
+    class UserInfo << (S,Aquamarine) >> {
+        - claims []byte
+
+        + Subject string
+        + Profile string
+        + Email string
+        + EmailVerified bool
+
+        + Claims(v <font color=blue>interface</font>{}) error
+
+    }
+    class audience << (S,Aquamarine) >> {
+        + UnmarshalJSON(b []byte) error
+
+    }
+    class cachedKeys << (S,Aquamarine) >> {
+        - keys []go-jose.v2.JSONWebKey
+        - expiry time.Time
+
+    }
+    class claimSource << (S,Aquamarine) >> {
+        + Endpoint string
+        + AccessToken string
+
+    }
+    class idToken << (S,Aquamarine) >> {
+        + Issuer string
+        + Subject string
+        + Audience audience
+        + Expiry jsonTime
+        + IssuedAt jsonTime
+        + NotBefore *jsonTime
+        + Nonce string
+        + AtHash string
+        + ClaimNames <font color=blue>map</font>[string]string
+        + ClaimSources <font color=blue>map</font>[string]claimSource
+
+    }
+    class inflight << (S,Aquamarine) >> {
+        - doneCh <font color=blue>chan</font> <font color=blue>struct</font>{}
+        - keys []go-jose.v2.JSONWebKey
+        - err error
+
+        - wait() <font color=blue>chan</font> <font color=blue>struct</font>{}
+        - done(keys []go-jose.v2.JSONWebKey, err error)
+        - result() ([]go-jose.v2.JSONWebKey, error)
+
+    }
+    class jsonTime << (S,Aquamarine) >> {
+        + UnmarshalJSON(b []byte) error
+
+    }
+    class oidc.audience << (T, #FF7700) >>  {
+    }
+    class oidc.jsonTime << (T, #FF7700) >>  {
+    }
+    class providerJSON << (S,Aquamarine) >> {
+        + Issuer string
+        + AuthURL string
+        + TokenURL string
+        + JWKSURL string
+        + UserInfoURL string
+
+    }
+    class remoteKeySet << (S,Aquamarine) >> {
+        - jwksURL string
+        - ctx context.Context
+        - now <font color=blue>func</font>() time.Time
+        - mu sync.Mutex
+        - inflight *inflight
+        - cachedKeys []go-jose.v2.JSONWebKey
+        - expiry time.Time
+
+        - verify(ctx context.Context, jws *go-jose.v2.JSONWebSignature) ([]byte, error)
+        - keysFromCache() ([]go-jose.v2.JSONWebKey, time.Time)
+        - keysFromRemote(ctx context.Context) ([]go-jose.v2.JSONWebKey, error)
+        - updateKeys() ([]go-jose.v2.JSONWebKey, time.Time, error)
+
+        + VerifySignature(ctx context.Context, jwt string) ([]byte, error)
+
+    }
+    class "time.Time" as timeTime {
+        'This class was created so that we can correctly have an alias pointing to this name. Since it contains dots that can break namespaces
+    }
+}
+
+"oidc.KeySet" <|-- "oidc.remoteKeySet"
+
+"__builtin__.[]string" #.. "oidc.audience"
+"oidc.timeTime" #.. "oidc.jsonTime"
+@enduml

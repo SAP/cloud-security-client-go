@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2020 Felix Blass <felix.blass@sap.com>
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package env
 
 import (

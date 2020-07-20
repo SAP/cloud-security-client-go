@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2020 Felix Blass <felix.blass@sap.com>
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package core
 
 //TODO: Move everthing related to auth to another package and keep only request/response related stuff here

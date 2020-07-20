@@ -1,10 +1,4 @@
-<!--
-SPDX-FileCopyrightText: 2020 Felix Blass <felix.blass@sap.com>
-
-SPDX-License-Identifier: Apache-2.0
--->
-
-<h1>Client library under development. Not yet ready for productive use</h1>
+<h1>Client library under development. Not yet ready for productive use<h1>
 
 # Go Cloud Security Integration
 Client Library in GoLang for application developers requiring authentication and authorization information in their application. The librariy is used to  obtain token information like user name, user attributes and audiences.
