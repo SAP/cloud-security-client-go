@@ -1,4 +1,4 @@
-module github.wdf.sap.corp/CPSecurity/go-cloud-security-integration
+module github.com/sap-staging/cloud-security-client-go
 
 go 1.13
 
