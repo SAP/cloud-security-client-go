@@ -2,9 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package core
-
-//TODO: Rename package to e.g. "auth"
+package auth
 
 import (
 	"context"
@@ -17,7 +15,7 @@ import (
 
 type errorHandler func(w http.ResponseWriter, r *http.Request, err error)
 
-// Options can be used as a argument to instantiate a AuthMiddle with NewAuthMiddleware
+// Options can be used as a argument to instantiate a AuthMiddle with NewAuthMiddleware.
 type Options struct {
 	UserContext  string       // property under which the token is accessible in the request context. Default: "user"
 	OAuthConfig  OAuthConfig  // config for the oidc server bound to the application. Default: nil
@@ -25,7 +23,7 @@ type Options struct {
 	HTTPClient   *http.Client // HTTPClient which is used to get jwks (JSON Web Keys). Default: http.DefaultClient
 }
 
-// OAuthConfig interface has to be implemented to be used in Options. For IAS the standard implementation from env package can be used
+// OAuthConfig interface has to be implemented to be used in Options. For IAS the standard implementation from env package can be used.
 type OAuthConfig interface {
 	GetClientID() string
 	GetClientSecret() string

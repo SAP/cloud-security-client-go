@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package core
+package auth
 
 //TODO: Move everthing related to auth to another package and keep only request/response related stuff here
 //TODO: create file named after package as entry point with description of package tasks
@@ -44,6 +44,7 @@ func newKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySe
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
 	}
+
 	issTrimmed := issURI.Host
 	configURI, err := url.ParseRequestURI(c.GetURL())
 	if err != nil {
@@ -61,6 +62,7 @@ func newKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySe
 	if err != nil {
 		return nil, err
 	}
+
 	return ks, nil
 }
 
@@ -202,6 +204,7 @@ func (jwk *JSONWebKey) assertKeyType() error {
 	default:
 		return errors.New("jwk remote presented unsupported key type: " + jwk.Kty)
 	}
+
 	return nil
 }
 
@@ -215,5 +218,6 @@ func unmarshalResponse(r *http.Response, body []byte, v interface{}) error {
 	if parseErr == nil && mediaType == "application/json" {
 		return fmt.Errorf("got Content-Type = application/json, but could not unmarshal as JSON: %v", err)
 	}
+
 	return fmt.Errorf("expected Content-Type = application/json, got %q: %v", ct, err)
 }

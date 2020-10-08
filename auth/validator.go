@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package core
+package auth
 
 import (
 	"fmt"
@@ -51,7 +51,6 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token) error {
 		keySet = newKeySet.(*remoteKeySet)
 	}
 
-	// TODO: Check if token signature algorithm meets expectation (always RSA in our case?)
 	jwks, err := keySet.GetKeys()
 	if err != nil {
 		return wrapError(&jwt.UnverfiableTokenError{Message: "failed to fetch token keys from remote"}, err)
@@ -61,15 +60,17 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token) error {
 	}
 
 	var jwk *JSONWebKey
-	if kid := t.Header[KEY_ID]; kid != nil {
-		for i, jwk := range jwks {
-			if jwk.Kid == kid {
+
+	if kid := t.Header[propKeyID]; kid != nil {
+		for i, key := range jwks {
+			if key.Kid == kid {
 				jwk = jwks[i]
 				break
 			}
+
+			return &jwt.UnverfiableTokenError{Message: "kid id specified in token not presented by remote"}
 		}
-		return &jwt.UnverfiableTokenError{Message: "kid id specified in token not presented by remote"}
-	} else if t.Header[KEY_ID] == nil && len(jwks) == 1 {
+	} else if len(jwks) == 1 {
 		jwk = jwks[0]
 	} else {
 		return &jwt.UnverfiableTokenError{Message: "no kid specified in token and more than one verification key available"}

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package core
+package auth
 
 import (
 	"crypto/rand"
@@ -57,6 +57,7 @@ func WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 
 func JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 	key := &JSONWebKey{
+		Kid: "testKey",
 		Kty: "RSA",
 		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(mockServer.RSAKey.PublicKey.E)).Bytes()),
 		N:   base64.RawURLEncoding.EncodeToString(mockServer.RSAKey.PublicKey.N.Bytes()),
@@ -67,8 +68,12 @@ func JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write(payload)
 }
 
-func (m MockServer) SignToken(claims OIDCClaims) (string, error) {
-	token := jwtgo.NewWithClaims(jwtgo.SigningMethodRS256, claims)
+func (m MockServer) SignToken(claims OIDCClaims, header map[string]interface{}) (string, error) {
+	token := &jwtgo.Token{
+		Header: header,
+		Claims: claims,
+		Method: jwtgo.SigningMethodRS256, // only faking alg header, not actual key
+	}
 	signedString, err := token.SignedString(m.RSAKey)
 	if err != nil {
 		return "", fmt.Errorf("error signing token: %w", err)
@@ -94,7 +99,17 @@ func (m MockServer) DefaultClaims() OIDCClaims {
 		FamilyName: "Bar",
 		Email:      "foo@bar.org",
 	}
+
 	return claims
+}
+func (m MockServer) DefaultHeaders() map[string]interface{} {
+	header := make(map[string]interface{})
+
+	header["typ"] = "JWT"
+	header[propAlg] = jwtgo.SigningMethodRS256.Alg()
+	header[propKeyID] = "testKey"
+
+	return header
 }
 
 type MockConfig struct {

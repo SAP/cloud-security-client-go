@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package core
+package auth
 
 import (
 	jwtgo "github.com/dgrijalva/jwt-go/v4"
@@ -10,7 +10,8 @@ import (
 
 // https://www.iana.org/assignments/jwt/jwt.xhtml#claims
 const (
-	KEY_ID = "kid"
+	propKeyID = "kid"
+	propAlg   = "alg"
 
 	ktyRSA = "RSA"
 )
@@ -21,5 +22,5 @@ type OIDCClaims struct {
 	GivenName  string `json:"first_name,omitempty"`
 	FamilyName string `json:"last_name,omitempty"`
 	Email      string `json:"mail,omitempty"`
-	ZoneId     string `json:"zone_uuid,omitempty"`
+	ZoneID     string `json:"zone_uuid,omitempty"`
 }

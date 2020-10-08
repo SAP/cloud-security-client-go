@@ -8,18 +8,18 @@ import (
 	"fmt"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/sap-staging/cloud-security-client-go/core"
+	"github.com/sap-staging/cloud-security-client-go/auth"
 	"github.com/sap-staging/cloud-security-client-go/env"
 	"log"
 	"net/http"
 	"os"
 )
 
-// Main class for demonstration purposes
+// Main class for demonstration purposes.
 func main() {
 	r := mux.NewRouter()
 
-	authMiddleware := core.NewAuthMiddleware(core.Options{
+	authMiddleware := auth.NewAuthMiddleware(auth.Options{
 		UserContext:  "user",
 		OAuthConfig:  env.GetIASConfig(),
 		ErrorHandler: nil,
@@ -37,6 +37,6 @@ func main() {
 }
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("user").(*core.OIDCClaims)
+	user := r.Context().Value("user").(*auth.OIDCClaims)
 	_, _ = w.Write([]byte(fmt.Sprintf("Hello world %s ! \n You're logged in as %s", r.Header.Get("X-Forwarded-For"), user.Email)))
 }

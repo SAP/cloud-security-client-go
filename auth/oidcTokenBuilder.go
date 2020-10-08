@@ -2,12 +2,43 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package core
+package auth
 
 import (
 	jwtgo "github.com/dgrijalva/jwt-go/v4"
 	"time"
 )
+
+type OIDCHeaderBuilder struct {
+	header map[string]interface{}
+}
+
+func NewOIDCHeaderBuilder(base map[string]interface{}) *OIDCHeaderBuilder {
+	b := &OIDCHeaderBuilder{base}
+	return b
+}
+
+func (b *OIDCHeaderBuilder) KeyID(keyID string) *OIDCHeaderBuilder {
+	if keyID == "" {
+		b.header[propKeyID] = nil
+	} else {
+		b.header[propKeyID] = keyID
+	}
+	return b
+}
+
+func (b *OIDCHeaderBuilder) Alg(alg string) *OIDCHeaderBuilder {
+	if alg == "" {
+		b.header[propAlg] = nil
+	} else {
+		b.header[propAlg] = alg
+	}
+	return b
+}
+
+func (b *OIDCHeaderBuilder) Build() map[string]interface{} {
+	return b.header
+}
 
 type OIDCClaimsBuilder struct {
 	claims OIDCClaims
@@ -32,8 +63,8 @@ func (b *OIDCClaimsBuilder) ExpiresAt(expiresAt time.Time) *OIDCClaimsBuilder {
 	return b
 }
 
-func (b *OIDCClaimsBuilder) ID(ID string) *OIDCClaimsBuilder {
-	b.claims.ID = ID
+func (b *OIDCClaimsBuilder) ID(id string) *OIDCClaimsBuilder {
+	b.claims.ID = id
 	return b
 }
 
@@ -77,7 +108,7 @@ func (b *OIDCClaimsBuilder) Email(email string) *OIDCClaimsBuilder {
 	return b
 }
 
-func (b *OIDCClaimsBuilder) ZoneId(zoneId string) *OIDCClaimsBuilder {
-	b.claims.ZoneId = zoneId
+func (b *OIDCClaimsBuilder) ZoneID(zoneID string) *OIDCClaimsBuilder {
+	b.claims.ZoneID = zoneID
 	return b
 }

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package core
+package auth
 
 import (
 	jwtRequest "github.com/dgrijalva/jwt-go/v4/request"
