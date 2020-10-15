@@ -4,8 +4,8 @@ Client Library in GoLang for application developers requiring authentication wit
 ## Auth
 Parsing claims of the JWT and validation the token signature, audience, issuer, … 
 
-## Token Client
-Any interaction with the Authorization Server e.g. fetching token keys or token exchange flows
+## OIDC Client
+Any interaction with the Authorization Server e.g. OIDC discovery and fetching token keys
 
 ## Env
 Parsing of environment provided by the Authorization Server e.g. IAS broker
