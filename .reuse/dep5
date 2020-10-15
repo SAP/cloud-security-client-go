@@ -29,5 +29,6 @@ Files:
     go.sum
     README.md
     .gitignore
+    oidcClient/oidcClient.md
 Copyright: 2020 SAP SE or an SAP affiliate company and Cloud Security Client Go contributors
 License: Apache-2.0
