@@ -12,8 +12,6 @@ import (
 const (
 	propKeyID = "kid"
 	propAlg   = "alg"
-
-	ktyRSA = "RSA"
 )
 
 type OIDCClaims struct {

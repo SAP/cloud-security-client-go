@@ -7,6 +7,8 @@ package auth
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go/v4"
+	"github.com/sap-staging/cloud-security-client-go/oidcClient"
+	"net/url"
 	"strings"
 )
 
@@ -17,13 +19,19 @@ func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error
 	}
 	token.Signature = parts[2]
 
+	// get keyset
+	keySet, err := m.getKeySet(token)
+	if err != nil {
+		return nil, err
+	}
+
 	// verify claims
-	if err := m.validateClaims(token); err != nil {
+	if err := m.validateClaims(token, keySet); err != nil {
 		return nil, err
 	}
 
 	// verify signature
-	if err = m.verifySignature(token); err != nil {
+	if err = m.verifySignature(token, keySet); err != nil {
 		return nil, err
 	}
 
@@ -31,27 +39,8 @@ func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error
 	return token, nil
 }
 
-func (m *AuthMiddleware) verifySignature(t *jwt.Token) error {
-	claims, ok := t.Claims.(*OIDCClaims)
-	if !ok {
-		return &jwt.UnverfiableTokenError{Message: fmt.Sprintf("internal validation error during type assertion: expected *OIDCClaims, got %T", t.Claims)}
-	}
-	iss := claims.Issuer
-	var keySet *remoteKeySet
-	if keySet, ok = m.saasKeySet[iss]; !ok {
-		newKeySet, err, _ := m.sf.Do(iss, func() (i interface{}, err error) {
-			set, err := newKeySet(m.options.HTTPClient, iss, m.options.OAuthConfig)
-			m.saasKeySet[iss] = set
-			return set, err
-		})
-
-		if err != nil {
-			return wrapError(&jwt.UnverfiableTokenError{Message: "unable to build remote keyset"}, err)
-		}
-		keySet = newKeySet.(*remoteKeySet)
-	}
-
-	jwks, err := keySet.GetKeys()
+func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcClient.RemoteKeySet) error {
+	jwks, err := ks.GetKeys()
 	if err != nil {
 		return wrapError(&jwt.UnverfiableTokenError{Message: "failed to fetch token keys from remote"}, err)
 	}
@@ -59,7 +48,7 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token) error {
 		return &jwt.UnverfiableTokenError{Message: "remote returned no jwk to verify the token"}
 	}
 
-	var jwk *JSONWebKey
+	var jwk *oidcClient.JSONWebKey
 
 	if kid := t.Header[propKeyID]; kid != nil {
 		for i, key := range jwks {
@@ -84,14 +73,55 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token) error {
 	return nil
 }
 
-func (m *AuthMiddleware) validateClaims(t *jwt.Token) error {
+func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcClient.RemoteKeySet) error {
 	validationHelper := jwt.NewValidationHelper(
 		jwt.WithAudience(m.options.OAuthConfig.GetClientID()),
-		jwt.WithIssuer(m.options.OAuthConfig.GetURL()))
+		jwt.WithIssuer(ks.ProviderJSON.Issuer))
 
 	err := t.Claims.(*OIDCClaims).Valid(validationHelper)
 
 	return err
+}
+
+func (m *AuthMiddleware) getKeySet(t *jwt.Token) (*oidcClient.RemoteKeySet, error) {
+	claims, ok := t.Claims.(*OIDCClaims)
+	if !ok {
+		return nil, &jwt.UnverfiableTokenError{
+			Message: fmt.Sprintf("internal validation error during type assertion: expected *OIDCClaims, got %T", t.Claims)}
+	}
+
+	iss := claims.Issuer
+	issURI, err := url.ParseRequestURI(iss)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
+	}
+
+	bindingIssURI, err := url.ParseRequestURI(m.options.OAuthConfig.GetURL())
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
+	}
+
+	// TODO: replace this check later against domain property from binding to enable multi tenancy support
+	if bindingIssURI.Hostname() != issURI.Hostname() {
+		return nil, &jwt.UnverfiableTokenError{Message: "token is issued by unsupported oauth server"}
+	}
+
+	var keySet *oidcClient.RemoteKeySet
+	if keySet, ok = m.saasKeySet[iss]; !ok {
+		newKeySet, err, _ := m.sf.Do(iss, func() (i interface{}, err error) {
+
+			set, err := oidcClient.NewKeySet(m.options.HTTPClient, issURI)
+			return set, err
+		})
+
+		if err != nil {
+			return nil, wrapError(&jwt.UnverfiableTokenError{Message: "unable to build remote keyset"}, err)
+		}
+		keySet = newKeySet.(*oidcClient.RemoteKeySet)
+		m.saasKeySet[iss] = keySet
+
+	}
+	return keySet, nil
 }
 
 func wrapError(a, b error) error {

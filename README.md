@@ -1,9 +1,7 @@
-<h1>Client library under development. Not yet ready for productive use<h1>
-
 # Go Cloud Security Integration
-Client Library in GoLang for application developers requiring authentication and authorization information in their application. The librariy is used to  obtain token information like user name, user attributes and audiences.
+Client Library in GoLang for application developers requiring authentication with the Identity Authentication Service (IAS). The library provides means for validating the token and accessing authentication information like user name, user attributes and audiences from the token.
 
-## Core
+## Auth
 Parsing claims of the JWT and validation the token signature, audience, issuer, … 
 
 ## Token Client
@@ -40,3 +38,7 @@ if err != nil {
     panic(err)
 }
 ```
+
+### Current limitations
+The client library does not yet provide support for multi tenant applications, where the SaaS tenants use different IAS tenants than the provider tenant. 
+This limitation will be overcome within the next few weeks.

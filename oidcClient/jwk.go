@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package auth
-
-//TODO: Move everthing related to auth to another package and keep only request/response related stuff here
-//TODO: create file named after package as entry point with description of package tasks
+package oidcClient
 
 import (
 	"crypto/rsa"
@@ -24,8 +21,8 @@ import (
 	"time"
 )
 
-type remoteKeySet struct {
-	jwksURL string
+type RemoteKeySet struct {
+	ProviderJSON ProviderJSON
 
 	httpClient   *http.Client
 	singleFlight singleflight.Group
@@ -39,26 +36,11 @@ type updateKeysResult struct {
 	expiry time.Time
 }
 
-func newKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySet, error) {
-	issURI, err := url.ParseRequestURI(iss)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
-	}
-
-	issTrimmed := issURI.Host
-	configURI, err := url.ParseRequestURI(c.GetURL())
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse config URI: %s", c.GetURL())
-	}
-	configURLTrimmed := configURI.Host
-	// TODO: No multitenancy support with different tenants of same auth server like accounts400
-	if !strings.HasSuffix(issTrimmed, configURLTrimmed) {
-		return nil, fmt.Errorf("token is issued from a different oauth server. expected to end with %s, got %s", c.GetURL(), issTrimmed)
-	}
-	ks := new(remoteKeySet)
+func NewKeySet(httpClient *http.Client, targetIss *url.URL) (*RemoteKeySet, error) {
+	ks := new(RemoteKeySet)
 	ks.httpClient = httpClient
-	err = ks.performDiscovery(iss)
 
+	err := ks.performDiscovery(targetIss.Host)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +48,7 @@ func newKeySet(httpClient *http.Client, iss string, c OAuthConfig) (*remoteKeySe
 	return ks, nil
 }
 
-func (ks *remoteKeySet) GetKeys() ([]*JSONWebKey, error) {
+func (ks *RemoteKeySet) GetKeys() ([]*JSONWebKey, error) {
 	if !time.Now().After(ks.expiry) {
 		return ks.cachedKeys, nil
 		// cached keys still valid, still verification failed
@@ -86,9 +68,9 @@ func (ks *remoteKeySet) GetKeys() ([]*JSONWebKey, error) {
 	return ks.cachedKeys, nil
 }
 
-func (ks *remoteKeySet) updateKeys() (r interface{}, err error) {
+func (ks *RemoteKeySet) updateKeys() (r interface{}, err error) {
 	result := updateKeysResult{}
-	req, err := http.NewRequest("GET", ks.jwksURL, nil)
+	req, err := http.NewRequest("GET", ks.ProviderJSON.JWKsURL, nil)
 	if err != nil {
 		return result, fmt.Errorf("can't create request to fetch jwk: %v", err)
 	}
@@ -133,8 +115,8 @@ func (ks *remoteKeySet) updateKeys() (r interface{}, err error) {
 	return result, nil
 }
 
-func (ks *remoteKeySet) performDiscovery(baseURL string) error {
-	wellKnown := fmt.Sprintf("%s/.well-known/openid-configuration", strings.TrimSuffix(baseURL, "/"))
+func (ks *RemoteKeySet) performDiscovery(baseURL string) error {
+	wellKnown := fmt.Sprintf("https://%s/.well-known/openid-configuration", strings.TrimSuffix(baseURL, "/"))
 	req, err := http.NewRequest("GET", wellKnown, nil)
 	if err != nil {
 		return fmt.Errorf("unable to construct discovery request: %v", err)
@@ -159,7 +141,7 @@ func (ks *remoteKeySet) performDiscovery(baseURL string) error {
 	if err != nil {
 		return fmt.Errorf("failed to decode provider discovery object: %v", err)
 	}
-	ks.jwksURL = p.JWKsURL
+	ks.ProviderJSON = p
 
 	return nil
 }
@@ -188,7 +170,7 @@ type JSONWebKey struct {
 
 func (jwk *JSONWebKey) assertKeyType() error {
 	switch jwk.Kty {
-	case ktyRSA:
+	case "RSA":
 		NBytes, err := base64.RawURLEncoding.DecodeString(jwk.N)
 		if err != nil {
 			return err

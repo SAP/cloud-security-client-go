@@ -13,6 +13,7 @@ import (
 	jwtgo "github.com/dgrijalva/jwt-go/v4"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/sap-staging/cloud-security-client-go/oidcClient"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -25,16 +26,12 @@ type MockServer struct {
 	RSAKey *rsa.PrivateKey
 }
 
-var mockServer *MockServer
-
 func NewOIDCMockServer() *MockServer {
 	r := mux.NewRouter()
-	r.HandleFunc("/.well-known/openid-configuration", WellKnownHandler).Methods("GET")
-	r.HandleFunc("/oauth2/certs", JWKsHandler).Methods("GET")
-
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	server := httptest.NewTLSServer(r)
-	mockServer = &MockServer{
+
+	mockServer := &MockServer{
 		Server: server,
 		Config: &MockConfig{
 			ClientID:     "clientid",
@@ -43,32 +40,36 @@ func NewOIDCMockServer() *MockServer {
 		},
 		RSAKey: rsaKey,
 	}
+
+	r.HandleFunc("/.well-known/openid-configuration", mockServer.WellKnownHandler).Methods("GET")
+	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandler).Methods("GET")
+
 	return mockServer
 }
 
-func WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
-	wellKnown := ProviderJSON{
-		Issuer:  mockServer.Config.URL,
-		JWKsURL: fmt.Sprintf("%s/oauth2/certs", mockServer.Server.URL),
+func (m *MockServer) WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
+	wellKnown := oidcClient.ProviderJSON{
+		Issuer:  m.Config.URL,
+		JWKsURL: fmt.Sprintf("%s/oauth2/certs", m.Server.URL),
 	}
 	payload, _ := json.Marshal(wellKnown)
 	_, _ = w.Write(payload)
 }
 
-func JWKsHandler(w http.ResponseWriter, _ *http.Request) {
-	key := &JSONWebKey{
+func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
+	key := &oidcClient.JSONWebKey{
 		Kid: "testKey",
 		Kty: "RSA",
-		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(mockServer.RSAKey.PublicKey.E)).Bytes()),
-		N:   base64.RawURLEncoding.EncodeToString(mockServer.RSAKey.PublicKey.N.Bytes()),
+		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(m.RSAKey.PublicKey.E)).Bytes()),
+		N:   base64.RawURLEncoding.EncodeToString(m.RSAKey.PublicKey.N.Bytes()),
 		Use: "sig",
 	}
-	keySet := JSONWebKeySet{Keys: []*JSONWebKey{key}}
+	keySet := oidcClient.JSONWebKeySet{Keys: []*oidcClient.JSONWebKey{key}}
 	payload, _ := json.Marshal(keySet)
 	_, _ = w.Write(payload)
 }
 
-func (m MockServer) SignToken(claims OIDCClaims, header map[string]interface{}) (string, error) {
+func (m *MockServer) SignToken(claims OIDCClaims, header map[string]interface{}) (string, error) {
 	token := &jwtgo.Token{
 		Header: header,
 		Claims: claims,
@@ -81,7 +82,7 @@ func (m MockServer) SignToken(claims OIDCClaims, header map[string]interface{}) 
 	return signedString, nil
 }
 
-func (m MockServer) DefaultClaims() OIDCClaims {
+func (m *MockServer) DefaultClaims() OIDCClaims {
 	now := jwtgo.Now()
 	iss := m.Server.URL
 	aud := jwtgo.ClaimStrings{m.Config.ClientID}
@@ -102,7 +103,8 @@ func (m MockServer) DefaultClaims() OIDCClaims {
 
 	return claims
 }
-func (m MockServer) DefaultHeaders() map[string]interface{} {
+
+func (m *MockServer) DefaultHeaders() map[string]interface{} {
 	header := make(map[string]interface{})
 
 	header["typ"] = "JWT"
