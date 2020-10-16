@@ -13,7 +13,7 @@ import (
 	jwtgo "github.com/dgrijalva/jwt-go/v4"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/sap-staging/cloud-security-client-go/oidcClient"
+	"github.com/sap-staging/cloud-security-client-go/oidcclient"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -48,7 +48,7 @@ func NewOIDCMockServer() *MockServer {
 }
 
 func (m *MockServer) WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
-	wellKnown := oidcClient.ProviderJSON{
+	wellKnown := oidcclient.ProviderJSON{
 		Issuer:  m.Config.URL,
 		JWKsURL: fmt.Sprintf("%s/oauth2/certs", m.Server.URL),
 	}
@@ -57,14 +57,14 @@ func (m *MockServer) WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
-	key := &oidcClient.JSONWebKey{
+	key := &oidcclient.JSONWebKey{
 		Kid: "testKey",
 		Kty: "RSA",
 		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(m.RSAKey.PublicKey.E)).Bytes()),
 		N:   base64.RawURLEncoding.EncodeToString(m.RSAKey.PublicKey.N.Bytes()),
 		Use: "sig",
 	}
-	keySet := oidcClient.JSONWebKeySet{Keys: []*oidcClient.JSONWebKey{key}}
+	keySet := oidcclient.JSONWebKeySet{Keys: []*oidcclient.JSONWebKey{key}}
 	payload, _ := json.Marshal(keySet)
 	_, _ = w.Write(payload)
 }

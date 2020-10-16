@@ -7,7 +7,7 @@ package auth
 import (
 	"context"
 	jwtgo "github.com/dgrijalva/jwt-go/v4"
-	"github.com/sap-staging/cloud-security-client-go/oidcClient"
+	"github.com/sap-staging/cloud-security-client-go/oidcclient"
 	"golang.org/x/sync/singleflight"
 	"log"
 	"net/http"
@@ -34,7 +34,7 @@ type OAuthConfig interface {
 type AuthMiddleware struct {
 	options    Options
 	parser     *jwtgo.Parser
-	saasKeySet map[string]*oidcClient.RemoteKeySet
+	saasKeySet map[string]*oidcclient.RemoteKeySet
 	sf         singleflight.Group
 }
 
@@ -57,7 +57,7 @@ func NewAuthMiddleware(options Options) *AuthMiddleware {
 	m.options = options
 
 	m.parser = new(jwtgo.Parser)
-	m.saasKeySet = make(map[string]*oidcClient.RemoteKeySet)
+	m.saasKeySet = make(map[string]*oidcclient.RemoteKeySet)
 
 	return m
 }

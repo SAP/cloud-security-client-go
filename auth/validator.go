@@ -7,7 +7,7 @@ package auth
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go/v4"
-	"github.com/sap-staging/cloud-security-client-go/oidcClient"
+	"github.com/sap-staging/cloud-security-client-go/oidcclient"
 	"net/url"
 	"strings"
 )
@@ -39,7 +39,7 @@ func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error
 	return token, nil
 }
 
-func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcClient.RemoteKeySet) error {
+func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.RemoteKeySet) error {
 	jwks, err := ks.GetKeys()
 	if err != nil {
 		return wrapError(&jwt.UnverfiableTokenError{Message: "failed to fetch token keys from remote"}, err)
@@ -48,7 +48,7 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcClient.RemoteKeyS
 		return &jwt.UnverfiableTokenError{Message: "remote returned no jwk to verify the token"}
 	}
 
-	var jwk *oidcClient.JSONWebKey
+	var jwk *oidcclient.JSONWebKey
 
 	if kid := t.Header[propKeyID]; kid != nil {
 		for i, key := range jwks {
@@ -73,7 +73,7 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcClient.RemoteKeyS
 	return nil
 }
 
-func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcClient.RemoteKeySet) error {
+func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcclient.RemoteKeySet) error {
 	validationHelper := jwt.NewValidationHelper(
 		jwt.WithAudience(m.options.OAuthConfig.GetClientID()),
 		jwt.WithIssuer(ks.ProviderJSON.Issuer))
@@ -83,7 +83,7 @@ func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcClient.RemoteKeySe
 	return err
 }
 
-func (m *AuthMiddleware) getKeySet(t *jwt.Token) (*oidcClient.RemoteKeySet, error) {
+func (m *AuthMiddleware) getKeySet(t *jwt.Token) (*oidcclient.RemoteKeySet, error) {
 	claims, ok := t.Claims.(*OIDCClaims)
 	if !ok {
 		return nil, &jwt.UnverfiableTokenError{
@@ -106,18 +106,18 @@ func (m *AuthMiddleware) getKeySet(t *jwt.Token) (*oidcClient.RemoteKeySet, erro
 		return nil, &jwt.UnverfiableTokenError{Message: "token is issued by unsupported oauth server"}
 	}
 
-	var keySet *oidcClient.RemoteKeySet
+	var keySet *oidcclient.RemoteKeySet
 	if keySet, ok = m.saasKeySet[iss]; !ok {
 		newKeySet, err, _ := m.sf.Do(iss, func() (i interface{}, err error) {
 
-			set, err := oidcClient.NewKeySet(m.options.HTTPClient, issURI)
+			set, err := oidcclient.NewKeySet(m.options.HTTPClient, issURI)
 			return set, err
 		})
 
 		if err != nil {
 			return nil, wrapError(&jwt.UnverfiableTokenError{Message: "unable to build remote keyset"}, err)
 		}
-		keySet = newKeySet.(*oidcClient.RemoteKeySet)
+		keySet = newKeySet.(*oidcclient.RemoteKeySet)
 		m.saasKeySet[iss] = keySet
 
 	}
