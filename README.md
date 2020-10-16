@@ -41,4 +41,4 @@ if err != nil {
 
 ### Current limitations
 The client library does not yet provide support for multi tenant applications, where the SaaS tenants use different IAS tenants than the provider tenant. 
-This limitation will be overcome within the next few weeks.
+This limitation will be overcome within the next few weeks, once there is full support for that from IAS and IAS-Broker side.
