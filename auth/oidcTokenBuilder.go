@@ -112,3 +112,23 @@ func (b *OIDCClaimsBuilder) ZoneID(zoneID string) *OIDCClaimsBuilder {
 	b.claims.ZoneID = zoneID
 	return b
 }
+
+func (b *OIDCClaimsBuilder) WithoutAudience() *OIDCClaimsBuilder {
+	b.claims.Audience = nil
+	return b
+}
+
+func (b *OIDCClaimsBuilder) WithoutExpiresAt() *OIDCClaimsBuilder {
+	b.claims.ExpiresAt = nil
+	return b
+}
+
+func (b *OIDCClaimsBuilder) WithoutIssuedAt() *OIDCClaimsBuilder {
+	b.claims.IssuedAt = nil
+	return b
+}
+
+func (b *OIDCClaimsBuilder) WithoutNotBefore() *OIDCClaimsBuilder {
+	b.claims.NotBefore = nil
+	return b
+}

@@ -51,6 +51,13 @@ func TestEnd2End(t *testing.T) {
 				Build(),
 			wantErr: true,
 		}, {
+			//	name:   "no expiry provided",
+			//	header: oidcMockServer.DefaultHeaders(),
+			//	claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+			//		WithoutExpiresAt().
+			//		Build(),
+			//	wantErr: true,
+			//}, {
 			name:   "before validity",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
@@ -76,6 +83,13 @@ func TestEnd2End(t *testing.T) {
 			header: oidcMockServer.DefaultHeaders(),
 			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
 				Issuer("https://another.oidc-server.com/").
+				Build(),
+			wantErr: true,
+		}, {
+			name:   "issuer empty",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Issuer("").
 				Build(),
 			wantErr: true,
 		}, {

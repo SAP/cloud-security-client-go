@@ -10,6 +10,7 @@ import (
 	"github.com/sap-staging/cloud-security-client-go/oidcclient"
 	"net/url"
 	"strings"
+	"time"
 )
 
 func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error) {
@@ -76,7 +77,9 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.RemoteKeyS
 func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcclient.RemoteKeySet) error {
 	validationHelper := jwt.NewValidationHelper(
 		jwt.WithAudience(m.options.OAuthConfig.GetClientID()),
-		jwt.WithIssuer(ks.ProviderJSON.Issuer))
+		jwt.WithIssuer(ks.ProviderJSON.Issuer),
+		jwt.WithLeeway(1*time.Minute),
+	)
 
 	err := t.Claims.(*OIDCClaims).Valid(validationHelper)
 
