@@ -25,5 +25,5 @@ func (r AuthResult) Error() error {
 }
 
 func (r AuthResult) Details() interface{} {
-	return r.details
+	return *r.details
 }

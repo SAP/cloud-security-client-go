@@ -36,6 +36,12 @@ func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error
 		return nil, err
 	}
 
+	mapClaims, _, err := m.parser.ParseUnverified(rawToken, jwt.MapClaims{})
+	if err != nil {
+		return nil, err
+	}
+	token.Claims.(*OIDCClaims).mapClaims = mapClaims.Claims.(jwt.MapClaims)
+
 	token.Valid = true
 	return token, nil
 }
@@ -75,13 +81,18 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.RemoteKeyS
 }
 
 func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcclient.RemoteKeySet) error {
+	c := t.Claims.(*OIDCClaims)
+
+	if c.ExpiresAt == nil {
+		return &jwt.UnverfiableTokenError{Message: "expiration time (exp) is unavailable."}
+	}
 	validationHelper := jwt.NewValidationHelper(
 		jwt.WithAudience(m.options.OAuthConfig.GetClientID()),
 		jwt.WithIssuer(ks.ProviderJSON.Issuer),
 		jwt.WithLeeway(1*time.Minute),
 	)
 
-	err := t.Claims.(*OIDCClaims).Valid(validationHelper)
+	err := c.Valid(validationHelper)
 
 	return err
 }
@@ -121,8 +132,7 @@ func (m *AuthMiddleware) getKeySet(t *jwt.Token) (*oidcclient.RemoteKeySet, erro
 			return nil, wrapError(&jwt.UnverfiableTokenError{Message: "unable to build remote keyset"}, err)
 		}
 		keySet = newKeySet.(*oidcclient.RemoteKeySet)
-		m.saasKeySet[iss] = keySet
-
+		m.saasKeySet[keySet.ProviderJSON.Issuer] = keySet
 	}
 	return keySet, nil
 }

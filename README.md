@@ -1,5 +1,7 @@
 # Go Cloud Security Integration
-Client Library in GoLang for application developers requiring authentication with the Identity Authentication Service (IAS). The library provides means for validating the token and accessing authentication information like user name, user attributes and audiences from the token.
+
+//TODO: Check wording -> java client lib  https://github.com/SAP/cloud-security-xsuaa-integration/tree/master/java-security
+Client Library in GoLang for application developers requiring authentication with the Identity Authentication Service (IAS). The library provides means for validating the Open ID Connect Token (OIDC) and accessing authentication information like user uuid, user attributes and audiences from the token.
 
 ## Auth
 Parsing claims of the JWT and validation the token signature, audience, issuer, … 
@@ -38,6 +40,7 @@ if err != nil {
     panic(err)
 }
 ```
+Full example: [samples/middleware.go](samples/middleware.go)
 
 ### Current limitations
 The client library does not yet provide support for multi tenant applications, where the SaaS tenants use different IAS tenants than the provider tenant. 

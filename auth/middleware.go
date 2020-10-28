@@ -86,7 +86,7 @@ func (m *AuthMiddleware) Handler(h http.Handler) http.Handler {
 			return
 		}
 
-		reqWithContext := r.WithContext(context.WithValue(r.Context(), m.options.UserContext, authResult.Details))
+		reqWithContext := r.WithContext(context.WithValue(r.Context(), m.options.UserContext, authResult.Details()))
 		*r = *reqWithContext
 
 		// Continue serving http if jwt was valid

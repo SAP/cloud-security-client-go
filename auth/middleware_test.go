@@ -51,13 +51,13 @@ func TestEnd2End(t *testing.T) {
 				Build(),
 			wantErr: true,
 		}, {
-			//	name:   "no expiry provided",
-			//	header: oidcMockServer.DefaultHeaders(),
-			//	claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
-			//		WithoutExpiresAt().
-			//		Build(),
-			//	wantErr: true,
-			//}, {
+			name:   "no expiry provided",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				WithoutExpiresAt().
+				Build(),
+			wantErr: true,
+		}, {
 			name:   "before validity",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
@@ -86,6 +86,13 @@ func TestEnd2End(t *testing.T) {
 				Build(),
 			wantErr: true,
 		}, {
+			name:   "issuer malicious",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Issuer(oidcMockServer.Server.URL + "?redirect=https://malicious.ondemand.com/tokens%3Ftenant=9451dd2etrial").
+				Build(),
+			wantErr: true,
+		}, {
 			name:   "issuer empty",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
@@ -107,6 +114,13 @@ func TestEnd2End(t *testing.T) {
 			claims:  oidcMockServer.DefaultClaims(),
 			wantErr: true,
 		}, {
+			name: "empty algorithm",
+			header: NewOIDCHeaderBuilder(oidcMockServer.DefaultHeaders()).
+				Alg("").
+				Build(),
+			claims:  oidcMockServer.DefaultClaims(),
+			wantErr: true,
+		}, {
 			name: "wrong algorithm",
 			header: NewOIDCHeaderBuilder(oidcMockServer.DefaultHeaders()).
 				Alg("HS256").
@@ -114,6 +128,7 @@ func TestEnd2End(t *testing.T) {
 			claims:  oidcMockServer.DefaultClaims(),
 			wantErr: true,
 		},
+		// TODO: ProviderJSON with different issuer key (e.g. iss)
 	}
 
 	for _, tt := range tests {

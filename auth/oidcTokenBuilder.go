@@ -88,8 +88,8 @@ func (b *OIDCClaimsBuilder) Subject(subject string) *OIDCClaimsBuilder {
 	return b
 }
 
-func (b *OIDCClaimsBuilder) UserName(userName string) *OIDCClaimsBuilder {
-	b.claims.UserName = userName
+func (b *OIDCClaimsBuilder) UserUUID(userUUID string) *OIDCClaimsBuilder {
+	b.claims.UserUUID = userUUID
 	return b
 }
 

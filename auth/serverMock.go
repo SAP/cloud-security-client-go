@@ -95,7 +95,7 @@ func (m *MockServer) DefaultClaims() OIDCClaims {
 			Issuer:    iss,
 			NotBefore: now,
 		},
-		UserName:   "foobar",
+		UserUUID:   "11111111-2222-3333-4444-888888888888",
 		GivenName:  "Foo",
 		FamilyName: "Bar",
 		Email:      "foo@bar.org",
