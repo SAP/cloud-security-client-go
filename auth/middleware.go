@@ -9,6 +9,7 @@ import (
 	jwtgo "github.com/dgrijalva/jwt-go/v4"
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
+	"log"
 	"net/http"
 	"time"
 )
@@ -46,7 +47,11 @@ type AuthMiddleware struct {
 func NewAuthMiddleware(oAuthConfig OAuthConfig, options Options) *AuthMiddleware {
 	m := new(AuthMiddleware)
 
-	m.oAuthConfig = oAuthConfig
+	if oAuthConfig == nil {
+		m.oAuthConfig = oAuthConfig
+	} else {
+		log.Fatal("OAuthConfig must not be nil, please refer to package env for default implementations")
+	}
 	if options.ErrorHandler == nil {
 		options.ErrorHandler = DefaultErrorHandler
 	}
