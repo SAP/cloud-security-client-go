@@ -49,6 +49,8 @@ func NewKeySet(httpClient *http.Client, targetIss *url.URL) (*RemoteKeySet, erro
 }
 
 func (ks *RemoteKeySet) GetKeys() ([]*JSONWebKey, error) {
+	// TODO: Possibility to clear cache manually
+	// TODO: Periodic clear of unused cached keys
 	if !time.Now().After(ks.expiry) {
 		return ks.cachedKeys, nil
 		// cached keys still valid, still verification failed
@@ -126,7 +128,6 @@ func (ks *RemoteKeySet) performDiscovery(baseURL string) error {
 		return fmt.Errorf("unable to perform oidc discovery request: %v", err)
 	}
 	defer resp.Body.Close()
-
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("unable to read response body: %v", err)

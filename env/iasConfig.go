@@ -10,7 +10,7 @@ import (
 	"log"
 )
 
-const serviceName = "identity-beta"
+const iasServiceName = "identity"
 
 type IASConfig struct {
 	ClientId     string
@@ -26,29 +26,28 @@ func GetIASConfig() *IASConfig {
 		if e != nil {
 			log.Fatal("Could not read cf env")
 		}
-		ias, e := appEnv.Services.WithLabel(serviceName)
+		ias, e := appEnv.Services.WithLabel(iasServiceName)
 		if e != nil {
 			userProvided, e := appEnv.Services.WithLabel("user-provided")
 			if e != nil {
-				log.Fatal("No " + serviceName + " instance bound to the application")
+				log.Fatal("No " + iasServiceName + " instance bound to the application")
 			}
-			ias, ok := userProvided[0].Credentials["identity-beta"]
+			ias, ok := userProvided[0].Credentials[iasServiceName]
 			if !ok {
-				log.Fatal("No " + serviceName + " instance bound to the application")
+				log.Fatal("No " + iasServiceName + " instance bound to the application")
 			}
 			credentials := ias.([]interface{})[0].(map[string]interface{})["credentials"].(map[string]interface{})
 			e = config.parseEnv(credentials)
 			if e != nil {
-				log.Fatal("error during parsing of "+serviceName+" in user-provided environment: ", e)
+				log.Fatal("error during parsing of "+iasServiceName+" in user-provided environment: ", e)
 			}
 		} else {
 			config = IASConfig{}
 			e := config.parseEnv(ias[0].Credentials)
 			if e != nil {
-				log.Fatal("error during parsing of "+serviceName+" environment: ", e)
+				log.Fatal("error during parsing of "+iasServiceName+" environment: ", e)
 			}
 		}
-		// do stuff
 	case KUBERNETES:
 		log.Fatal("kubernetes env detected but not yet supported")
 		// do stuff
