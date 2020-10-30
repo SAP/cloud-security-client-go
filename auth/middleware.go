@@ -47,7 +47,7 @@ type AuthMiddleware struct {
 func NewAuthMiddleware(oAuthConfig OAuthConfig, options Options) *AuthMiddleware {
 	m := new(AuthMiddleware)
 
-	if oAuthConfig == nil {
+	if oAuthConfig != nil {
 		m.oAuthConfig = oAuthConfig
 	} else {
 		log.Fatal("OAuthConfig must not be nil, please refer to package env for default implementations")

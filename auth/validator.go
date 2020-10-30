@@ -88,7 +88,7 @@ func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcclient.OIDCTenant)
 		return &jwt.UnverfiableTokenError{Message: "expiration time (exp) is unavailable."}
 	}
 	validationHelper := jwt.NewValidationHelper(
-		jwt.WithAudience(m.options.OAuthConfig.GetClientID()),
+		jwt.WithAudience(m.oAuthConfig.GetClientID()),
 		jwt.WithIssuer(ks.ProviderJSON.Issuer),
 		jwt.WithLeeway(1*time.Minute),
 	)
@@ -111,7 +111,7 @@ func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, er
 		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
 	}
 
-	bindingIssURI, err := url.ParseRequestURI(m.options.OAuthConfig.GetURL())
+	bindingIssURI, err := url.ParseRequestURI(m.oAuthConfig.GetURL())
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
 	}
