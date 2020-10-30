@@ -28,7 +28,8 @@ Files:
     go.mod
     go.sum
     README.md
+    oidcclient/oidcClient.md
     .gitignore
-    oidcClient/oidcClient.md
+    .github/workflows/**
 Copyright: 2020 SAP SE or an SAP affiliate company and Cloud Security Client Go contributors
 License: Apache-2.0
