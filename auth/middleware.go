@@ -9,7 +9,6 @@ import (
 	jwtgo "github.com/dgrijalva/jwt-go/v4"
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
-	"log"
 	"net/http"
 	"time"
 )
@@ -17,14 +16,19 @@ import (
 type errorHandler func(w http.ResponseWriter, r *http.Request, err error)
 
 // Options can be used as a argument to instantiate a AuthMiddle with NewAuthMiddleware.
+//
+// UserContext property under which the token is accessible in the request context. Default: "user"
+//
+// ErrorHandler // called when the jwt verification fails. Default: DefaultErrorHandler
+//
+// HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: http.DefaultClient with a timeout of 30 seconds
 type Options struct {
-	UserContext  string       // property under which the token is accessible in the request context. Default: "user"
-	OAuthConfig  OAuthConfig  // config for the oidc server bound to the application. Default: nil
-	ErrorHandler errorHandler // called when the jwt verification fails. Default: DefaultErrorHandler
-	HTTPClient   *http.Client // HTTPClient which is used to get jwks (JSON Web Keys). Default: http.DefaultClient
+	UserContext  string
+	ErrorHandler errorHandler
+	HTTPClient   *http.Client
 }
 
-// OAuthConfig interface has to be implemented to be used in Options. For IAS the standard implementation from env package can be used.
+// OAuthConfig interface has to be implemented to instantiate NewAuthMiddleware. For IAS the standard implementation IASConfig from ../env/iasConfig.go package can be used.
 type OAuthConfig interface {
 	GetClientID() string
 	GetClientSecret() string
@@ -32,18 +36,17 @@ type OAuthConfig interface {
 }
 
 type AuthMiddleware struct {
+	oAuthConfig OAuthConfig
 	options     Options
 	parser      *jwtgo.Parser
 	oidcTenants *cache.Cache // contains *oidcclient.OIDCTenant
 	sf          singleflight.Group
 }
 
-func NewAuthMiddleware(options Options) *AuthMiddleware {
+func NewAuthMiddleware(oAuthConfig OAuthConfig, options Options) *AuthMiddleware {
 	m := new(AuthMiddleware)
 
-	if options.OAuthConfig == nil {
-		log.Fatal("OAuthConfig must not be nil, please refer to package env for default implementations")
-	}
+	m.oAuthConfig = oAuthConfig
 	if options.ErrorHandler == nil {
 		options.ErrorHandler = DefaultErrorHandler
 	}
