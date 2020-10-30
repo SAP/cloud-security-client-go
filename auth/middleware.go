@@ -94,6 +94,7 @@ func (m *AuthMiddleware) Handler(h http.Handler) http.Handler {
 	})
 }
 
+// Clear the entire storage of cached oidc tenants including their JWKs
 func (m *AuthMiddleware) ClearCache() {
 	m.oidcTenants.Flush()
 }
