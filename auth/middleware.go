@@ -34,7 +34,7 @@ type OAuthConfig interface {
 type AuthMiddleware struct {
 	options     Options
 	parser      *jwtgo.Parser
-	oidcTenants *cache.Cache // contains *oidcclient.RemoteKeySet
+	oidcTenants *cache.Cache // contains *oidcclient.OIDCTenant
 	sf          singleflight.Group
 }
 
