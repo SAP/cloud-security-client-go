@@ -135,7 +135,10 @@ func TestEnd2End(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			req, _ := http.NewRequest("GET", testServer.URL+"/helloWorld", nil)
-			authHeader, _ := oidcMockServer.SignToken(tt.claims, tt.header)
+			authHeader, err := oidcMockServer.SignToken(tt.claims, tt.header)
+			if err != nil {
+				t.Errorf("unable to sign provided test token: %v", err)
+			}
 			req.Header.Add("Authorization", "Bearer "+authHeader)
 			response, err := client.Do(req)
 			if err != nil {

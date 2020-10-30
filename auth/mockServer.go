@@ -21,9 +21,11 @@ import (
 )
 
 type MockServer struct {
-	Server *httptest.Server
-	Config *MockConfig
-	RSAKey *rsa.PrivateKey
+	Server              *httptest.Server
+	Config              *MockConfig
+	RSAKey              *rsa.PrivateKey
+	WellKnownHitCounter int
+	JWKsHitCounter      int
 }
 
 func NewOIDCMockServer() *MockServer {
@@ -47,7 +49,14 @@ func NewOIDCMockServer() *MockServer {
 	return mockServer
 }
 
+func (m *MockServer) ClearAllHitCounters() {
+	m.WellKnownHitCounter = 0
+	m.JWKsHitCounter = 0
+}
+
 func (m *MockServer) WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
+	// TODO: make response configurable for better tests (well_known and jwks)
+	m.WellKnownHitCounter++
 	wellKnown := oidcclient.ProviderJSON{
 		Issuer:  m.Config.URL,
 		JWKsURL: fmt.Sprintf("%s/oauth2/certs", m.Server.URL),
@@ -57,6 +66,7 @@ func (m *MockServer) WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
+	m.JWKsHitCounter++
 	key := &oidcclient.JSONWebKey{
 		Kid: "testKey",
 		Kty: "RSA",

@@ -21,7 +21,7 @@ func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error
 	token.Signature = parts[2]
 
 	// get keyset
-	keySet, err := m.getKeySet(token)
+	keySet, err := m.getOIDCTenant(token)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +46,8 @@ func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error
 	return token, nil
 }
 
-func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.RemoteKeySet) error {
-	jwks, err := ks.GetKeys()
+func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.OIDCTenant) error {
+	jwks, err := ks.GetJWKs()
 	if err != nil {
 		return wrapError(&jwt.UnverfiableTokenError{Message: "failed to fetch token keys from remote"}, err)
 	}
@@ -58,12 +58,13 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.RemoteKeyS
 	var jwk *oidcclient.JSONWebKey
 
 	if kid := t.Header[propKeyID]; kid != nil {
-		for i, key := range jwks {
+		for _, key := range jwks {
 			if key.Kid == kid {
-				jwk = jwks[i]
+				jwk = key
 				break
 			}
-
+		}
+		if jwk == nil {
 			return &jwt.UnverfiableTokenError{Message: "kid id specified in token not presented by remote"}
 		}
 	} else if len(jwks) == 1 {
@@ -80,7 +81,7 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.RemoteKeyS
 	return nil
 }
 
-func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcclient.RemoteKeySet) error {
+func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcclient.OIDCTenant) error {
 	c := t.Claims.(*OIDCClaims)
 
 	if c.ExpiresAt == nil {
@@ -97,7 +98,7 @@ func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcclient.RemoteKeySe
 	return err
 }
 
-func (m *AuthMiddleware) getKeySet(t *jwt.Token) (*oidcclient.RemoteKeySet, error) {
+func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, error) {
 	claims, ok := t.Claims.(*OIDCClaims)
 	if !ok {
 		return nil, &jwt.UnverfiableTokenError{
@@ -120,21 +121,20 @@ func (m *AuthMiddleware) getKeySet(t *jwt.Token) (*oidcclient.RemoteKeySet, erro
 		return nil, &jwt.UnverfiableTokenError{Message: "token is issued by unsupported oauth server"}
 	}
 
-	var keySet *oidcclient.RemoteKeySet
-	if keySet, ok = m.saasKeySet[iss]; !ok {
+	keySet, exp, found := m.oidcTenants.GetWithExpiration(iss)
+	if !found || time.Now().After(exp) {
 		newKeySet, err, _ := m.sf.Do(iss, func() (i interface{}, err error) {
-
-			set, err := oidcclient.NewKeySet(m.options.HTTPClient, issURI)
+			set, err := oidcclient.NewOIDCTenant(m.options.HTTPClient, issURI)
 			return set, err
 		})
 
 		if err != nil {
 			return nil, wrapError(&jwt.UnverfiableTokenError{Message: "unable to build remote keyset"}, err)
 		}
-		keySet = newKeySet.(*oidcclient.RemoteKeySet)
-		m.saasKeySet[keySet.ProviderJSON.Issuer] = keySet
+		keySet = newKeySet.(*oidcclient.OIDCTenant)
+		m.oidcTenants.SetDefault(keySet.(*oidcclient.OIDCTenant).ProviderJSON.Issuer, keySet)
 	}
-	return keySet, nil
+	return keySet.(*oidcclient.OIDCTenant), nil
 }
 
 func wrapError(a, b error) error {

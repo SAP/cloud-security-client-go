@@ -7,7 +7,7 @@ package auth
 import (
 	"context"
 	jwtgo "github.com/dgrijalva/jwt-go/v4"
-	"github.com/sap-staging/cloud-security-client-go/oidcclient"
+	"github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
 	"log"
 	"net/http"
@@ -32,10 +32,10 @@ type OAuthConfig interface {
 }
 
 type AuthMiddleware struct {
-	options    Options
-	parser     *jwtgo.Parser
-	saasKeySet map[string]*oidcclient.RemoteKeySet
-	sf         singleflight.Group
+	options     Options
+	parser      *jwtgo.Parser
+	oidcTenants *cache.Cache // contains *oidcclient.RemoteKeySet
+	sf          singleflight.Group
 }
 
 func NewAuthMiddleware(options Options) *AuthMiddleware {
@@ -57,7 +57,7 @@ func NewAuthMiddleware(options Options) *AuthMiddleware {
 	m.options = options
 
 	m.parser = new(jwtgo.Parser)
-	m.saasKeySet = make(map[string]*oidcclient.RemoteKeySet)
+	m.oidcTenants = cache.New(12*time.Hour, 24*time.Hour)
 
 	return m
 }
@@ -92,6 +92,10 @@ func (m *AuthMiddleware) Handler(h http.Handler) http.Handler {
 		// Continue serving http if jwt was valid
 		h.ServeHTTP(w, r)
 	})
+}
+
+func (m *AuthMiddleware) ClearCache() {
+	m.oidcTenants.Flush()
 }
 
 func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err error) {

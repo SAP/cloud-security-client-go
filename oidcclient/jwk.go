@@ -21,14 +21,14 @@ import (
 	"time"
 )
 
-type RemoteKeySet struct {
+type OIDCTenant struct {
 	ProviderJSON ProviderJSON
 
 	httpClient   *http.Client
 	singleFlight singleflight.Group
 	// A set of cached keys and their expiry.
-	cachedKeys []*JSONWebKey
-	expiry     time.Time
+	jwks       []*JSONWebKey
+	jwksExpiry time.Time
 }
 
 type updateKeysResult struct {
@@ -36,8 +36,8 @@ type updateKeysResult struct {
 	expiry time.Time
 }
 
-func NewKeySet(httpClient *http.Client, targetIss *url.URL) (*RemoteKeySet, error) {
-	ks := new(RemoteKeySet)
+func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
+	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
 
 	err := ks.performDiscovery(targetIss.Host)
@@ -48,29 +48,28 @@ func NewKeySet(httpClient *http.Client, targetIss *url.URL) (*RemoteKeySet, erro
 	return ks, nil
 }
 
-func (ks *RemoteKeySet) GetKeys() ([]*JSONWebKey, error) {
+func (ks *OIDCTenant) GetJWKs() ([]*JSONWebKey, error) {
 	// TODO: Possibility to clear cache manually
 	// TODO: Periodic clear of unused cached keys
-	if !time.Now().After(ks.expiry) {
-		return ks.cachedKeys, nil
-		// cached keys still valid, still verification failed
+
+	// TODO: Concurrent test for updateKeys. DoChan vs Do? Do other threads receive result?
+	if time.Now().Before(ks.jwksExpiry) {
+		return ks.jwks, nil
 	}
 
-	rChan := ks.singleFlight.DoChan("updateKeys", ks.updateKeys)
-
-	res := <-rChan
-	if res.Err != nil {
-		return nil, res.Err
+	updatedKeys, err, _ := ks.singleFlight.Do("updateKeys", ks.updateKeys)
+	if err != nil {
+		return nil, fmt.Errorf("error updating JWKs: %w", err)
 	}
-	keysResult := res.Val.(updateKeysResult)
+	keysResult := updatedKeys.(updateKeysResult)
 
-	ks.expiry = keysResult.expiry
-	ks.cachedKeys = keysResult.keys
+	ks.jwksExpiry = keysResult.expiry
+	ks.jwks = keysResult.keys
 
-	return ks.cachedKeys, nil
+	return ks.jwks, nil
 }
 
-func (ks *RemoteKeySet) updateKeys() (r interface{}, err error) {
+func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
 	result := updateKeysResult{}
 	req, err := http.NewRequest("GET", ks.ProviderJSON.JWKsURL, nil)
 	if err != nil {
@@ -117,7 +116,7 @@ func (ks *RemoteKeySet) updateKeys() (r interface{}, err error) {
 	return result, nil
 }
 
-func (ks *RemoteKeySet) performDiscovery(baseURL string) error {
+func (ks *OIDCTenant) performDiscovery(baseURL string) error {
 	wellKnown := fmt.Sprintf("https://%s/.well-known/openid-configuration", strings.TrimSuffix(baseURL, "/"))
 	req, err := http.NewRequest("GET", wellKnown, nil)
 	if err != nil {
