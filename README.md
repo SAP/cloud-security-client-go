@@ -24,11 +24,10 @@ Upon successful validation of the OIDC Token the token is available in the conte
 ```go
 r := mux.NewRouter()
 
-authMiddleware := core.NewAuthMiddleware(core.Options{
-    UserContext:  "user",
-    OAuthConfig:  env.GetIASConfig(),
-    ErrorHandler: nil,
-})
+authMiddleware := auth.NewAuthMiddleware(env.GetIASConfig(), auth.Options{
+		UserContext:  "user",
+		ErrorHandler: nil,
+	})
 r.Use(authMiddleware.Handler)
 
 r.HandleFunc("/helloWorld", helloWorld).Methods("GET")

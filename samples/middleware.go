@@ -19,9 +19,8 @@ import (
 func main() {
 	r := mux.NewRouter()
 
-	authMiddleware := auth.NewAuthMiddleware(auth.Options{
+	authMiddleware := auth.NewAuthMiddleware(env.GetIASConfig(), auth.Options{
 		UserContext:  "user",
-		OAuthConfig:  env.GetIASConfig(),
 		ErrorHandler: nil,
 	})
 	r.Use(authMiddleware.Handler)
