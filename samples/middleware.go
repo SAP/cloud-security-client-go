@@ -36,6 +36,6 @@ func main() {
 }
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("user").(auth.OIDCClaims)
+	user := r.Context().Value("user").(*auth.OIDCClaims)
 	_, _ = w.Write([]byte(fmt.Sprintf("Hello world!\nYou're logged in as %s", user.Email)))
 }

@@ -70,31 +70,31 @@ func NewAuthMiddleware(oAuthConfig OAuthConfig, options Options) *AuthMiddleware
 	return m
 }
 
-func (m *AuthMiddleware) Authenticate(r *http.Request) AuthResult {
+func (m *AuthMiddleware) Authenticate(r *http.Request) (*OIDCClaims, error) {
 	// get Token from Header
 	rawToken, err := extractRawToken(r)
 	if err != nil {
-		return AuthResult{false, err, nil}
+		return nil, err
 	}
 
 	token, err := m.ParseAndValidateJWT(rawToken)
 	if err != nil {
-		return AuthResult{false, err, nil}
+		return nil, err
 	}
 
-	return AuthResult{true, nil, token.Claims.(*OIDCClaims)}
+	return token.Claims.(*OIDCClaims), nil
 }
 
 func (m *AuthMiddleware) Handler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authResult := m.Authenticate(r)
+		claims, err := m.Authenticate(r)
 
-		if !authResult.success {
-			m.options.ErrorHandler(w, r, authResult.error)
+		if err != nil {
+			m.options.ErrorHandler(w, r, err)
 			return
 		}
 
-		reqWithContext := r.WithContext(context.WithValue(r.Context(), m.options.UserContext, authResult.Details()))
+		reqWithContext := r.WithContext(context.WithValue(r.Context(), m.options.UserContext, claims))
 		*r = *reqWithContext
 
 		// Continue serving http if jwt was valid
