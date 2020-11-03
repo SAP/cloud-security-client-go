@@ -49,10 +49,6 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 }
 
 func (ks *OIDCTenant) GetJWKs() ([]*JSONWebKey, error) {
-	// TODO: Possibility to clear cache manually
-	// TODO: Periodic clear of unused cached keys
-
-	// TODO: Concurrent test for updateKeys. DoChan vs Do? Do other threads receive result?
 	if time.Now().Before(ks.jwksExpiry) {
 		return ks.jwks, nil
 	}
