@@ -1,6 +1,5 @@
 # Go Cloud Security Integration
 
-//TODO: Check wording -> java client lib  https://github.com/SAP/cloud-security-xsuaa-integration/tree/master/java-security
 Client Library in GoLang for application developers requiring authentication with the Identity Authentication Service (IAS). The library provides means for validating the Open ID Connect Token (OIDC) and accessing authentication information like user uuid, user attributes and audiences from the token.
 
 ## Auth
