@@ -17,6 +17,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"time"
 )
 
@@ -28,17 +29,25 @@ type MockServer struct {
 	JWKsHitCounter      int
 }
 
-func NewOIDCMockServer() *MockServer {
+func NewOIDCMockServer() (*MockServer, error) {
 	r := mux.NewRouter()
-	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create mock server: error generating rsa key: %v", err)
+	}
 	server := httptest.NewTLSServer(r)
 
+	domain, err := url.Parse(server.URL)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create mock server: error parsing server url: %v", err)
+	}
 	mockServer := &MockServer{
 		Server: server,
 		Config: &MockConfig{
 			ClientID:     "clientid",
 			ClientSecret: "clientsecret",
 			URL:          server.URL,
+			Domain:       domain.Host,
 		},
 		RSAKey: rsaKey,
 	}
@@ -46,7 +55,7 @@ func NewOIDCMockServer() *MockServer {
 	r.HandleFunc("/.well-known/openid-configuration", mockServer.WellKnownHandler).Methods("GET")
 	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandler).Methods("GET")
 
-	return mockServer
+	return mockServer, nil
 }
 
 func (m *MockServer) ClearAllHitCounters() {
@@ -128,6 +137,7 @@ type MockConfig struct {
 	ClientID     string
 	ClientSecret string
 	URL          string
+	Domain       string
 }
 
 func (c MockConfig) GetClientID() string {
@@ -140,4 +150,8 @@ func (c MockConfig) GetClientSecret() string {
 
 func (c MockConfig) GetURL() string {
 	return c.URL
+}
+
+func (c MockConfig) GetDomain() string {
+	return c.Domain
 }

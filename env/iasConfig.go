@@ -16,6 +16,7 @@ const iasServiceName = "identity"
 type IASConfig struct {
 	ClientID     string
 	ClientSecret string
+	Domain       string
 	URL          string
 }
 
@@ -97,6 +98,10 @@ func (c IASConfig) GetURL() string {
 	return c.URL
 }
 
+func (c IASConfig) GetDomain() string {
+	return c.URL
+}
+
 func (c *IASConfig) parseEnv(credentials map[string]interface{}) error {
 	if clientID, ok := credentials["clientid"]; !ok {
 		return errors.New("unable to find property clientid in environment")
@@ -112,6 +117,11 @@ func (c *IASConfig) parseEnv(credentials map[string]interface{}) error {
 		return errors.New("unable to find property url in environment")
 	} else {
 		c.URL = baseURL.(string)
+	}
+	if domain, ok := credentials["domain"]; !ok {
+		return errors.New("unable to find property domain in environment")
+	} else {
+		c.Domain = domain.(string)
 	}
 	return nil
 }

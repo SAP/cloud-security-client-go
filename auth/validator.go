@@ -110,14 +110,9 @@ func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, er
 		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
 	}
 
-	bindingIssURI, err := url.ParseRequestURI(m.oAuthConfig.GetURL())
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
-	}
-
 	// TODO: replace this check later against domain property from binding to enable multi tenancy support
-	if bindingIssURI.Hostname() != issURI.Hostname() {
-		return nil, fmt.Errorf("token is unverifiable: token is issued by unsupported oauth server")
+	if strings.HasSuffix(issURI.Hostname(), m.oAuthConfig.GetDomain()) {
+		return nil, fmt.Errorf("token is unverifiable: token is issued by unknown oauth server: domain must end with %v", m.oAuthConfig.GetDomain())
 	}
 
 	oidcTenant, exp, found := m.oidcTenants.GetWithExpiration(iss)
@@ -128,7 +123,7 @@ func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, er
 		})
 
 		if err != nil {
-			return nil, fmt.Errorf("token is unverifiable: unable to build remote keyset: %v", err)
+			return nil, fmt.Errorf("token is unverifiable: unable to perform oidc discovery: %v", err)
 		}
 		oidcTenant = newKeySet.(*oidcclient.OIDCTenant)
 		m.oidcTenants.SetDefault(oidcTenant.(*oidcclient.OIDCTenant).ProviderJSON.Issuer, oidcTenant)

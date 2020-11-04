@@ -34,6 +34,7 @@ type OAuthConfig interface {
 	GetClientID() string
 	GetClientSecret() string
 	GetURL() string
+	GetDomain() string
 }
 
 type AuthMiddleware struct {

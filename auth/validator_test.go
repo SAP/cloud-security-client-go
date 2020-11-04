@@ -12,7 +12,10 @@ import (
 )
 
 func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
-	oidcMockServer := NewOIDCMockServer()
+	oidcMockServer, err := NewOIDCMockServer()
+	if err != nil {
+		t.Errorf("error creating test setup: %v", err)
+	}
 	m := NewAuthMiddleware(env.IASConfig{
 		ClientID:     oidcMockServer.Config.ClientID,
 		ClientSecret: oidcMockServer.Config.ClientSecret,

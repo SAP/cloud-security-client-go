@@ -14,6 +14,7 @@ import (
 var testConfig *IASConfig = &IASConfig{
 	ClientID:     "cef76757-de57-480f-be92-1d8c1c7abf16",
 	ClientSecret: "the_CLIENT.secret:3[/abc",
+	Domain:       "accounts400.ondemand.com",
 	URL:          "https://mytenant.accounts400.ondemand.com",
 }
 
