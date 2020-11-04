@@ -49,10 +49,10 @@ func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error
 func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.OIDCTenant) error {
 	jwks, err := ks.GetJWKs()
 	if err != nil {
-		return wrapError(&jwt.UnverfiableTokenError{Message: "failed to fetch token keys from remote"}, err)
+		return fmt.Errorf("token is unverifiable: failed to fetch token keys from remote: %w", err)
 	}
 	if len(jwks) == 0 {
-		return &jwt.UnverfiableTokenError{Message: "remote returned no jwk to verify the token"}
+		return fmt.Errorf("token is unverifiable: remote returned no jwk to verify the token")
 	}
 
 	var jwk *oidcclient.JSONWebKey
@@ -65,18 +65,18 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.OIDCTenant
 			}
 		}
 		if jwk == nil {
-			return &jwt.UnverfiableTokenError{Message: "kid id specified in token not presented by remote"}
+			return fmt.Errorf("token is unverifiable: kid id specified in token not presented by remote")
 		}
 	} else if len(jwks) == 1 {
 		jwk = jwks[0]
 	} else {
-		return &jwt.UnverfiableTokenError{Message: "no kid specified in token and more than one verification key available"}
+		return fmt.Errorf("token is unverifiable: no kid specified in token and more than one verification key available")
 	}
 
 	// join token together again, as t.Raw does not contain signature
 	if err := t.Method.Verify(strings.TrimSuffix(t.Raw, "."+t.Signature), t.Signature, jwk.Key); err != nil {
 		// invalid
-		return wrapError(&jwt.InvalidSignatureError{}, err)
+		return fmt.Errorf("token signature is invalid: %w", err)
 	}
 	return nil
 }
@@ -85,7 +85,7 @@ func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcclient.OIDCTenant)
 	c := t.Claims.(*OIDCClaims)
 
 	if c.ExpiresAt == nil {
-		return &jwt.UnverfiableTokenError{Message: "expiration time (exp) is unavailable."}
+		return fmt.Errorf("token is unverifiable: expiration time (exp) is unavailable")
 	}
 	validationHelper := jwt.NewValidationHelper(
 		jwt.WithAudience(m.oAuthConfig.GetClientID()),
@@ -101,8 +101,7 @@ func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcclient.OIDCTenant)
 func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, error) {
 	claims, ok := t.Claims.(*OIDCClaims)
 	if !ok {
-		return nil, &jwt.UnverfiableTokenError{
-			Message: fmt.Sprintf("internal validation error during type assertion: expected *OIDCClaims, got %T", t.Claims)}
+		return nil, fmt.Errorf("token is unverifiable: internal validation error during type assertion: expected *OIDCClaims, got %T", t.Claims)
 	}
 
 	iss := claims.Issuer
@@ -118,7 +117,7 @@ func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, er
 
 	// TODO: replace this check later against domain property from binding to enable multi tenancy support
 	if bindingIssURI.Hostname() != issURI.Hostname() {
-		return nil, &jwt.UnverfiableTokenError{Message: "token is issued by unsupported oauth server"}
+		return nil, fmt.Errorf("token is unverifiable: token is issued by unsupported oauth server")
 	}
 
 	keySet, exp, found := m.oidcTenants.GetWithExpiration(iss)
@@ -129,27 +128,10 @@ func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, er
 		})
 
 		if err != nil {
-			return nil, wrapError(&jwt.UnverfiableTokenError{Message: "unable to build remote keyset"}, err)
+			return nil, fmt.Errorf("token is unverifiable: unable to build remote keyset: %w", err)
 		}
 		keySet = newKeySet.(*oidcclient.OIDCTenant)
 		m.oidcTenants.SetDefault(keySet.(*oidcclient.OIDCTenant).ProviderJSON.Issuer, keySet)
 	}
 	return keySet.(*oidcclient.OIDCTenant), nil
-}
-
-func wrapError(a, b error) error {
-	if b == nil {
-		return a
-	}
-	if a == nil {
-		return b
-	}
-
-	type iErrorWrapper interface {
-		Wrap(error)
-	}
-	if w, ok := a.(iErrorWrapper); ok {
-		w.Wrap(b)
-	}
-	return a
 }
