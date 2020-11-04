@@ -87,7 +87,7 @@ func (m *MockServer) SignToken(claims OIDCClaims, header map[string]interface{})
 	}
 	signedString, err := token.SignedString(m.RSAKey)
 	if err != nil {
-		return "", fmt.Errorf("error signing token: %w", err)
+		return "", fmt.Errorf("error signing token: %v", err)
 	}
 	return signedString, nil
 }

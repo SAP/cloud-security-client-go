@@ -55,7 +55,7 @@ func (ks *OIDCTenant) GetJWKs() ([]*JSONWebKey, error) {
 
 	updatedKeys, err, _ := ks.singleFlight.Do("updateKeys", ks.updateKeys)
 	if err != nil {
-		return nil, fmt.Errorf("error updating JWKs: %w", err)
+		return nil, fmt.Errorf("error updating JWKs: %v", err)
 	}
 	keysResult := updatedKeys.(updateKeysResult)
 

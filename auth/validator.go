@@ -49,7 +49,7 @@ func (m *AuthMiddleware) ParseAndValidateJWT(rawToken string) (*jwt.Token, error
 func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.OIDCTenant) error {
 	jwks, err := ks.GetJWKs()
 	if err != nil {
-		return fmt.Errorf("token is unverifiable: failed to fetch token keys from remote: %w", err)
+		return fmt.Errorf("token is unverifiable: failed to fetch token keys from remote: %v", err)
 	}
 	if len(jwks) == 0 {
 		return fmt.Errorf("token is unverifiable: remote returned no jwk to verify the token")
@@ -76,7 +76,7 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.OIDCTenant
 	// join token together again, as t.Raw does not contain signature
 	if err := t.Method.Verify(strings.TrimSuffix(t.Raw, "."+t.Signature), t.Signature, jwk.Key); err != nil {
 		// invalid
-		return fmt.Errorf("token signature is invalid: %w", err)
+		return fmt.Errorf("token signature is invalid: %v", err)
 	}
 	return nil
 }
@@ -128,7 +128,7 @@ func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, er
 		})
 
 		if err != nil {
-			return nil, fmt.Errorf("token is unverifiable: unable to build remote keyset: %w", err)
+			return nil, fmt.Errorf("token is unverifiable: unable to build remote keyset: %v", err)
 		}
 		keySet = newKeySet.(*oidcclient.OIDCTenant)
 		m.oidcTenants.SetDefault(keySet.(*oidcclient.OIDCTenant).ProviderJSON.Issuer, keySet)
