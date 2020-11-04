@@ -108,6 +108,10 @@ func (m *AuthMiddleware) ClearCache() {
 	m.oidcTenants.Flush()
 }
 
+func (m *AuthMiddleware) GetHTTPClient() *http.Client {
+	return m.options.HTTPClient
+}
+
 func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	http.Error(w, err.Error(), http.StatusUnauthorized)
 }
