@@ -120,7 +120,7 @@ func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, er
 		return nil, fmt.Errorf("token is unverifiable: token is issued by unsupported oauth server")
 	}
 
-	keySet, exp, found := m.oidcTenants.GetWithExpiration(iss)
+	oidcTenant, exp, found := m.oidcTenants.GetWithExpiration(iss)
 	if !found || time.Now().After(exp) {
 		newKeySet, err, _ := m.sf.Do(iss, func() (i interface{}, err error) {
 			set, err := oidcclient.NewOIDCTenant(m.options.HTTPClient, issURI)
@@ -130,8 +130,8 @@ func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, er
 		if err != nil {
 			return nil, fmt.Errorf("token is unverifiable: unable to build remote keyset: %v", err)
 		}
-		keySet = newKeySet.(*oidcclient.OIDCTenant)
-		m.oidcTenants.SetDefault(keySet.(*oidcclient.OIDCTenant).ProviderJSON.Issuer, keySet)
+		oidcTenant = newKeySet.(*oidcclient.OIDCTenant)
+		m.oidcTenants.SetDefault(oidcTenant.(*oidcclient.OIDCTenant).ProviderJSON.Issuer, oidcTenant)
 	}
-	return keySet.(*oidcclient.OIDCTenant), nil
+	return oidcTenant.(*oidcclient.OIDCTenant), nil
 }
