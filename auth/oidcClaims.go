@@ -26,17 +26,25 @@ type OIDCClaims struct {
 }
 
 func (c OIDCClaims) GetClaimAsString(claim string) (string, error) {
-	s, ok := c.mapClaims[claim].(string)
+	s, ok := c.mapClaims[claim]
+	if !ok {
+		return "", fmt.Errorf("claim %s not avaiable not token", claim)
+	}
+	res := s.(string)
 	if !ok {
 		return "", fmt.Errorf("unable to assert type of claim %s to string. Actual type: %T", claim, c.mapClaims[claim])
 	}
-	return s, nil
+	return res, nil
 }
 
 func (c OIDCClaims) GetClaimAsStringSlice(claim string) ([]string, error) {
-	s, ok := c.mapClaims[claim].([]string)
+	s, ok := c.mapClaims[claim]
+	if !ok {
+		return nil, fmt.Errorf("claim %s not avaiable not token", claim)
+	}
+	res, ok := s.([]string)
 	if !ok {
 		return nil, fmt.Errorf("unable to assert type of claim %s to string. Actual type: %T", claim, c.mapClaims[claim])
 	}
-	return s, nil
+	return res, nil
 }
