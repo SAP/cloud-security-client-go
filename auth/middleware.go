@@ -20,7 +20,7 @@ type errorHandler func(w http.ResponseWriter, r *http.Request, err error)
 //
 // UserContext property under which the token is accessible in the request context. Default: "user"
 //
-// ErrorHandler // called when the jwt verification fails. Default: DefaultErrorHandler
+// ErrorHandler called if the jwt verification fails. Default: DefaultErrorHandler
 //
 // HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: http.DefaultClient with a timeout of 30 seconds
 type Options struct {

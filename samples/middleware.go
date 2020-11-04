@@ -19,7 +19,11 @@ import (
 func main() {
 	r := mux.NewRouter()
 
-	authMiddleware := auth.NewAuthMiddleware(env.GetIASConfig(), auth.Options{
+	config, err := env.GetIASConfig()
+	if err != nil {
+		panic(err)
+	}
+	authMiddleware := auth.NewAuthMiddleware(config, auth.Options{
 		UserContext:  "user",
 		ErrorHandler: nil,
 	})
@@ -29,7 +33,7 @@ func main() {
 
 	address := ":8080"
 	log.Println("Starting server on address", address)
-	err := http.ListenAndServe(address, handlers.LoggingHandler(os.Stdout, r))
+	err = http.ListenAndServe(address, handlers.LoggingHandler(os.Stdout, r))
 	if err != nil {
 		panic(err)
 	}

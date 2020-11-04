@@ -137,6 +137,10 @@ func (ks *OIDCTenant) performDiscovery(baseURL string) error {
 	if err != nil {
 		return fmt.Errorf("failed to decode provider discovery object: %v", err)
 	}
+	err = p.assertMandatoryFieldsPresent()
+	if err != nil {
+		return fmt.Errorf("oidc discovery for %v failed: %v", wellKnown, err)
+	}
 	ks.ProviderJSON = p
 
 	return nil
@@ -183,6 +187,21 @@ func (jwk *JSONWebKey) assertKeyType() error {
 		return errors.New("jwk remote presented unsupported key type: " + jwk.Kty)
 	}
 
+	return nil
+}
+
+func (p ProviderJSON) assertMandatoryFieldsPresent() error {
+	missing := make([]string, 0, 2)
+	if p.Issuer == "" {
+		missing = append(missing, "issuer")
+	}
+	if p.JWKsURL == "" {
+		missing = append(missing, "jwks_uri")
+	}
+	if len(missing) > 0 {
+		str := "'" + strings.Join(missing, "','") + "'"
+		return fmt.Errorf("missing following mandatory fields in the OIDC discovery response: %v", str)
+	}
 	return nil
 }
 

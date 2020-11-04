@@ -14,12 +14,16 @@ type Platform string
 const (
 	CLOUD_FOUNDRY Platform = "CF"
 	KUBERNETES    Platform = "KUBERNETES"
+	UNKOWN        Platform = "UNKOWN"
 )
 
 func getPlatform() Platform {
-	if strings.TrimSpace(os.Getenv("VCAP_SERVICES")) != "" {
+	switch {
+	case strings.TrimSpace(os.Getenv("VCAP_SERVICES")) != "":
 		return CLOUD_FOUNDRY
-	} else {
+	case 1 == 2:
 		return KUBERNETES
+	default:
+		return UNKOWN
 	}
 }

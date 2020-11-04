@@ -14,7 +14,7 @@ import (
 func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 	oidcMockServer := NewOIDCMockServer()
 	m := NewAuthMiddleware(env.IASConfig{
-		ClientId:     oidcMockServer.Config.ClientID,
+		ClientID:     oidcMockServer.Config.ClientID,
 		ClientSecret: oidcMockServer.Config.ClientSecret,
 		URL:          oidcMockServer.Config.URL,
 	}, Options{

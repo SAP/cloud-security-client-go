@@ -23,20 +23,24 @@ Upon successful validation of the OIDC Token the token is available in the conte
 ```go
 r := mux.NewRouter()
 
-authMiddleware := auth.NewAuthMiddleware(env.GetIASConfig(), auth.Options{
-		UserContext:  "user",
-		ErrorHandler: nil,
-	})
+config, err := env.GetIASConfig()
+if err != nil {
+    panic(err)
+}
+authMiddleware := auth.NewAuthMiddleware(config, auth.Options{
+    UserContext:  "user",
+    ErrorHandler: nil,
+})
 r.Use(authMiddleware.Handler)
 
 r.HandleFunc("/helloWorld", helloWorld).Methods("GET")
 
 address := ":8080"
 log.Println("Starting server on address", address)
-err := http.ListenAndServe(address, handlers.LoggingHandler(os.Stdout, r))
+err = http.ListenAndServe(address, handlers.LoggingHandler(os.Stdout, r))
 if err != nil {
     panic(err)
-}
+}   
 ```
 Full example: [samples/middleware.go](samples/middleware.go)
 
