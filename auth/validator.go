@@ -105,13 +105,12 @@ func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, er
 	}
 
 	iss := claims.Issuer
-	issURI, err := url.ParseRequestURI(iss)
+	issURI, err := url.Parse(iss)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
 	}
 
-	// TODO: replace this check later against domain property from binding to enable multi tenancy support
-	if strings.HasSuffix(issURI.Hostname(), m.oAuthConfig.GetDomain()) {
+	if !strings.HasSuffix(issURI.Hostname(), m.oAuthConfig.GetDomain()) {
 		return nil, fmt.Errorf("token is unverifiable: token is issued by unknown oauth server: domain must end with %v", m.oAuthConfig.GetDomain())
 	}
 
