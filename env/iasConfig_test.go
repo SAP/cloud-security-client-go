@@ -89,6 +89,13 @@ func TestGetIASConfigInUserProvidedService(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
+		{
+			name:    "multiple ups, none with correct name",
+			env:     "{\"user-provided\":[{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domain\":\"accounts400.ondemand.com\",\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"another-ups\",\"label\":\"user-provided\",\"name\":\"another-ups\",\"syslog_drain_url\":\"\",\"tags\":[],\"volume_mounts\":[]},{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domain\":\"accounts400.ondemand.com\",\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"yet-another-ups\",\"label\":\"user-provided\",\"name\":\"yet-another-ups\",\"syslog_drain_url\":\"\",\"tags\":[],\"volume_mounts\":[]}]}",
+			arg:     "identity",
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
