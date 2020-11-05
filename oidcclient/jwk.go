@@ -49,9 +49,9 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 }
 
 func (ks *OIDCTenant) GetJWKs() ([]*JSONWebKey, error) {
-	if time.Now().Before(ks.jwksExpiry) {
+	/*if time.Now().Before(ks.jwksExpiry) {
 		return ks.jwks, nil
-	}
+	}*/
 
 	updatedKeys, err, _ := ks.singleFlight.Do("updateKeys", ks.updateKeys)
 	if err != nil {
