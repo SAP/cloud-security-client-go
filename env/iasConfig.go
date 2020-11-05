@@ -99,7 +99,7 @@ func (c IASConfig) GetURL() string {
 }
 
 func (c IASConfig) GetDomain() string {
-	return c.URL
+	return c.Domain
 }
 
 func (c *IASConfig) parseEnv(credentials map[string]interface{}) error {

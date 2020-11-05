@@ -110,7 +110,7 @@ func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, er
 		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
 	}
 
-	if !strings.HasSuffix(issURI.Hostname(), m.oAuthConfig.GetDomain()) {
+	if !strings.HasSuffix(issURI.Host, m.oAuthConfig.GetDomain()) {
 		return nil, fmt.Errorf("token is unverifiable: token is issued by unknown oauth server: domain must end with %v", m.oAuthConfig.GetDomain())
 	}
 

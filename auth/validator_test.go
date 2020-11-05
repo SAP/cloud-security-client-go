@@ -20,6 +20,7 @@ func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 		ClientID:     oidcMockServer.Config.ClientID,
 		ClientSecret: oidcMockServer.Config.ClientSecret,
 		URL:          oidcMockServer.Config.URL,
+		Domain:       oidcMockServer.Config.Domain,
 	}, Options{
 		HTTPClient: oidcMockServer.Server.Client(),
 	})

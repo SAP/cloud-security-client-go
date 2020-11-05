@@ -30,7 +30,7 @@ func (c OIDCClaims) GetClaimAsString(claim string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("claim %s not avaiable not token", claim)
 	}
-	res := s.(string)
+	res, ok := s.(string)
 	if !ok {
 		return "", fmt.Errorf("unable to assert type of claim %s to string. Actual type: %T", claim, c.mapClaims[claim])
 	}
