@@ -22,7 +22,7 @@ type errorHandler func(w http.ResponseWriter, r *http.Request, err error)
 //
 // ErrorHandler called if the jwt verification fails. Default: DefaultErrorHandler
 //
-// HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: http.DefaultClient with a timeout of 30 seconds
+// HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: basic http.Client with a timeout of 15 seconds
 type Options struct {
 	UserContext  string
 	ErrorHandler errorHandler
@@ -60,8 +60,9 @@ func NewAuthMiddleware(oAuthConfig OAuthConfig, options Options) *AuthMiddleware
 		options.UserContext = "user"
 	}
 	if options.HTTPClient == nil {
-		options.HTTPClient = http.DefaultClient
-		options.HTTPClient.Timeout = time.Second * 30
+		options.HTTPClient = &http.Client{
+			Timeout: 15 * time.Second,
+		}
 	}
 	m.options = options
 
