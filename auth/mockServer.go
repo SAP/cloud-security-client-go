@@ -92,8 +92,40 @@ func (m *MockServer) SignToken(claims OIDCClaims, header map[string]interface{})
 	token := &jwtgo.Token{
 		Header: header,
 		Claims: claims,
-		Method: jwtgo.SigningMethodRS256, // only faking alg header, not actual key
+		Method: jwtgo.SigningMethodRS256,
 	}
+	return m.signToken(token)
+}
+
+// Sign token with additional non-standard oidc claims. additionalClaims must not contain any oidc standard claims or duplicates
+func (m *MockServer) SignTokenWithAdditionalClaims(claims OIDCClaims, additionalClaims map[string]interface{}, header map[string]interface{}) (string, error) {
+	mapClaims := jwtgo.MapClaims{}
+
+	dataBytes, err := json.Marshal(claims)
+	if err != nil {
+		return "", fmt.Errorf("unable to convert OIDCClaims to map (marshal): %v", err)
+	}
+	err = json.Unmarshal(dataBytes, &mapClaims)
+	if err != nil {
+		return "", fmt.Errorf("unable to convert OIDCClaims to map (unmarshal): %v", err)
+	}
+
+	for k, v := range additionalClaims {
+		if _, exists := mapClaims[k]; exists {
+			return "", fmt.Errorf("additional claims must not contain any OIDC standard claims or duplicates. use claims parameter instead")
+		}
+		mapClaims[k] = v
+	}
+
+	token := &jwtgo.Token{
+		Header: header,
+		Claims: mapClaims,
+		Method: jwtgo.SigningMethodRS256,
+	}
+	return m.signToken(token)
+}
+
+func (m *MockServer) signToken(token *jwtgo.Token) (string, error) {
 	signedString, err := token.SignedString(m.RSAKey)
 	if err != nil {
 		return "", fmt.Errorf("error signing token: %v", err)
