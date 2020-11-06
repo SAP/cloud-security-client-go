@@ -25,6 +25,7 @@ type OIDCClaims struct {
 	mapClaims  map[string]interface{}
 }
 
+// Get a custom claim type asserted as string. The claim name is case sensitive. Returns error if the claim is not available or not a string.
 func (c OIDCClaims) GetClaimAsString(claim string) (string, error) {
 	s, ok := c.mapClaims[claim]
 	if !ok {
@@ -37,6 +38,7 @@ func (c OIDCClaims) GetClaimAsString(claim string) (string, error) {
 	return res, nil
 }
 
+// Get a custom claim type asserted as string slice. The claim name is case sensitive. Returns error if the claim is not available or not an array.
 func (c OIDCClaims) GetClaimAsStringSlice(claim string) ([]string, error) {
 	s, ok := c.mapClaims[claim]
 	if !ok {
