@@ -1,4 +1,4 @@
-module github.com/sap-staging/cloud-security-client-go
+module github.com/sap/cloud-security-client-go
 
 go 1.15
 

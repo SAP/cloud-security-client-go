@@ -5,7 +5,7 @@
 package auth
 
 import (
-	"github.com/sap-staging/cloud-security-client-go/env"
+	"github.com/sap/cloud-security-client-go/env"
 	"sync"
 	"testing"
 	"time"

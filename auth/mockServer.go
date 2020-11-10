@@ -13,7 +13,7 @@ import (
 	jwtgo "github.com/dgrijalva/jwt-go/v4"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/sap-staging/cloud-security-client-go/oidcclient"
+	"github.com/sap/cloud-security-client-go/oidcclient"
 	"math/big"
 	"net/http"
 	"net/http/httptest"

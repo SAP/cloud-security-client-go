@@ -7,7 +7,7 @@ package auth
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go/v4"
-	"github.com/sap-staging/cloud-security-client-go/oidcclient"
+	"github.com/sap/cloud-security-client-go/oidcclient"
 	"net/url"
 	"strings"
 	"time"
