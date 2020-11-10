@@ -87,7 +87,7 @@ func (m *AuthMiddleware) Authenticate(r *http.Request) (*OIDCClaims, error) {
 	return token.Claims.(*OIDCClaims), nil
 }
 
-func (m *AuthMiddleware) Handler(h http.Handler) http.Handler {
+func (m *AuthMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, err := m.Authenticate(r)
 
@@ -100,7 +100,7 @@ func (m *AuthMiddleware) Handler(h http.Handler) http.Handler {
 		*r = *reqWithContext
 
 		// Continue serving http if jwt was valid
-		h.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
 	})
 }
 
