@@ -42,7 +42,7 @@ func (c OIDCClaims) GetClaimAsString(claim string) (string, error) {
 func (c OIDCClaims) GetClaimAsStringSlice(claim string) ([]string, error) {
 	s, ok := c.mapClaims[claim]
 	if !ok {
-		return nil, fmt.Errorf("claim %s not avaiable not token", claim)
+		return nil, fmt.Errorf("claim %s not available not token", claim)
 	}
 	res, ok := s.([]string)
 	if !ok {
