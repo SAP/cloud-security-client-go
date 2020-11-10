@@ -1,5 +1,5 @@
-name: build
-on: [push]
+name: build and test go
+on: [ push, pull_request ]
 jobs:
 
   lint:
@@ -19,96 +19,17 @@ jobs:
           go get -u -v golang.org/x/lint/golint
           golint ./...
 
-  build-linux:
-    #qemu does not work correctly in ubuntu-18.04
-    runs-on: ubuntu-20.04
+  build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        goos: [linux]
-        goarch: [amd64, arm, arm64, s390x]
-        go: [ '1.15', '1.14', '1.13' ]
+        goos: [ ubuntu-latest, windows-latest, macos-latest ]
+        go: [ '1.15', '1.14' ]
       fail-fast: false
 
-    name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-
-    env:
-      GOOS: ${{ matrix.goos }}
-      GOARCH: ${{ matrix.goarch }}
-      GOARM: 6
+    name: Go ${{ matrix.go }} ${{ matrix.goos }} build
 
     steps:
-
-      - name: Install qemu-user
-        run: sudo apt-get -y install qemu-user
-
-      - uses: actions/checkout@v2
-
-      - name: Setup go
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ matrix.go }}
-
-      - name: Get dependencies
-        run: |
-          go get -v -t -d ./...
-
-      - name: Build
-        run: |
-          go build -v ./...
-
-      - name: Vet
-        run: |
-          go vet ./...
-
-      - name: Test
-        run: |
-          go test -v --tags unit ./...
-
-  build-macos:
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        go: [ '1.15', '1.14', '1.13' ]
-      fail-fast: false
-
-    name: Go ${{ matrix.go }} macOS
-
-    steps:
-
-      - uses: actions/checkout@v2
-
-      - name: Setup go
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ matrix.go }}
-
-      - name: Get dependencies
-        run: |
-          go get -v -t -d ./...
-
-      - name: Build
-        run: |
-          go build -v ./...
-
-      - name: Vet
-        run: |
-          go vet ./...
-
-      - name: Test
-        run: |
-          go test -v --tags unit ./...
-
-  build-windows:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        go: [ '1.15', '1.14', '1.13' ]
-      fail-fast: false
-
-    name: Go ${{ matrix.go }} Windows
-
-    steps:
-
       - uses: actions/checkout@v2
 
       - name: Setup go
