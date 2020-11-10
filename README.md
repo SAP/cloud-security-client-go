@@ -1,6 +1,6 @@
 # Go Cloud Security Integration
 
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/SAP/cloud-security-client-go)](https://pkg.go.dev/github.com/SAP/cloud-security-client-go)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/sap/cloud-security-client-go/auth)](https://pkg.go.dev/github.com/sap/cloud-security-client-go/auth)
 [![Go Report Card](https://goreportcard.com/badge/github.com/SAP/cloud-security-client-go)](https://goreportcard.com/report/github.com/SAP/cloud-security-client-go)
 [![REUSE status](https://api.reuse.software/badge/git.fsfe.org/reuse/api)](https://api.reuse.software/info/git.fsfe.org/reuse/api)
 
