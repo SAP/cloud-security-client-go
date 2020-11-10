@@ -3,7 +3,6 @@
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/SAP/cloud-security-client-go)](https://pkg.go.dev/github.com/SAP/cloud-security-client-go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/SAP/cloud-security-client-go)](https://goreportcard.com/report/github.com/SAP/cloud-security-client-go)
 [![REUSE status](https://api.reuse.software/badge/git.fsfe.org/reuse/api)](https://api.reuse.software/info/git.fsfe.org/reuse/api)
-![](https://github.com/SAP/cloud-security-client-go/workflows/build/badge.svg)
 
 Client Library in GoLang for application developers requiring authentication with the Identity Authentication Service (IAS). The library provides means for validating the Open ID Connect Token (OIDC) and accessing authentication information like user uuid, user attributes and audiences from the token.
 
