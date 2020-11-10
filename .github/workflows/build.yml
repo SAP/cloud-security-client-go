@@ -20,13 +20,13 @@ jobs:
           golint ./...
 
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         goos: [ ubuntu-latest, windows-latest, macos-latest ]
         go: [ '1.15', '1.14' ]
       fail-fast: false
 
+    runs-on: ${{ matrix.os }}
     name: Go ${{ matrix.go }} ${{ matrix.goos }} build
 
     steps:
