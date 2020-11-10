@@ -14,7 +14,7 @@ type Platform string
 const (
 	CLOUD_FOUNDRY Platform = "CF"
 	KUBERNETES    Platform = "KUBERNETES"
-	UNKOWN        Platform = "UNKOWN"
+	UNKNOWN       Platform = "UNKNOWN"
 )
 
 func getPlatform() Platform {
@@ -24,6 +24,6 @@ func getPlatform() Platform {
 	case 1 == 2:
 		return KUBERNETES
 	default:
-		return UNKOWN
+		return UNKNOWN
 	}
 }

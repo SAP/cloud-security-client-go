@@ -29,7 +29,7 @@ type OIDCClaims struct {
 func (c OIDCClaims) GetClaimAsString(claim string) (string, error) {
 	s, ok := c.mapClaims[claim]
 	if !ok {
-		return "", fmt.Errorf("claim %s not avaiable not token", claim)
+		return "", fmt.Errorf("claim %s not available not token", claim)
 	}
 	res, ok := s.(string)
 	if !ok {
