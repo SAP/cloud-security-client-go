@@ -95,7 +95,7 @@ func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
 	for _, jwk := range keySet.Keys {
 		err := jwk.assertKeyType()
 		if err != nil {
-			return result, fmt.Errorf("failed to build verfication Key from jwk: %v", err)
+			return result, fmt.Errorf("failed to build verification Key from jwk: %v", err)
 		}
 	}
 
