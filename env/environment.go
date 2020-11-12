@@ -13,18 +13,18 @@ import (
 type Platform string
 
 const (
-	CLOUD_FOUNDRY Platform = "CLOUD_FOUNDRY" // CLOUD_FOUNDRY is the platform type for Cloud Foundry
-	KUBERNETES    Platform = "KUBERNETES"    // KUBERNETES is the platform type for Kubernetes
-	UNKNOWN       Platform = "UNKNOWN"       // UNKNOWN is a placeholder for unknown platform types
+	cloud_foundry Platform = "CLOUD_FOUNDRY"
+	kubernetes    Platform = "KUBERNETES"
+	unknown       Platform = "UNKNOWN"
 )
 
 func getPlatform() Platform {
 	switch {
 	case strings.TrimSpace(os.Getenv("VCAP_SERVICES")) != "":
-		return CLOUD_FOUNDRY
+		return cloud_foundry
 	case 1 == 2:
-		return KUBERNETES
+		return kubernetes
 	default:
-		return UNKNOWN
+		return unknown
 	}
 }

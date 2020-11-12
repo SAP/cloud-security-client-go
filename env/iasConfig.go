@@ -25,7 +25,7 @@ type IASConfig struct {
 func GetIASConfig() (*IASConfig, error) {
 	config := IASConfig{}
 	switch getPlatform() {
-	case CLOUD_FOUNDRY:
+	case cloud_foundry:
 		appEnv, e := cfenv.Current()
 		if e != nil {
 			return nil, fmt.Errorf("could not read cf env")
@@ -42,7 +42,7 @@ func GetIASConfig() (*IASConfig, error) {
 				return nil, fmt.Errorf("error during parsing of "+iasServiceName+" environment: %v", e)
 			}
 		}
-	case KUBERNETES:
+	case kubernetes:
 		return nil, fmt.Errorf("unable to parse ias config: kubernetes env detected but not yet supported")
 	default:
 		return nil, fmt.Errorf("unable to parse ias config: unknown environment detected")
@@ -55,7 +55,7 @@ func GetIASConfig() (*IASConfig, error) {
 func GetIASConfigInUserProvidedService(serviceInstanceName string) (*IASConfig, error) {
 	config := IASConfig{}
 	switch getPlatform() {
-	case CLOUD_FOUNDRY:
+	case cloud_foundry:
 		appEnv, e := cfenv.Current()
 		if e != nil {
 			return nil, fmt.Errorf("could not read cf env")
@@ -82,7 +82,7 @@ func GetIASConfigInUserProvidedService(serviceInstanceName string) (*IASConfig, 
 		if e != nil {
 			return nil, fmt.Errorf("error during parsing of "+serviceInstanceName+" in user-provided environment: ", e)
 		}
-	case KUBERNETES:
+	case kubernetes:
 		return nil, fmt.Errorf("unable to parse ias config: kubernetes env detected but not yet supported")
 	default:
 		return nil, fmt.Errorf("unable to parse ias config: unknown environment detected")

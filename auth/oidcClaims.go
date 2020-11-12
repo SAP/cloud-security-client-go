@@ -15,7 +15,7 @@ const (
 	propAlg   = "alg"
 )
 
-// OIdCClaims represents all claims that the JWT holds
+// OIDCClaims represents all claims that the JWT holds
 type OIDCClaims struct {
 	jwtgo.StandardClaims
 	GivenName  string `json:"given_name,omitempty"`
