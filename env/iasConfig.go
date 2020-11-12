@@ -51,7 +51,7 @@ func GetIASConfig() (*IASConfig, error) {
 
 }
 
-// GetIASConfig parses the user-provided IAS config from the applications environment
+// GetIASConfigInUserProvidedService parses the user-provided IAS config from the applications environment
 func GetIASConfigInUserProvidedService(serviceInstanceName string) (*IASConfig, error) {
 	config := IASConfig{}
 	switch getPlatform() {

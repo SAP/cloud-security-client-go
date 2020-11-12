@@ -45,7 +45,7 @@ func (b *OIDCHeaderBuilder) Build() map[string]interface{} {
 	return b.header
 }
 
-// OIDCHeaderBuilder can construct token claims for test cases
+// OIDCClaimsBuilder can construct token claims for test cases
 type OIDCClaimsBuilder struct {
 	claims OIDCClaims
 }
@@ -133,13 +133,13 @@ func (b *OIDCClaimsBuilder) ZoneID(zoneID string) *OIDCClaimsBuilder {
 	return b
 }
 
-// WithoutIssuedAt removes the aud claim
+// WithoutAudience removes the aud claim
 func (b *OIDCClaimsBuilder) WithoutAudience() *OIDCClaimsBuilder {
 	b.claims.Audience = nil
 	return b
 }
 
-// WithoutIssuedAt removes the exp claim
+// WithoutExpiresAt removes the exp claim
 func (b *OIDCClaimsBuilder) WithoutExpiresAt() *OIDCClaimsBuilder {
 	b.claims.ExpiresAt = nil
 	return b

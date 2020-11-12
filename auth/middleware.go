@@ -14,16 +14,17 @@ import (
 	"time"
 )
 
-type errorHandler func(w http.ResponseWriter, r *http.Request, err error)
+// UserContext is the type that holds the custom key under which the OIDCClaims are stored in the request context
+type UserContext string
+
+// ErrorHandler is the type for the Error Handler which is called on unsuccessful token validation and if the Handler middleware func is used
+type ErrorHandler func(w http.ResponseWriter, r *http.Request, err error)
 
 // Options can be used as a argument to instantiate a AuthMiddle with NewAuthMiddleware.
 type Options struct {
-	UserContext string // UserContext property under which the token is accessible in the request context. Default: "user"
-
-	ErrorHandler errorHandler // ErrorHandler called if the jwt verification fails. Default: DefaultErrorHandler
-
-	HTTPClient *http.Client // HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: basic http.Client with a timeout of 15 seconds
-
+	UserContext  UserContext  // UserContext property under which the token is accessible in the request context. Default: "user"
+	ErrorHandler ErrorHandler // ErrorHandler called if the jwt verification fails and the Handler middleware func is used. Default: DefaultErrorHandler
+	HTTPClient   *http.Client // HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: basic http.Client with a timeout of 15 seconds
 }
 
 // OAuthConfig interface has to be implemented to instantiate NewAuthMiddleware. For IAS the standard implementation IASConfig from ../env/iasConfig.go package can be used.

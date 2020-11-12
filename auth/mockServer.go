@@ -31,7 +31,7 @@ type MockServer struct {
 	JWKsHitCounter      int              // JWKsHitCounter holds the number of requests to the JWKsHandler.
 }
 
-// MockServer instantiates a new MockServer.
+// NewOIDCMockServer instantiates a new MockServer.
 func NewOIDCMockServer() (*MockServer, error) {
 	r := mux.NewRouter()
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -79,7 +79,7 @@ func (m *MockServer) WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write(payload)
 }
 
-// WellKnownHandler is the http handler which answers requests to the mock servers OIDC discovery endpoint.
+// JWKsHandler is the http handler which answers requests to the mock servers OIDC discovery endpoint.
 func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 	m.JWKsHitCounter++
 	key := &oidcclient.JSONWebKey{
@@ -104,7 +104,7 @@ func (m *MockServer) SignToken(claims OIDCClaims, header map[string]interface{})
 	return m.signToken(token)
 }
 
-// Sign token with additional non-standard oidc claims. additionalClaims must not contain any oidc standard claims or duplicates.
+// SignTokenWithAdditionalClaims signs the token with additional non-standard oidc claims. additionalClaims must not contain any oidc standard claims or duplicates.
 // See also: SignToken
 func (m *MockServer) SignTokenWithAdditionalClaims(claims OIDCClaims, additionalClaims map[string]interface{}, header map[string]interface{}) (string, error) {
 	mapClaims := jwtgo.MapClaims{}
@@ -164,7 +164,7 @@ func (m *MockServer) DefaultClaims() OIDCClaims {
 	return claims
 }
 
-// DefaultClaims returns JWT headers with mock server specific default values.
+// DefaultHeaders returns JWT headers with mock server specific default values.
 func (m *MockServer) DefaultHeaders() map[string]interface{} {
 	header := make(map[string]interface{})
 

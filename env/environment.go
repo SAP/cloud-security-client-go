@@ -13,9 +13,9 @@ import (
 type Platform string
 
 const (
-	CLOUD_FOUNDRY Platform = "CF"
-	KUBERNETES    Platform = "KUBERNETES"
-	UNKNOWN       Platform = "UNKNOWN"
+	CLOUD_FOUNDRY Platform = "CLOUD_FOUNDRY" // CLOUD_FOUNDRY is the platform type for Cloud Foundry
+	KUBERNETES    Platform = "KUBERNETES"    // KUBERNETES is the platform type for Kubernetes
+	UNKNOWN       Platform = "UNKNOWN"       // UNKNOWN is a placeholder for unknown platform types
 )
 
 func getPlatform() Platform {
