@@ -103,25 +103,28 @@ func (c IASConfig) GetDomain() string {
 }
 
 func (c *IASConfig) parseEnv(credentials map[string]interface{}) error {
-	if clientID, ok := credentials["clientid"]; !ok {
+	clientID, ok := credentials["clientid"]
+	if !ok {
 		return errors.New("unable to find property clientid in environment")
-	} else {
-		c.ClientID = clientID.(string)
 	}
-	if clientSecret, ok := credentials["clientsecret"]; !ok {
+	c.ClientID = clientID.(string)
+
+	clientSecret, ok := credentials["clientsecret"]
+	if !ok {
 		return errors.New("unable to find property clientsecret in environment")
-	} else {
-		c.ClientSecret = clientSecret.(string)
 	}
-	if baseURL, ok := credentials["url"]; !ok {
+	c.ClientSecret = clientSecret.(string)
+
+	baseURL, ok := credentials["url"]
+	if !ok {
 		return errors.New("unable to find property url in environment")
-	} else {
-		c.URL = baseURL.(string)
 	}
-	if domain, ok := credentials["domain"]; !ok {
+	c.URL = baseURL.(string)
+
+	domain, ok := credentials["domain"]
+	if !ok {
 		return errors.New("unable to find property domain in environment")
-	} else {
-		c.Domain = domain.(string)
 	}
+	c.Domain = domain.(string)
 	return nil
 }
