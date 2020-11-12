@@ -21,6 +21,7 @@ import (
 	"time"
 )
 
+// OIDCTenant represents one IAS tenant with it's OIDC discovery results and cached JWKs
 type OIDCTenant struct {
 	ProviderJSON ProviderJSON
 
@@ -36,6 +37,7 @@ type updateKeysResult struct {
 	expiry time.Time
 }
 
+// NewOIDCTenant instantiates a new OIDCTenant and performs the OIDC discovery
 func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
 	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
@@ -48,6 +50,7 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 	return ks, nil
 }
 
+// GetJWKs returns the validation keys either cached or updated ones
 func (ks *OIDCTenant) GetJWKs() ([]*JSONWebKey, error) {
 	if time.Now().Before(ks.jwksExpiry) {
 		return ks.jwks, nil
@@ -146,6 +149,7 @@ func (ks *OIDCTenant) performDiscovery(baseURL string) error {
 	return nil
 }
 
+// ProviderJSON represents data which is returned by the tenants /.well-known/openid-configuration endpoint
 type ProviderJSON struct {
 	Issuer      string `json:"issuer"`
 	AuthURL     string `json:"authorization_endpoint"`
@@ -154,10 +158,12 @@ type ProviderJSON struct {
 	UserInfoURL string `json:"userinfo_endpoint"`
 }
 
+// JSONWebKeySet represents the data which is returned by the tenants /oauth2/certs endpoint
 type JSONWebKeySet struct {
 	Keys []*JSONWebKey `json:"keys"`
 }
 
+// JSONWebKey represents a single JWK
 type JSONWebKey struct {
 	Kty string
 	E   string

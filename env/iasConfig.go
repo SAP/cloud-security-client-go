@@ -13,6 +13,7 @@ import (
 
 const iasServiceName = "identity"
 
+// IASConfig represents the parsed credentials from the ias binding
 type IASConfig struct {
 	ClientID     string
 	ClientSecret string
@@ -20,6 +21,7 @@ type IASConfig struct {
 	URL          string
 }
 
+// GetIASConfig parses the IAS config from the applications environment
 func GetIASConfig() (*IASConfig, error) {
 	config := IASConfig{}
 	switch getPlatform() {
@@ -46,8 +48,10 @@ func GetIASConfig() (*IASConfig, error) {
 		return nil, fmt.Errorf("unable to parse ias config: unknown environment detected")
 	}
 	return &config, nil
+
 }
 
+// GetIASConfig parses the user-provided IAS config from the applications environment
 func GetIASConfigInUserProvidedService(serviceInstanceName string) (*IASConfig, error) {
 	config := IASConfig{}
 	switch getPlatform() {
@@ -86,18 +90,22 @@ func GetIASConfigInUserProvidedService(serviceInstanceName string) (*IASConfig, 
 	return &config, nil
 }
 
+// GetClientID implements the auth.OAuthConfig interface.
 func (c IASConfig) GetClientID() string {
 	return c.ClientID
 }
 
+// GetClientSecret implements the auth.OAuthConfig interface.
 func (c IASConfig) GetClientSecret() string {
 	return c.ClientSecret
 }
 
+// GetURL implements the auth.OAuthConfig interface.
 func (c IASConfig) GetURL() string {
 	return c.URL
 }
 
+// GetDomain implements the auth.OAuthConfig interface.
 func (c IASConfig) GetDomain() string {
 	return c.Domain
 }

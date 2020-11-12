@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// Platform holds the type string of the platform the application runs on
 type Platform string
 
 const (
