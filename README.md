@@ -18,9 +18,10 @@ Parsing of environment provided by the Authorization Server e.g. IAS broker
 
 # Usage
 
-The client library works as a middleware and has to be instantiated with `NewAuthMiddelware`. The Middleware exposes a `Handler` which implements the standard `http/Handler` interface. Thus it can be used easily e.g. in an `gorilla/mux` router or a plain `http/Server` implementation.
+The client library works as a middleware and has to be instantiated with `NewAuthMiddelware`. For authentication there are options: 
+ - Ready-to-use **Middleware Handler**: The `Handler` which implements the standard `http/Handler` interface. Thus, it can be used easily e.g. in an `gorilla/mux` router or a plain `http/Server` implementation. The property name can be specified with the `UserContext` option and has to be type asserted to `(*core.OIDCClaims)` for the property accessors to be available.
+ - **Authenticate func**: More flexible, can be wrapped with an own middleware func to propagate the users claims. 
 
-Upon successful validation of the OIDC Token the token is available in the context of the current request. The property name can be specified with the `UserContext` option and has to be casted to `(*core.OIDCClaims)` for the property accessors to be available.  
  
 ### Sample Code
 
@@ -32,8 +33,7 @@ if err != nil {
     panic(err)
 }
 authMiddleware := auth.NewAuthMiddleware(config, auth.Options{
-    UserContext:  "user",
-    ErrorHandler: nil,
+    UserContext:  "user"
 })
 r.Use(authMiddleware.Handler)
 
@@ -47,6 +47,9 @@ if err != nil {
 }   
 ```
 Full example: [samples/middleware.go](samples/middleware.go)
+
+### Testing
+The client library offers an OIDC Mock Server with means to create arbitrary tokens for testing purposes. Examples for the usage of the Mock Server in combination with the OIDC Token Builder can be found in [auth/middleware_test.go](auth/middleware_test.go) 
 
 ### Current limitations
 The client library does not yet provide support for IAS custom domains. This limitation will be overcome within the next few weeks, once there is full support for that from IAS and IAS-Broker side.

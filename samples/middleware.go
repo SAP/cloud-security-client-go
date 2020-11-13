@@ -24,8 +24,7 @@ func main() {
 		panic(err)
 	}
 	authMiddleware := auth.NewAuthMiddleware(config, auth.Options{
-		UserContext:  "user",
-		ErrorHandler: nil,
+		UserContext: "user",
 	})
 	r.Use(authMiddleware.Handler)
 
