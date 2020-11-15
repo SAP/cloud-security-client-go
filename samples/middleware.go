@@ -23,9 +23,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	authMiddleware := auth.NewAuthMiddleware(config, auth.Options{
-		UserContext: "user",
-	})
+	authMiddleware := auth.NewAuthMiddleware(config, auth.Options{})
 	r.Use(authMiddleware.Handler)
 
 	r.HandleFunc("/helloWorld", helloWorld).Methods("GET")
@@ -39,6 +37,6 @@ func main() {
 }
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("user").(*auth.OIDCClaims)
+	user := auth.GetClaims(r)
 	_, _ = w.Write([]byte(fmt.Sprintf("Hello world!\nYou're logged in as %s", user.Email)))
 }
