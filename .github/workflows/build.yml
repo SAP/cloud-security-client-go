@@ -2,10 +2,10 @@ name: build and test
 on:
   push:
     branches:
-      - master
-    pull_request:
-      branches:
-        - master
+      - main
+  pull_request:
+    branches:
+      - main
 jobs:
 
   lint:
