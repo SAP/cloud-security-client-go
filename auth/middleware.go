@@ -14,9 +14,6 @@ import (
 	"time"
 )
 
-// Deprecated: This type is no longer needed
-type UserContext string
-
 type contextKey int
 
 // authUserKey is the key that holds the authorization value (OIDCClaims) in the request context
@@ -27,7 +24,6 @@ type ErrorHandler func(w http.ResponseWriter, r *http.Request, err error)
 
 // Options can be used as a argument to instantiate a AuthMiddle with NewAuthMiddleware.
 type Options struct {
-	UserContext  UserContext  // Deprecated: This property is no longer needed and has no effect
 	ErrorHandler ErrorHandler // ErrorHandler called if the jwt verification fails and the Handler middleware func is used. Default: DefaultErrorHandler
 	HTTPClient   *http.Client // HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: basic http.Client with a timeout of 15 seconds
 }
