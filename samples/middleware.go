@@ -24,7 +24,7 @@ func main() {
 		panic(err)
 	}
 	authMiddleware := auth.NewMiddleware(config, auth.Options{})
-	r.Use(authMiddleware.Handler)
+	r.Use(authMiddleware.AuthenticationHandler)
 
 	r.HandleFunc("/helloWorld", helloWorld).Methods("GET")
 

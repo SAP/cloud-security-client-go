@@ -174,7 +174,7 @@ func GetTestServer() (clientServer *httptest.Server, oidcServer *MockServer) {
 		HTTPClient:   mockServer.Server.Client(),
 	}
 	middleware := NewMiddleware(mockServer.Config, options)
-	server := httptest.NewTLSServer(middleware.Handler(GetTestHandler()))
+	server := httptest.NewTLSServer(middleware.AuthenticationHandler(GetTestHandler()))
 
 	return server, mockServer
 }

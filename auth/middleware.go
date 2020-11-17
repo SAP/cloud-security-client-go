@@ -20,12 +20,12 @@ type ContextKey int
 // UserContextKey is the key that holds the authorization value (*OIDCClaims) in the request context
 const UserContextKey ContextKey = 0
 
-// ErrorHandler is the type for the Error Handler which is called on unsuccessful token validation and if the Handler middleware func is used
+// ErrorHandler is the type for the Error Handler which is called on unsuccessful token validation and if the AuthenticationHandler middleware func is used
 type ErrorHandler func(w http.ResponseWriter, r *http.Request, err error)
 
 // Options can be used as a argument to instantiate a AuthMiddle with NewMiddleware.
 type Options struct {
-	ErrorHandler ErrorHandler // ErrorHandler called if the jwt verification fails and the Handler middleware func is used. Default: DefaultErrorHandler
+	ErrorHandler ErrorHandler // ErrorHandler called if the jwt verification fails and the AuthenticationHandler middleware func is used. Default: DefaultErrorHandler
 	HTTPClient   *http.Client // HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: basic http.Client with a timeout of 15 seconds
 }
 
@@ -44,7 +44,7 @@ func GetClaims(r *http.Request) *OIDCClaims {
 }
 
 // Middleware is the main entrypoint to the client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
-// Use either the ready to use Handler as a middleware or implement your own middleware with the help of Authenticate.
+// Use either the ready to use AuthenticationHandler as a middleware or implement your own middleware with the help of Authenticate.
 type Middleware struct {
 	oAuthConfig OAuthConfig
 	options     Options
@@ -94,8 +94,11 @@ func (m *Middleware) Authenticate(r *http.Request) (*OIDCClaims, error) {
 	return token.Claims.(*OIDCClaims), nil
 }
 
-// Handler implements a middleware func which takes a http.Handler and
-func (m *Middleware) Handler(next http.Handler) http.Handler {
+// AuthenticationHandler authenticates a request and injects the claims into
+// the request context. If the authentication (see Authenticate) does not succeed,
+// the specified error handler (see Options.ErrorHandler) will be called and
+// the current request will stop.
+func (m *Middleware) AuthenticationHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, err := m.Authenticate(r)
 
