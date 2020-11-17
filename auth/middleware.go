@@ -14,15 +14,16 @@ import (
 	"time"
 )
 
-// UserContext is the type that holds the custom key under which the OIDCClaims are stored in the request context
-type UserContext string
+type contextKey int
+
+// authUserKey is the key that holds the authorization value (OIDCClaims) in the request context
+const authUserKey contextKey = 0
 
 // ErrorHandler is the type for the Error Handler which is called on unsuccessful token validation and if the Handler middleware func is used
 type ErrorHandler func(w http.ResponseWriter, r *http.Request, err error)
 
 // Options can be used as a argument to instantiate a AuthMiddle with NewAuthMiddleware.
 type Options struct {
-	UserContext  UserContext  // UserContext property under which the token is accessible in the request context. Default: "user"
 	ErrorHandler ErrorHandler // ErrorHandler called if the jwt verification fails and the Handler middleware func is used. Default: DefaultErrorHandler
 	HTTPClient   *http.Client // HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: basic http.Client with a timeout of 15 seconds
 }
@@ -33,6 +34,12 @@ type OAuthConfig interface {
 	GetClientSecret() string
 	GetURL() string
 	GetDomain() string
+}
+
+// GetClaims retrieves the claims of a request which
+// have been injected before via the auth middleware
+func GetClaims(r *http.Request) *OIDCClaims {
+	return r.Context().Value(authUserKey).(*OIDCClaims)
 }
 
 // AuthMiddleware is the main entrypoint to the client library, instantiate with NewAuthMiddleware. It holds information about the oAuth config and configured options.
@@ -56,9 +63,6 @@ func NewAuthMiddleware(oAuthConfig OAuthConfig, options Options) *AuthMiddleware
 	}
 	if options.ErrorHandler == nil {
 		options.ErrorHandler = DefaultErrorHandler
-	}
-	if options.UserContext == "" {
-		options.UserContext = "user"
 	}
 	if options.HTTPClient == nil {
 		options.HTTPClient = &http.Client{
@@ -99,7 +103,7 @@ func (m *AuthMiddleware) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		reqWithContext := r.WithContext(context.WithValue(r.Context(), m.options.UserContext, claims))
+		reqWithContext := r.WithContext(context.WithValue(r.Context(), authUserKey, claims))
 		*r = *reqWithContext
 
 		// Continue serving http if jwt was valid

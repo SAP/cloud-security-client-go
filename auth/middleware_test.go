@@ -170,7 +170,6 @@ func GetTestHandler() http.HandlerFunc {
 func GetTestServer() (clientServer *httptest.Server, oidcServer *MockServer) {
 	mockServer, _ := NewOIDCMockServer()
 	options := Options{
-		UserContext:  "myprop",
 		ErrorHandler: nil,
 		HTTPClient:   mockServer.Server.Client(),
 	}
