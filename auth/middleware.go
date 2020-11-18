@@ -20,16 +20,16 @@ type ContextKey int
 // UserContextKey is the key that holds the authorization value (*OIDCClaims) in the request context
 const UserContextKey ContextKey = 0
 
-// ErrorHandler is the type for the Error Handler which is called on unsuccessful token validation and if the Handler middleware func is used
+// ErrorHandler is the type for the Error Handler which is called on unsuccessful token validation and if the AuthenticationHandler middleware func is used
 type ErrorHandler func(w http.ResponseWriter, r *http.Request, err error)
 
-// Options can be used as a argument to instantiate a AuthMiddle with NewAuthMiddleware.
+// Options can be used as a argument to instantiate a AuthMiddle with NewMiddleware.
 type Options struct {
-	ErrorHandler ErrorHandler // ErrorHandler called if the jwt verification fails and the Handler middleware func is used. Default: DefaultErrorHandler
+	ErrorHandler ErrorHandler // ErrorHandler called if the jwt verification fails and the AuthenticationHandler middleware func is used. Default: DefaultErrorHandler
 	HTTPClient   *http.Client // HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: basic http.Client with a timeout of 15 seconds
 }
 
-// OAuthConfig interface has to be implemented to instantiate NewAuthMiddleware. For IAS the standard implementation IASConfig from ../env/iasConfig.go package can be used.
+// OAuthConfig interface has to be implemented to instantiate NewMiddleware. For IAS the standard implementation IASConfig from ../env/iasConfig.go package can be used.
 type OAuthConfig interface {
 	GetClientID() string
 	GetClientSecret() string
@@ -43,9 +43,9 @@ func GetClaims(r *http.Request) *OIDCClaims {
 	return r.Context().Value(UserContextKey).(*OIDCClaims)
 }
 
-// AuthMiddleware is the main entrypoint to the client library, instantiate with NewAuthMiddleware. It holds information about the oAuth config and configured options.
-// Use either the ready to use Handler as a middleware or implement your own middleware with the help of Authenticate.
-type AuthMiddleware struct {
+// Middleware is the main entrypoint to the client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
+// Use either the ready to use AuthenticationHandler as a middleware or implement your own middleware with the help of Authenticate.
+type Middleware struct {
 	oAuthConfig OAuthConfig
 	options     Options
 	parser      *jwtgo.Parser
@@ -53,9 +53,9 @@ type AuthMiddleware struct {
 	sf          singleflight.Group
 }
 
-// NewAuthMiddleware instantiates a new AuthMiddleware with defaults for not provided Options.
-func NewAuthMiddleware(oAuthConfig OAuthConfig, options Options) *AuthMiddleware {
-	m := new(AuthMiddleware)
+// NewMiddleware instantiates a new Middleware with defaults for not provided Options.
+func NewMiddleware(oAuthConfig OAuthConfig, options Options) *Middleware {
+	m := new(Middleware)
 
 	if oAuthConfig != nil {
 		m.oAuthConfig = oAuthConfig
@@ -79,7 +79,7 @@ func NewAuthMiddleware(oAuthConfig OAuthConfig, options Options) *AuthMiddleware
 }
 
 // Authenticate authenticates a request and returns the Claims if successful, otherwise error
-func (m *AuthMiddleware) Authenticate(r *http.Request) (*OIDCClaims, error) {
+func (m *Middleware) Authenticate(r *http.Request) (*OIDCClaims, error) {
 	// get Token from Header
 	rawToken, err := extractRawToken(r)
 	if err != nil {
@@ -94,8 +94,11 @@ func (m *AuthMiddleware) Authenticate(r *http.Request) (*OIDCClaims, error) {
 	return token.Claims.(*OIDCClaims), nil
 }
 
-// Handler implements a middleware func which takes a http.Handler and
-func (m *AuthMiddleware) Handler(next http.Handler) http.Handler {
+// AuthenticationHandler authenticates a request and injects the claims into
+// the request context. If the authentication (see Authenticate) does not succeed,
+// the specified error handler (see Options.ErrorHandler) will be called and
+// the current request will stop.
+func (m *Middleware) AuthenticationHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, err := m.Authenticate(r)
 
@@ -113,7 +116,7 @@ func (m *AuthMiddleware) Handler(next http.Handler) http.Handler {
 }
 
 // ClearCache clears the entire storage of cached oidc tenants including their JWKs
-func (m *AuthMiddleware) ClearCache() {
+func (m *Middleware) ClearCache() {
 	m.oidcTenants.Flush()
 }
 

@@ -14,7 +14,7 @@ import (
 )
 
 // parseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
-func (m *AuthMiddleware) parseAndValidateJWT(rawToken string) (*jwt.Token, error) {
+func (m *Middleware) parseAndValidateJWT(rawToken string) (*jwt.Token, error) {
 	token, parts, err := m.parser.ParseUnverified(rawToken, new(OIDCClaims))
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (m *AuthMiddleware) parseAndValidateJWT(rawToken string) (*jwt.Token, error
 	return token, nil
 }
 
-func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.OIDCTenant) error {
+func (m *Middleware) verifySignature(t *jwt.Token, ks *oidcclient.OIDCTenant) error {
 	jwks, err := ks.GetJWKs()
 	if err != nil {
 		return fmt.Errorf("token is unverifiable: failed to fetch token keys from remote: %v", err)
@@ -82,7 +82,7 @@ func (m *AuthMiddleware) verifySignature(t *jwt.Token, ks *oidcclient.OIDCTenant
 	return nil
 }
 
-func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcclient.OIDCTenant) error {
+func (m *Middleware) validateClaims(t *jwt.Token, ks *oidcclient.OIDCTenant) error {
 	c := t.Claims.(*OIDCClaims)
 
 	if c.ExpiresAt == nil {
@@ -99,7 +99,7 @@ func (m *AuthMiddleware) validateClaims(t *jwt.Token, ks *oidcclient.OIDCTenant)
 	return err
 }
 
-func (m *AuthMiddleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, error) {
+func (m *Middleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, error) {
 	claims, ok := t.Claims.(*OIDCClaims)
 	if !ok {
 		return nil, fmt.Errorf("token is unverifiable: internal validation error during type assertion: expected *OIDCClaims, got %T", t.Claims)

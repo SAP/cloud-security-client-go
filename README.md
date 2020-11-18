@@ -18,8 +18,8 @@ Parsing of environment provided by the Authorization Server e.g. IAS broker
 
 # Usage
 
-The client library works as a middleware and has to be instantiated with `NewAuthMiddelware`. For authentication there are options: 
- - Ready-to-use **Middleware Handler**: The `Handler` which implements the standard `http/Handler` interface. Thus, it can be used easily e.g. in an `gorilla/mux` router or a plain `http/Server` implementation. The claims can be retrieved with `auth.GetClaims(req)` in the HTTP handler.
+The client library works as a middleware and has to be instantiated with `NewMiddelware`. For authentication there are options: 
+ - Ready-to-use **Middleware Handler**: The `AuthenticationHandler` which implements the standard `http/Handler` interface. Thus, it can be used easily e.g. in an `gorilla/mux` router or a plain `http/Server` implementation. The claims can be retrieved with `auth.GetClaims(req)` in the HTTP handler.
  - **Authenticate func**: More flexible, can be wrapped with an own middleware func to propagate the users claims. 
 
  
@@ -32,8 +32,8 @@ config, err := env.GetIASConfig()
 if err != nil {
     panic(err)
 }
-authMiddleware := auth.NewAuthMiddleware(config, auth.Options{})
-r.Use(authMiddleware.Handler)
+authMiddleware := auth.NewMiddleware(config, auth.Options{})
+r.Use(authMiddleware.AuthenticationHandler)
 
 r.HandleFunc("/helloWorld", helloWorld).Methods("GET")
 
