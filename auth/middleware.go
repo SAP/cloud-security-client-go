@@ -14,10 +14,11 @@ import (
 	"time"
 )
 
-type contextKey int
+// The ContextKey type is used as a key for library related values in the go context. See also UserContextKey
+type ContextKey int
 
-// authUserKey is the key that holds the authorization value (OIDCClaims) in the request context
-const authUserKey contextKey = 0
+// UserContextKey is the key that holds the authorization value (*OIDCClaims) in the request context
+const UserContextKey ContextKey = 0
 
 // ErrorHandler is the type for the Error Handler which is called on unsuccessful token validation and if the Handler middleware func is used
 type ErrorHandler func(w http.ResponseWriter, r *http.Request, err error)
@@ -39,11 +40,11 @@ type OAuthConfig interface {
 // GetClaims retrieves the claims of a request which
 // have been injected before via the auth middleware
 func GetClaims(r *http.Request) *OIDCClaims {
-	return r.Context().Value(authUserKey).(*OIDCClaims)
+	return r.Context().Value(UserContextKey).(*OIDCClaims)
 }
 
 // AuthMiddleware is the main entrypoint to the client library, instantiate with NewAuthMiddleware. It holds information about the oAuth config and configured options.
-// Use either the ready to use Handler as a middleware or implement your own middleware with the help or Authenticate.
+// Use either the ready to use Handler as a middleware or implement your own middleware with the help of Authenticate.
 type AuthMiddleware struct {
 	oAuthConfig OAuthConfig
 	options     Options
@@ -103,7 +104,7 @@ func (m *AuthMiddleware) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		reqWithContext := r.WithContext(context.WithValue(r.Context(), authUserKey, claims))
+		reqWithContext := r.WithContext(context.WithValue(r.Context(), UserContextKey, claims))
 		*r = *reqWithContext
 
 		// Continue serving http if jwt was valid
