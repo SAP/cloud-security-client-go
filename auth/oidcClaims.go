@@ -51,3 +51,8 @@ func (c OIDCClaims) GetClaimAsStringSlice(claim string) ([]string, error) {
 	}
 	return res, nil
 }
+
+// GetAllCustomClaims returns all a map of all custom claims contained in the token.
+func (c OIDCClaims) GetAllCustomClaims() map[string]interface{} {
+	return c.mapClaims
+}

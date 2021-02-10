@@ -44,6 +44,7 @@ func TestOIDCClaims_getClaimAsString(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			c := OIDCClaims{
 				mapClaims: tt.mapClaims,
@@ -103,6 +104,7 @@ func TestOIDCClaims_getClaimAsStringSlice(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			c := OIDCClaims{
 				mapClaims: tt.mapClaims,
@@ -116,5 +118,23 @@ func TestOIDCClaims_getClaimAsStringSlice(t *testing.T) {
 				t.Errorf("GetClaimAsStringSlice() got = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestOIDCClaims_getAllClaims(t *testing.T) {
+	mapClaims := map[string]interface{}{
+		"testClaimSlice":  []string{"oneString", "anotherOne"},
+		"testClaimString": "oneString",
+		"number":          123,
+		"boolean":         true,
+	}
+
+	c := OIDCClaims{
+		mapClaims: mapClaims,
+	}
+
+	got := c.GetAllCustomClaims()
+	if !reflect.DeepEqual(got, mapClaims) {
+		t.Errorf("GetAllCustomClaims() got = %v, want %v", got, mapClaims)
 	}
 }
