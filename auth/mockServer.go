@@ -177,10 +177,16 @@ func (m *MockServer) DefaultHeaders() map[string]interface{} {
 
 // MockConfig represents the credentials to the mock server
 type MockConfig struct {
-	ClientID     string
-	ClientSecret string
-	URL          string
-	Domain       string
+	ClientID             string
+	ClientSecret         string
+	URL                  string
+	Domain               string
+	ZoneUUID             uuid.UUID
+	ProofTokenURL        string
+	OsbURL               string
+	Certificate          string
+	Key                  string
+	CertificateExpiresAt string
 }
 
 // GetClientID implements the auth.OAuthConfig interface.
@@ -201,4 +207,34 @@ func (c MockConfig) GetURL() string {
 // GetDomain implements the auth.OAuthConfig interface.
 func (c MockConfig) GetDomain() string {
 	return c.Domain
+}
+
+// GetZoneUUID implements the auth.OAuthConfig interface.
+func (c MockConfig) GetZoneUUID() uuid.UUID {
+	return c.ZoneUUID
+}
+
+// GetProofTokenURL implements the auth.OAuthConfig interface.
+func (c MockConfig) GetProofTokenURL() string {
+	return c.ProofTokenURL
+}
+
+// GetOsbURL implements the auth.OAuthConfig interface.
+func (c MockConfig) GetOsbURL() string {
+	return c.OsbURL
+}
+
+// GetCertificate implements the auth.OAuthConfig interface.
+func (c MockConfig) GetCertificate() string {
+	return c.Certificate
+}
+
+// GetKey implements the auth.OAuthConfig interface.
+func (c MockConfig) GetKey() string {
+	return c.Key
+}
+
+// GetCertificateExpiresAt implements the auth.OAuthConfig interface.
+func (c MockConfig) GetCertificateExpiresAt() string {
+	return c.CertificateExpiresAt
 }

@@ -5,134 +5,105 @@
 package env
 
 import (
-	"errors"
+	"encoding/json"
 	"fmt"
-	"github.com/cloudfoundry-community/go-cfenv"
-	"strings"
+	"github.com/google/uuid"
+	"os"
 )
 
 const iasServiceName = "identity"
+const vcapServicesEnvKey = "VCAP_SERVICES"
 
-// IASConfig represents the parsed credentials from the ias binding
-type IASConfig struct {
-	ClientID     string
-	ClientSecret string
-	Domain       string
-	URL          string
+type VCAPServices struct {
+	Identity []struct {
+		Credentials Identity `json:"credentials"`
+	} `json:"identity"`
+}
+
+// Identity represents the parsed credentials from the ias binding
+type Identity struct {
+	ClientID             string    `json:"clientid"`
+	ClientSecret         string    `json:"clientsecret"`
+	Domain               string    `json:"domain"`
+	URL                  string    `json:"url"`
+	ZoneUUID             uuid.UUID `json:"zone_uuid"`
+	ProofTokenURL        string    `json:"prooftoken_url"`
+	OsbURL               string    `json:"osb_url"`
+	Certificate          string    `json:"certificate"`
+	Key                  string    `json:"key"`
+	CertificateExpiresAt string    `json:"certificate_expires_at"`
 }
 
 // GetIASConfig parses the IAS config from the applications environment
-func GetIASConfig() (*IASConfig, error) {
-	config := IASConfig{}
+func GetIASConfig() (*Identity, error) {
 	switch getPlatform() {
 	case cloud_foundry:
-		appEnv, e := cfenv.Current()
-		if e != nil {
-			return nil, fmt.Errorf("could not read cf env")
+		var vcapServices VCAPServices
+		vcapServicesString := os.Getenv(vcapServicesEnvKey)
+		err := json.Unmarshal([]byte(vcapServicesString), &vcapServices)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse vcap services: %w", err)
 		}
-		ias, e := appEnv.Services.WithLabel(iasServiceName)
-		if e != nil {
+		if len(vcapServices.Identity) == 0 {
 			return nil, fmt.Errorf("no '" + iasServiceName + "' service instance bound to the application")
-		} else if len(ias) > 1 {
-			return nil, fmt.Errorf("more than one '" + iasServiceName + "' service instance bound to the application")
-		} else {
-			config = IASConfig{}
-			e := config.parseEnv(ias[0].Credentials)
-			if e != nil {
-				return nil, fmt.Errorf("error during parsing of "+iasServiceName+" environment: %v", e)
-			}
 		}
+		if len(vcapServices.Identity) > 1 {
+			return nil, fmt.Errorf("more than one '" + iasServiceName + "' service instance bound to the application. This is currently not supported")
+		}
+		return &vcapServices.Identity[0].Credentials, nil
 	case kubernetes:
 		return nil, fmt.Errorf("unable to parse ias config: kubernetes env detected but not yet supported")
 	default:
 		return nil, fmt.Errorf("unable to parse ias config: unknown environment detected")
 	}
-	return &config, nil
-
-}
-
-// GetIASConfigInUserProvidedService parses the user-provided IAS config from the applications environment
-func GetIASConfigInUserProvidedService(serviceInstanceName string) (*IASConfig, error) {
-	config := IASConfig{}
-	switch getPlatform() {
-	case cloud_foundry:
-		appEnv, e := cfenv.Current()
-		if e != nil {
-			return nil, fmt.Errorf("could not read cf env")
-		}
-		userProvided, e := appEnv.Services.WithLabel("user-provided")
-		if e != nil {
-			return nil, fmt.Errorf("no " + iasServiceName + " instance bound to the application")
-		}
-
-		var instance cfenv.Service
-		var found bool
-		for _, service := range userProvided {
-			if strings.EqualFold(serviceInstanceName, service.Name) {
-				if !found {
-					found = true
-					instance = service
-				} else {
-					return nil, fmt.Errorf("more than one user-provided service with name '" + serviceInstanceName + "' bound to the application")
-				}
-			}
-		}
-
-		e = config.parseEnv(instance.Credentials)
-		if e != nil {
-			return nil, fmt.Errorf("error during parsing of "+serviceInstanceName+" in user-provided environment: ", e)
-		}
-	case kubernetes:
-		return nil, fmt.Errorf("unable to parse ias config: kubernetes env detected but not yet supported")
-	default:
-		return nil, fmt.Errorf("unable to parse ias config: unknown environment detected")
-	}
-	return &config, nil
 }
 
 // GetClientID implements the auth.OAuthConfig interface.
-func (c IASConfig) GetClientID() string {
+func (c Identity) GetClientID() string {
 	return c.ClientID
 }
 
 // GetClientSecret implements the auth.OAuthConfig interface.
-func (c IASConfig) GetClientSecret() string {
+func (c Identity) GetClientSecret() string {
 	return c.ClientSecret
 }
 
 // GetURL implements the auth.OAuthConfig interface.
-func (c IASConfig) GetURL() string {
+func (c Identity) GetURL() string {
 	return c.URL
 }
 
 // GetDomain implements the auth.OAuthConfig interface.
-func (c IASConfig) GetDomain() string {
+func (c Identity) GetDomain() string {
 	return c.Domain
 }
 
-func (c *IASConfig) parseEnv(credentials map[string]interface{}) error {
-	clientID, ok := credentials["clientid"]
-	if !ok {
-		return errors.New("unable to find property clientid in environment")
-	}
-	c.ClientID = clientID.(string)
+// GetZoneUUID implements the auth.OAuthConfig interface.
+func (c Identity) GetZoneUUID() uuid.UUID {
+	return c.ZoneUUID
+}
 
-	clientSecret, ok := credentials["clientsecret"]
-	if !ok {
-		return errors.New("unable to find property clientsecret in environment")
-	}
-	c.ClientSecret = clientSecret.(string)
+// GetProofTokenURL implements the auth.OAuthConfig interface.
+func (c Identity) GetProofTokenURL() string {
+	return c.ProofTokenURL
+}
 
-	baseURL, ok := credentials["url"]
-	if !ok {
-		return errors.New("unable to find property url in environment")
-	}
-	c.URL = baseURL.(string)
+// GetOsbURL implements the auth.OAuthConfig interface.
+func (c Identity) GetOsbURL() string {
+	return c.OsbURL
+}
 
-	domain, ok := credentials["domain"]
-	if !ok {
-		return errors.New("unable to find property domain in environment")
-	}
-	c.Domain = domain.(string)
-	return nil
+// GetCertificate implements the auth.OAuthConfig interface.
+func (c Identity) GetCertificate() string {
+	return c.Certificate
+}
+
+// GetKey implements the auth.OAuthConfig interface.
+func (c Identity) GetKey() string {
+	return c.Key
+}
+
+// GetCertificateExpiresAt implements the auth.OAuthConfig interface.
+func (c Identity) GetCertificateExpiresAt() string {
+	return c.CertificateExpiresAt
 }

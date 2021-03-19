@@ -7,6 +7,7 @@ package auth
 import (
 	"context"
 	jwtgo "github.com/dgrijalva/jwt-go/v4"
+	"github.com/google/uuid"
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
 	"log"
@@ -31,10 +32,15 @@ type Options struct {
 
 // OAuthConfig interface has to be implemented to instantiate NewMiddleware. For IAS the standard implementation IASConfig from ../env/iasConfig.go package can be used.
 type OAuthConfig interface {
-	GetClientID() string
-	GetClientSecret() string
-	GetURL() string
-	GetDomain() string
+	GetClientID() string             // Returns the client id of the oAuth client.
+	GetClientSecret() string         // Returns the client secret. Optional
+	GetURL() string                  // Returns the url to the Identity tenant. E.g. https://abcdefgh.accounts.ondemand.com
+	GetDomain() string               // Returns the domain of the Identity service. E.g. accounts.ondemand.com
+	GetZoneUUID() uuid.UUID          // Returns the zone uuid. Optional
+	GetProofTokenURL() string        // Returns the proof token url. Optional
+	GetCertificate() string          // Returns the client certificate. Optional
+	GetKey() string                  // Returns the client certificate key. Optional
+	GetCertificateExpiresAt() string // Returns the client certificate expiration time. Optional
 }
 
 // GetClaims retrieves the claims of a request which
