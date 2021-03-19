@@ -3,7 +3,6 @@ module github.com/sap/cloud-security-client-go
 go 1.15
 
 require (
-	github.com/cloudfoundry-community/go-cfenv v1.18.0
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/handlers v1.5.1
