@@ -5,14 +5,22 @@
 package auth
 
 import (
-	jwtRequest "github.com/dgrijalva/jwt-go/v4/request"
+	"errors"
 	"net/http"
+	"strings"
 )
 
+const authorization string = "Authorization"
+
 func extractRawToken(r *http.Request) (string, error) {
-	rawToken, e := jwtRequest.AuthorizationHeaderExtractor.ExtractToken(r)
-	if e != nil {
-		return "", e
+	authHeader := r.Header.Get(authorization)
+
+	if authHeader != "" {
+		splitAuthHeader := strings.Fields(strings.TrimSpace(authHeader))
+		if strings.ToLower(splitAuthHeader[0]) == "bearer" && len(splitAuthHeader) == 2 {
+			return splitAuthHeader[1], nil
+		}
 	}
-	return rawToken, nil
+
+	return "", errors.New("extracting token from request header failed")
 }
