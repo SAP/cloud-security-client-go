@@ -30,7 +30,7 @@ func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 		t.Errorf("unable to sign provided test token: %v", err)
 	}
 
-	token, _, err := m.parser.ParseUnverified(rawToken, new(OIDCClaims))
+	token, err := m.parseAndValidateJWT(rawToken)
 	if err != nil {
 		t.Errorf("unable to parse provided test token: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 
-			set, err := m.getOIDCTenant(token)
+			set, err := m.getOIDCTenant(token.getJwtToken().Issuer())
 			if err != nil || set == nil {
 				t.Errorf("unexpected error on getOIDCTenant(), %v", err)
 			}

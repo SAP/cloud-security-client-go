@@ -6,9 +6,11 @@ package auth
 
 import (
 	"context"
+	"github.com/lestrrat-go/jwx/jwa"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -110,7 +112,7 @@ func TestEnd2End(t *testing.T) {
 		}, {
 			name: "none algorithm",
 			header: NewOIDCHeaderBuilder(oidcMockServer.DefaultHeaders()).
-				Alg("none").
+				Alg(jwa.NoSignature).
 				Build(),
 			claims:  oidcMockServer.DefaultClaims(),
 			wantErr: true,
@@ -124,7 +126,7 @@ func TestEnd2End(t *testing.T) {
 		}, {
 			name: "wrong algorithm",
 			header: NewOIDCHeaderBuilder(oidcMockServer.DefaultHeaders()).
-				Alg("HS256").
+				Alg(jwa.HS256).
 				Build(),
 			claims:  oidcMockServer.DefaultClaims(),
 			wantErr: true,

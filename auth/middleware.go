@@ -6,7 +6,6 @@ package auth
 
 import (
 	"context"
-	jwtgo "github.com/dgrijalva/jwt-go/v4"
 	"github.com/google/uuid"
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
@@ -59,7 +58,6 @@ func GetClaims(r *http.Request) *OIDCClaims {
 type Middleware struct {
 	oAuthConfig OAuthConfig
 	options     Options
-	parser      *jwtgo.Parser
 	oidcTenants *cache.Cache // contains *oidcclient.OIDCTenant
 	sf          singleflight.Group
 }
@@ -83,14 +81,13 @@ func NewMiddleware(oAuthConfig OAuthConfig, options Options) *Middleware {
 	}
 	m.options = options
 
-	m.parser = new(jwtgo.Parser)
 	m.oidcTenants = cache.New(cacheExpiration, cacheCleanupInterval)
 
 	return m
 }
 
-// Authenticate authenticates a request and returns the Claims if successful, otherwise error
-func (m *Middleware) Authenticate(r *http.Request) (*OIDCClaims, error) {
+// Authenticate authenticates a request and returns the Token if validation was successful, otherwise error is returned
+func (m *Middleware) Authenticate(r *http.Request) (Token, error) {
 	// get Token from Header
 	rawToken, err := extractRawToken(r)
 	if err != nil {
@@ -102,7 +99,7 @@ func (m *Middleware) Authenticate(r *http.Request) (*OIDCClaims, error) {
 		return nil, err
 	}
 
-	return token.Claims.(*OIDCClaims), nil
+	return token, nil
 }
 
 // AuthenticationHandler authenticates a request and injects the claims into
