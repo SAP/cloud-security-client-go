@@ -5,7 +5,6 @@
 package auth
 
 import (
-	jwtgo "github.com/dgrijalva/jwt-go/v4"
 	"testing"
 )
 
@@ -43,13 +42,12 @@ func TestMockServer_SignTokenWithAdditionalClaims(t *testing.T) {
 				return
 			}
 			if !tt.wantErr {
-				token, _, err := new(jwtgo.Parser).ParseUnverified(signedToken, jwtgo.MapClaims{})
+				token, err := NewToken(signedToken)
 				if err != nil {
 					t.Errorf("SignTokenWithAdditionalClaims() error = %v, wantErr %v", err, tt.wantErr)
 				}
-				claims := token.Claims.(jwtgo.MapClaims)
 				for k, v := range tt.additionalClaims {
-					if value, exists := claims[k]; !exists || v != value {
+					if value, err := token.GetClaimAsString(k); err != nil || v != value {
 						t.Errorf("additional claim %s missing in token or has wrong value %v vs %v ", k, v, value)
 					}
 				}
