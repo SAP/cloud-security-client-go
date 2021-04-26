@@ -35,7 +35,7 @@ type Token interface {
 	GivenName() (string, error)
 	FamilyName() (string, error)
 	Email() (string, error)
-	ZoneId() (string, error)
+	ZoneID() (string, error)
 	UserUUID() (string, error)
 	GetClaimAsString(claim string) (string, error)
 }
@@ -131,7 +131,7 @@ func (t StdToken) Email() (string, error) {
 }
 
 //Returns "zone_uuid" claim, if it doesn't exist empty string is returned
-func (t StdToken) ZoneId() (string, error) {
+func (t StdToken) ZoneID() (string, error) {
 	return t.GetClaimAsString(sapGlobalZoneId)
 }
 
