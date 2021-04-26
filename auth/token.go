@@ -23,7 +23,6 @@ const (
 
 type Token interface {
 	GetTokenValue() string
-	setJwtToken(token jwt.Token)
 	getJwtToken() jwt.Token
 	Audience() []string
 	Expiration() time.Time
@@ -66,11 +65,6 @@ func (t StdToken) GetTokenValue() string {
 //Setter for encodedToken field
 func (t StdToken) SetEncodedToken(encodedToken string) {
 	t.encodedToken = encodedToken
-}
-
-//setter for jwt.Token
-func (t StdToken) setJwtToken(token jwt.Token) {
-	t.jwtToken = token
 }
 
 //Returns jwt.Token
