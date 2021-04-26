@@ -23,9 +23,9 @@ func NewOIDCHeaderBuilder(base map[string]interface{}) *OIDCHeaderBuilder {
 // KeyID sets the keyID field
 func (b *OIDCHeaderBuilder) KeyID(keyID string) *OIDCHeaderBuilder {
 	if keyID == "" {
-		b.header[propKid] = nil
+		b.header[headerKid] = nil
 	} else {
-		b.header[propKid] = keyID
+		b.header[headerKid] = keyID
 	}
 	return b
 }
@@ -33,9 +33,9 @@ func (b *OIDCHeaderBuilder) KeyID(keyID string) *OIDCHeaderBuilder {
 // Alg sets the alg field
 func (b *OIDCHeaderBuilder) Alg(alg jwa.SignatureAlgorithm) *OIDCHeaderBuilder {
 	if alg == "" {
-		b.header[propAlg] = nil
+		b.header[headerAlg] = nil
 	} else {
-		b.header[propAlg] = alg
+		b.header[headerAlg] = alg
 	}
 	return b
 }
@@ -75,7 +75,7 @@ func (b *OIDCClaimsBuilder) ExpiresAt(expiresAt time.Time) *OIDCClaimsBuilder {
 
 // ID sets the id field
 func (b *OIDCClaimsBuilder) ID(id string) *OIDCClaimsBuilder {
-	b.claims.Id = id
+	b.claims.ID = id
 	return b
 }
 

@@ -154,14 +154,14 @@ func (m *MockServer) signToken(token jwt.Token, header map[string]interface{}) (
 	if err != nil {
 		return "", fmt.Errorf("failed to create JWK: %s\n", err)
 	}
-	jwkKey.Set(jwk.KeyIDKey, header[propKid])
+	jwkKey.Set(jwk.KeyIDKey, header[headerKid])
 
 	signedJwt, err := jwt.Sign(token, jwa.RS256, jwkKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign the token: %v", err)
 	}
 
-	var alg, ok = header[propAlg].(jwa.SignatureAlgorithm)
+	var alg, ok = header[headerAlg].(jwa.SignatureAlgorithm)
 	if !ok || alg != jwa.RS256 {
 		signedJwt, err = modifySignedJwtHeader(signedJwt, header)
 	}
@@ -175,8 +175,8 @@ func modifySignedJwtHeader(signed []byte, headerMap map[string]interface{}) ([]b
 	}
 
 	headers := jws.NewHeaders()
-	headers.Set(jws.AlgorithmKey, headerMap[propAlg])
-	headers.Set(jws.KeyIDKey, headerMap[propKid])
+	headers.Set(jws.AlgorithmKey, headerMap[headerAlg])
+	headers.Set(jws.KeyIDKey, headerMap[headerKid])
 
 	marshaledHeaders, err := json.Marshal(headers)
 	if err != nil {
@@ -216,8 +216,8 @@ func (m *MockServer) DefaultHeaders() map[string]interface{} {
 	header := make(map[string]interface{})
 
 	header["typ"] = "JWT"
-	header[propAlg] = jwa.RS256
-	header[propKid] = "testKey"
+	header[headerAlg] = jwa.RS256
+	header[headerKid] = "testKey"
 
 	return header
 }
