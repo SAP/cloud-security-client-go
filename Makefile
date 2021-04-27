@@ -27,18 +27,18 @@ help:
 	@echo "	build               Build the package"
 	@echo "	clean               Run go clean"
 	@echo "	help                Print this help text"
-	@echo "	get-dependencies    Download the dependencies"
+	@echo "	get-deps            Download the dependencies"
 	@echo "	lint                Run golang.org/x/lint/golint"
 	@echo "	pull-request        Run all tests required for a PR"
 	@echo "	test                Run go test"
 	@echo "	vet                 Run go vet"
 
 .PHONY: build
-build: get-dependencies
+build: get-deps
 	$(GOBUILD) $(GOBUILD_FLAGS) ./...
 
-.PHONY: get-dependencies
-get-dependencies:
+.PHONY: get-deps
+get-deps:
 	$(GOGET) $(GOGET_FLAGS) -t -d ./...
 
 .PHONY: test
