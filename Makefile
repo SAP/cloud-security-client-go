@@ -14,7 +14,8 @@ GOBUILD_FLAGS=-v
 GOTEST_FLAGS=-v
 GOGET_FLAGS=-v
 
-.PHONY: help
+.PHONY: help build get-deps test lint vet pull-request clean
+
 help:
 	@echo "Makefile for SAP/cloud-security-client-go"
 	@echo ""
@@ -33,29 +34,23 @@ help:
 	@echo "	test                Run go test"
 	@echo "	vet                 Run go vet"
 
-.PHONY: build
 build: get-deps
 	$(GOBUILD) $(GOBUILD_FLAGS) ./...
 
-.PHONY: get-deps
 get-deps:
 	$(GOGET) $(GOGET_FLAGS) -t -d ./...
 
-.PHONY: test
 test:
 	$(GOTEST) $(GOTEST_FLAGS) --tags unit ./...
 
-.PHONY: lint
 lint:
 	$(GOGET) $(GOGET_FLAGS) -u golang.org/x/lint/golint
 	$(eval GOLINT := $(shell $(GOLIST) -f {{.Target}} golang.org/x/lint/golint))
 	$(GOLINT) ./...
 
-.PHONY: vet
 vet:
 	$(GOVET) ./...
 
-.PHONY: pull-request
 pull-request: GOBUILD_FLAGS=
 pull-request: GOGET_FLAGS=
 pull-request: GOTEST_FLAGS=
@@ -71,6 +66,5 @@ pull-request: build test vet lint
 	@echo ""
 	@echo "Thank you!"
 
-PHONY: clean
 clean:
 	@$(GOCLEAN)
