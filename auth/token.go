@@ -29,7 +29,6 @@ type Token interface {
 	IsExpired() bool
 	IssuedAt() time.Time
 	Issuer() string
-	JwtID() string
 	NotBefore() time.Time
 	Subject() string
 	GivenName() (string, error)
@@ -98,11 +97,6 @@ func (t StdToken) IssuedAt() time.Time {
 //Returns "iss" claim, if it doesn't exist empty string is returned
 func (t StdToken) Issuer() string {
 	return t.jwtToken.Issuer()
-}
-
-//Returns "jti" claim, if it doesn't exist empty string is returned
-func (t StdToken) JwtID() string {
-	return t.jwtToken.JwtID()
 }
 
 //Returns "nbf" claim, if it doesn't exist empty string is returned
