@@ -59,7 +59,7 @@ func TestEnd2End(t *testing.T) {
 			name:   "expired",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
-				ExpiresAt(time.Now().Add(-5 * time.Minute)).
+				ExpiresAt(time.Now().Add(-1 * time.Minute)).
 				Build(),
 			wantErr: true,
 		}, {
@@ -73,7 +73,7 @@ func TestEnd2End(t *testing.T) {
 			name:   "before validity",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
-				NotBefore(time.Now().Add(5 * time.Minute)).
+				NotBefore(time.Now().Add(1 * time.Minute)).
 				Build(),
 			wantErr: true,
 		}, {
