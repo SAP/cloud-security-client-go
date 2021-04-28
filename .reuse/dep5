@@ -31,5 +31,6 @@ Files:
     oidcclient/oidcClient.md
     .gitignore
     .github/**
+    .golangci.yml
 Copyright: 2020 SAP SE or an SAP affiliate company and Cloud Security Client Go contributors
 License: Apache-2.0
