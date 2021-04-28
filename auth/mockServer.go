@@ -114,7 +114,10 @@ func (m *MockServer) SignToken(claims OIDCClaims, header map[string]interface{})
 	jwtToken := jwt.New()
 
 	for k, v := range mapClaims {
-		jwtToken.Set(k, v)
+		err := jwtToken.Set(k, v)
+		if err != nil {
+			return "", fmt.Errorf("unable to convert OIDCClaims to map: %v", err)
+		}
 	}
 
 	return m.signToken(jwtToken, header)
@@ -122,7 +125,7 @@ func (m *MockServer) SignToken(claims OIDCClaims, header map[string]interface{})
 
 // SignTokenWithAdditionalClaims signs the token with additional non-standard oidc claims. additionalClaims must not contain any oidc standard claims or duplicates.
 // See also: SignToken
-func (m *MockServer) SignTokenWithAdditionalClaims(claims OIDCClaims, additionalClaims map[string]interface{}, header map[string]interface{}) (string, error) {
+func (m *MockServer) SignTokenWithAdditionalClaims(claims OIDCClaims, additionalClaims, header map[string]interface{}) (string, error) {
 	var mapClaims map[string]interface{}
 
 	dataBytes, err := json.Marshal(claims)
@@ -143,7 +146,10 @@ func (m *MockServer) SignTokenWithAdditionalClaims(claims OIDCClaims, additional
 	token := jwt.New()
 
 	for k, v := range mapClaims {
-		token.Set(k, v)
+		err := token.Set(k, v)
+		if err != nil {
+			return "", fmt.Errorf("unable to convert OIDCClaims to map: %v", err)
+		}
 	}
 
 	return m.signToken(token, header)
@@ -152,9 +158,10 @@ func (m *MockServer) SignTokenWithAdditionalClaims(claims OIDCClaims, additional
 func (m *MockServer) signToken(token jwt.Token, header map[string]interface{}) (string, error) {
 	jwkKey, err := jwk.New(m.RSAKey)
 	if err != nil {
-		return "", fmt.Errorf("failed to create JWK: %s\n", err)
+		return "", fmt.Errorf("failed to create JWK: %s", err)
 	}
-	jwkKey.Set(jwk.KeyIDKey, header[headerKid])
+
+	_ = jwkKey.Set(jwk.KeyIDKey, header[headerKid])
 
 	signedJwt, err := jwt.Sign(token, jwa.RS256, jwkKey)
 	if err != nil {
@@ -163,7 +170,7 @@ func (m *MockServer) signToken(token jwt.Token, header map[string]interface{}) (
 
 	var alg, ok = header[headerAlg].(jwa.SignatureAlgorithm)
 	if !ok || alg != jwa.RS256 {
-		signedJwt, err = modifySignedJwtHeader(signedJwt, header)
+		signedJwt, _ = modifySignedJwtHeader(signedJwt, header)
 	}
 
 	return string(signedJwt), nil
@@ -171,16 +178,16 @@ func (m *MockServer) signToken(token jwt.Token, header map[string]interface{}) (
 func modifySignedJwtHeader(signed []byte, headerMap map[string]interface{}) ([]byte, error) {
 	_, payload, signature, err := jws.SplitCompact(signed)
 	if err != nil {
-		return nil, fmt.Errorf("failed to modify Jwt signature: %s\n", err)
+		return nil, fmt.Errorf("failed to modify Jwt signature: %s", err)
 	}
 
 	headers := jws.NewHeaders()
-	headers.Set(jws.AlgorithmKey, headerMap[headerAlg])
-	headers.Set(jws.KeyIDKey, headerMap[headerKid])
+	_ = headers.Set(jws.AlgorithmKey, headerMap[headerAlg])
+	_ = headers.Set(jws.KeyIDKey, headerMap[headerKid])
 
 	marshaledHeaders, err := json.Marshal(headers)
 	if err != nil {
-		return nil, fmt.Errorf("failed to modify Jwt signature: %s\n", err)
+		return nil, fmt.Errorf("failed to modify Jwt signature: %s", err)
 	}
 	encodedHeaders := make([]byte, base64.RawURLEncoding.EncodedLen(len(marshaledHeaders)))
 	base64.RawURLEncoding.Encode(encodedHeaders, marshaledHeaders)

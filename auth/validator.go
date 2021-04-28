@@ -18,7 +18,6 @@ import (
 
 // parseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
 func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
-
 	token, err := NewToken(rawToken)
 	if err != nil {
 		return nil, err
@@ -51,7 +50,7 @@ func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant) (er
 	kid := headers.KeyID()
 	alg := headers.Algorithm()
 
-	//fail early to avoid another parsing of encoded token
+	// fail early to avoid another parsing of encoded token
 	if alg == "" {
 		return errors.New("alg is missing from jwt header")
 	}
@@ -61,7 +60,7 @@ func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant) (er
 		return err
 	}
 
-	//Parse and verify signature
+	// parse and verify signature
 	_, err = jwt.ParseString(t.GetTokenValue(), jwt.WithVerify(alg, publicKey))
 	if err != nil {
 		return err
@@ -89,8 +88,9 @@ func getPublicKey(kid string, keySet *oidcclient.OIDCTenant) (jwk.Key, error) {
 	}
 
 	pubKey, _ := jwk.New(jsonWebKey.Key)
-	pubKey.Set(jwk.KeyIDKey, jsonWebKey.Kid)
-	pubKey.Set(jwk.KeyTypeKey, jsonWebKey.Kty)
+	_ = pubKey.Set(jwk.KeyIDKey, jsonWebKey.Kid)
+	_ = pubKey.Set(jwk.KeyTypeKey, jsonWebKey.Kty)
+
 	return pubKey, nil
 }
 
@@ -103,16 +103,15 @@ func getHeaders(encodedToken string) (jws.Headers, error) {
 	return msg.Signatures()[0].ProtectedHeaders(), nil
 }
 
-func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error {
-
-	//performing IsExpired check, because dgriljalva jwt.Validate() doesn't fail on missing 'exp' claim
+func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error { // performing IsExpired check, because dgriljalva jwt.Validate() doesn't fail on missing 'exp' claim
+	// performing IsExpired check, because dgriljalva jwt.Validate() doesn't fail on missing 'exp' claim
 	if t.IsExpired() {
 		return fmt.Errorf("token is expired, exp: %v", t.Expiration())
 	}
 	err := jwt.Validate(t.getJwtToken(),
 		jwt.WithAudience(m.oAuthConfig.GetClientID()),
 		jwt.WithIssuer(ks.ProviderJSON.Issuer),
-		jwt.WithAcceptableSkew(1*time.Minute)) //to keep leeway in sync with Token.IsExpired
+		jwt.WithAcceptableSkew(1*time.Minute)) // to keep leeway in sync with Token.IsExpired
 
 	if err != nil {
 		return fmt.Errorf("claim validation failed: %v", err)
@@ -142,8 +141,8 @@ func (m *Middleware) getOIDCTenant(tokenIssuer string) (*oidcclient.OIDCTenant, 
 	return oidcTenant.(*oidcclient.OIDCTenant), nil
 }
 
-func (m *Middleware) verifyIssuer(issuer string) (issUri *url.URL, err error) {
-	issURI, err := url.Parse(issuer)
+func (m *Middleware) verifyIssuer(issuer string) (issURI *url.URL, err error) {
+	issURI, err = url.Parse(issuer)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse Issuer URI: %s", issuer)
 	}

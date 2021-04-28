@@ -17,7 +17,7 @@ func extractRawToken(r *http.Request) (string, error) {
 
 	if authHeader != "" {
 		splitAuthHeader := strings.Fields(strings.TrimSpace(authHeader))
-		if strings.ToLower(splitAuthHeader[0]) == "bearer" && len(splitAuthHeader) == 2 {
+		if strings.EqualFold(splitAuthHeader[0], "bearer") && len(splitAuthHeader) == 2 {
 			return splitAuthHeader[1], nil
 		}
 	}

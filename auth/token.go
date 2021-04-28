@@ -12,17 +12,11 @@ import (
 )
 
 const (
-	issuer          = "iss"
-	expiration      = "exp"
-	audience        = "aud"
-	notBefore       = "nbf"
-	subject         = "sub" // to be used instead of client id
-	userName        = "user_name"
 	givenName       = "given_name"
 	familyName      = "family_name"
 	email           = "email"
-	sapGlobalUserId = "user_uuid"
-	sapGlobalZoneId = "zone_uuid" // tenant GUID
+	sapGlobalUserID = "user_uuid"
+	sapGlobalZoneID = "zone_uuid" // tenant GUID
 )
 
 type Token interface {
@@ -60,82 +54,79 @@ func NewToken(encodedToken string) (Token, error) {
 	}, nil
 }
 
-//Returns encoded token string
+// Returns encoded token string
 func (t StdToken) GetTokenValue() string {
 	return t.encodedToken
 }
 
-//Setter for encodedToken field
+// Setter for encodedToken field
 func (t StdToken) SetEncodedToken(encodedToken string) {
 	t.encodedToken = encodedToken
 }
 
-//Returns jwt.Token
+// Returns jwt.Token
 func (t StdToken) getJwtToken() jwt.Token {
 	return t.jwtToken
 }
 
-//Returns "aud" claim, if it doesn't exist empty string is returned
+// Returns "aud" claim, if it doesn't exist empty string is returned
 func (t StdToken) Audience() []string {
 	return t.jwtToken.Audience()
 }
 
-//Returns "exp" claim, if it doesn't exist empty string is returned
+// Returns "exp" claim, if it doesn't exist empty string is returned
 func (t StdToken) Expiration() time.Time {
 	return t.jwtToken.Expiration()
 }
 
-//Returns true, if 'exp' claim + leeway time of 1 minute is before current time
+// Returns true, if 'exp' claim + leeway time of 1 minute is before current time
 func (t StdToken) IsExpired() bool {
-	if t.Expiration().Add(1 * time.Minute).Before(time.Now()) {
-		return true
-	}
-	return false
+	return t.Expiration().Add(1 * time.Minute).Before(time.Now())
 }
 
-//Returns "iat" claim, if it doesn't exist empty string is returned
+// Returns "iat" claim, if it doesn't exist empty string is returned
 func (t StdToken) IssuedAt() time.Time {
 	return t.jwtToken.IssuedAt()
 }
 
-//Returns "iss" claim, if it doesn't exist empty string is returned
+// Returns "iss" claim, if it doesn't exist empty string is returned
 func (t StdToken) Issuer() string {
 	return t.jwtToken.Issuer()
 }
 
-//Returns "nbf" claim, if it doesn't exist empty string is returned
+// Returns "nbf" claim, if it doesn't exist empty string is returned
 func (t StdToken) NotBefore() time.Time {
 	return t.jwtToken.NotBefore()
 }
 
-//Returns "sub" claim, if it doesn't exist empty string is returned
+// Returns "sub" claim, if it doesn't exist empty string is returned
 func (t StdToken) Subject() string {
 	return t.jwtToken.Subject()
 }
 
-//Returns "given_name" claim, if it doesn't exist empty string is returned
+// Returns "given_name" claim, if it doesn't exist empty string is returned
 func (t StdToken) GivenName() (string, error) {
 	return t.GetClaimAsString(givenName)
 }
 
-//Returns "family_name" claim, if it doesn't exist empty string is returned
+// Returns "family_name" claim, if it doesn't exist empty string is returned
 func (t StdToken) FamilyName() (string, error) {
 	return t.GetClaimAsString(familyName)
 }
 
-//Returns "email" claim, if it doesn't exist empty string is returned
+// Returns "email" claim, if it doesn't exist empty string is returned
 func (t StdToken) Email() (string, error) {
 	return t.GetClaimAsString(email)
 }
 
-//Returns "zone_uuid" claim, if it doesn't exist empty string is returned
+// Returns "zone_uuid" claim, if it doesn't exist empty string is returned
 func (t StdToken) ZoneID() (string, error) {
-	return t.GetClaimAsString(sapGlobalZoneId)
+	return t.GetClaimAsString(sapGlobalZoneID)
 }
 
-//Returns "user_uuid" claim, if it doesn't exist empty string is returned
+// Returns "user_uuid" claim, if it doesn't exist empty string is returned
 func (t StdToken) UserUUID() (string, error) {
-	return t.GetClaimAsString(sapGlobalUserId)
+	return t.GetClaimAsString(sapGlobalUserID)
 }
 
 func (t StdToken) GetClaimAsString(claim string) (string, error) {
