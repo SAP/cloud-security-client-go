@@ -30,20 +30,20 @@ func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
 		return nil, err
 	}
 
-	// verify signature
-	if err := m.verifySignature(token, *keySet); err != nil {
+	// verify claims
+	if err := m.validateClaims(token, keySet); err != nil {
 		return nil, err
 	}
 
-	// verify claims
-	if err := m.validateClaims(token, keySet); err != nil {
+	// verify signature
+	if err := m.verifySignature(token, keySet); err != nil {
 		return nil, err
 	}
 
 	return token, nil
 }
 
-func (m *Middleware) verifySignature(t Token, keySet oidcclient.OIDCTenant) (err error) {
+func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant) (err error) {
 	headers, err := getHeaders(t.GetTokenValue())
 	if err != nil {
 		return err
@@ -51,6 +51,7 @@ func (m *Middleware) verifySignature(t Token, keySet oidcclient.OIDCTenant) (err
 	kid := headers.KeyID()
 	alg := headers.Algorithm()
 
+	//fail early to avoid another parsing of encoded token
 	if alg == "" {
 		return errors.New("alg is missing from jwt header")
 	}
@@ -68,7 +69,7 @@ func (m *Middleware) verifySignature(t Token, keySet oidcclient.OIDCTenant) (err
 	return nil
 }
 
-func getPublicKey(kid string, keySet oidcclient.OIDCTenant) (jwk.Key, error) {
+func getPublicKey(kid string, keySet *oidcclient.OIDCTenant) (jwk.Key, error) {
 	jwks, _ := keySet.GetJWKs()
 	var jsonWebKey *oidcclient.JSONWebKey
 	if kid != "" {
@@ -104,13 +105,14 @@ func getHeaders(encodedToken string) (jws.Headers, error) {
 
 func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error {
 
+	//performing IsExpired check, because dgriljalva jwt.Validate() doesn't fail on missing 'exp' claim
 	if t.IsExpired() {
 		return fmt.Errorf("token is expired, exp: %v", t.Expiration())
 	}
 	err := jwt.Validate(t.getJwtToken(),
 		jwt.WithAudience(m.oAuthConfig.GetClientID()),
 		jwt.WithIssuer(ks.ProviderJSON.Issuer),
-		jwt.WithAcceptableSkew(1*time.Minute))
+		jwt.WithAcceptableSkew(1*time.Minute)) //to keep leeway in sync with Token.IsExpired
 
 	if err != nil {
 		return fmt.Errorf("claim validation failed: %v", err)
@@ -147,7 +149,7 @@ func (m *Middleware) verifyIssuer(issuer string) (issUri *url.URL, err error) {
 	}
 
 	if !strings.HasSuffix(issURI.Host, m.oAuthConfig.GetDomain()) {
-		return nil, fmt.Errorf("token is unverifiable: token is issued by unknown oauth server: domain must end with %v", m.oAuthConfig.GetDomain())
+		return nil, fmt.Errorf("token is unverifiable: unknown server (domain doesn't match)")
 	}
 	return issURI, nil
 }
