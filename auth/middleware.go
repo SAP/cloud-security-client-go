@@ -19,7 +19,12 @@ import (
 type ContextKey int
 
 // UserContextKey is the key that holds the authorization value (*OIDCClaims) in the request context
-const UserContextKey ContextKey = 0
+const (
+	UserContextKey ContextKey = 0
+
+	cacheExpiration      = 12 * time.Hour
+	cacheCleanupInterval = 24 * time.Hour
+)
 
 // ErrorHandler is the type for the Error Handler which is called on unsuccessful token validation and if the AuthenticationHandler middleware func is used
 type ErrorHandler func(w http.ResponseWriter, r *http.Request, err error)
@@ -79,7 +84,7 @@ func NewMiddleware(oAuthConfig OAuthConfig, options Options) *Middleware {
 	m.options = options
 
 	m.parser = new(jwtgo.Parser)
-	m.oidcTenants = cache.New(12*time.Hour, 24*time.Hour)
+	m.oidcTenants = cache.New(cacheExpiration, cacheCleanupInterval)
 
 	return m
 }

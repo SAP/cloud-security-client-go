@@ -106,7 +106,7 @@ func (m *MockServer) SignToken(claims OIDCClaims, header map[string]interface{})
 
 // SignTokenWithAdditionalClaims signs the token with additional non-standard oidc claims. additionalClaims must not contain any oidc standard claims or duplicates.
 // See also: SignToken
-func (m *MockServer) SignTokenWithAdditionalClaims(claims OIDCClaims, additionalClaims map[string]interface{}, header map[string]interface{}) (string, error) {
+func (m *MockServer) SignTokenWithAdditionalClaims(claims OIDCClaims, additionalClaims, header map[string]interface{}) (string, error) {
 	mapClaims := jwtgo.MapClaims{}
 
 	dataBytes, err := json.Marshal(claims)
@@ -146,10 +146,11 @@ func (m *MockServer) DefaultClaims() OIDCClaims {
 	now := jwtgo.Now()
 	iss := m.Server.URL
 	aud := jwtgo.ClaimStrings{m.Config.ClientID}
+	defaultJwtExpiration := time.Minute * 5
 	claims := OIDCClaims{
 		StandardClaims: jwtgo.StandardClaims{
 			Audience:  aud,
-			ExpiresAt: jwtgo.At(now.Add(time.Minute * 5)),
+			ExpiresAt: jwtgo.At(now.Add(defaultJwtExpiration)),
 			ID:        uuid.New().String(),
 			IssuedAt:  now,
 			Issuer:    iss,

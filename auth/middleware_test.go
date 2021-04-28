@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -134,7 +135,9 @@ func TestEnd2End(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			req, _ := http.NewRequest("GET", testServer.URL+"/helloWorld", nil)
+			timeout, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancelFunc()
+			req, _ := http.NewRequestWithContext(timeout, "GET", testServer.URL+"/helloWorld", nil)
 			authHeader, err := oidcMockServer.SignToken(tt.claims, tt.header)
 			if err != nil {
 				t.Errorf("unable to sign provided test token: %v", err)

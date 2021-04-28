@@ -33,7 +33,7 @@ func (m *Middleware) parseAndValidateJWT(rawToken string) (*jwt.Token, error) {
 	}
 
 	// verify signature
-	if err = m.verifySignature(token, keySet); err != nil {
+	if err := m.verifySignature(token, keySet); err != nil {
 		return nil, err
 	}
 

@@ -13,16 +13,16 @@ import (
 type Platform string
 
 const (
-	cloud_foundry Platform = "CLOUD_FOUNDRY"
-	kubernetes    Platform = "KUBERNETES"
-	unknown       Platform = "UNKNOWN"
+	cloudFoundry Platform = "CLOUD_FOUNDRY"
+	kubernetes   Platform = "KUBERNETES"
+	unknown      Platform = "UNKNOWN"
 )
 
 func getPlatform() Platform {
 	switch {
 	case strings.TrimSpace(os.Getenv("VCAP_SERVICES")) != "":
-		return cloud_foundry
-	case 1 == 2:
+		return cloudFoundry
+	case false: // kubernetes not yet supported
 		return kubernetes
 	default:
 		return unknown

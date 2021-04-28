@@ -5,6 +5,7 @@
 package oidcclient
 
 import (
+	"context"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -20,6 +21,8 @@ import (
 	"strings"
 	"time"
 )
+
+const defaultJwkExpiration = 15 * time.Minute
 
 // OIDCTenant represents one IAS tenant with it's OIDC discovery results and cached JWKs
 type OIDCTenant struct {
@@ -70,7 +73,7 @@ func (ks *OIDCTenant) GetJWKs() ([]*JSONWebKey, error) {
 
 func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
 	result := updateKeysResult{}
-	req, err := http.NewRequest("GET", ks.ProviderJSON.JWKsURL, nil)
+	req, err := http.NewRequestWithContext(context.TODO(), "GET", ks.ProviderJSON.JWKsURL, nil)
 	if err != nil {
 		return result, fmt.Errorf("can't create request to fetch jwk: %v", err)
 	}
@@ -105,7 +108,7 @@ func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
 	result.keys = keySet.Keys
 
 	// If the server doesn't provide cache control headers, assume the keys expire in 15min.
-	result.expiry = time.Now().Add(15 * time.Minute)
+	result.expiry = time.Now().Add(defaultJwkExpiration)
 
 	_, e, err := cachecontrol.CachableResponse(req, resp, cachecontrol.Options{})
 	if err == nil && e.After(result.expiry) {
@@ -117,7 +120,7 @@ func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
 
 func (ks *OIDCTenant) performDiscovery(baseURL string) error {
 	wellKnown := fmt.Sprintf("https://%s/.well-known/openid-configuration", strings.TrimSuffix(baseURL, "/"))
-	req, err := http.NewRequest("GET", wellKnown, nil)
+	req, err := http.NewRequestWithContext(context.TODO(), "GET", wellKnown, nil)
 	if err != nil {
 		return fmt.Errorf("unable to construct discovery request: %v", err)
 	}

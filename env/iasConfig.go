@@ -36,8 +36,8 @@ type Identity struct {
 
 // GetIASConfig parses the IAS config from the applications environment
 func GetIASConfig() (*Identity, error) {
-	switch getPlatform() {
-	case cloud_foundry:
+	switch getPlatform() { //nolint:exhaustive // Unknown case is handled by default
+	case cloudFoundry:
 		var vcapServices VCAPServices
 		vcapServicesString := os.Getenv(vcapServicesEnvKey)
 		err := json.Unmarshal([]byte(vcapServicesString), &vcapServices)
