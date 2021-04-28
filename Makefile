@@ -29,7 +29,7 @@ help:
 	@echo "	clean               Run go clean"
 	@echo "	help                Print this help text"
 	@echo "	get-deps            Download the dependencies"
-	@echo "	lint                Run golang.org/x/lint/golint"
+	@echo "	lint                Run golangci-lint"
 	@echo "	pull-request        Run all tests required for a PR"
 	@echo "	test                Run go test"
 	@echo "	vet                 Run go vet"
@@ -44,9 +44,7 @@ test:
 	$(GOTEST) $(GOTEST_FLAGS) --tags unit ./...
 
 lint:
-	$(GOGET) $(GOGET_FLAGS) -u golang.org/x/lint/golint
-	$(eval GOLINT := $(shell $(GOLIST) -f {{.Target}} golang.org/x/lint/golint))
-	$(GOLINT) ./...
+	golangci-lint run
 
 vet:
 	$(GOVET) ./...
@@ -57,9 +55,6 @@ pull-request: GOTEST_FLAGS=
 pull-request: build test vet lint
 	@echo ""
 	@echo "------------------------------------------------------"
-	@echo ""
-	@echo "Please review the warnings of golint above"
-	@echo "prior to submitting your work."
 	@echo ""
 	@echo "You can submit your work to "
 	@echo "github.com/SAP/cloud-security-client-go/pulls"
