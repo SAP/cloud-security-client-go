@@ -136,7 +136,7 @@ func (t StdToken) GetClaimAsString(claim string) (string, error) {
 	}
 	stringValue, ok := value.(string)
 	if !ok {
-		return "", fmt.Errorf("unable to assert claim %s type as string. Actual type: %T", claim, stringValue)
+		return "", fmt.Errorf("unable to assert claim %s type as string. Actual type: %T", claim, value)
 	}
 	return stringValue, nil
 }
