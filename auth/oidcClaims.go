@@ -6,23 +6,28 @@ package auth
 
 import (
 	"fmt"
-	jwtgo "github.com/dgrijalva/jwt-go/v4"
 )
 
 // https://www.iana.org/assignments/jwt/jwt.xhtml#claims
 const (
-	propKeyID = "kid"
-	propAlg   = "alg"
+	headerKid = "kid"
+	headerAlg = "alg"
 )
 
 // OIDCClaims represents all claims that the JWT holds
 type OIDCClaims struct {
-	jwtgo.StandardClaims
-	GivenName  string `json:"given_name,omitempty"`
-	FamilyName string `json:"family_name,omitempty"`
-	Email      string `json:"email,omitempty"`
-	ZoneID     string `json:"zone_uuid,omitempty"`
-	UserUUID   string `json:"user_uuid,omitempty"`
+	Audience   []string `json:"aud,omitempty"`
+	ExpiresAt  int64    `json:"exp,omitempty"`
+	ID         string   `json:"jti,omitempty"`
+	IssuedAt   int64    `json:"iat,omitempty"`
+	Issuer     string   `json:"iss,omitempty"`
+	NotBefore  int64    `json:"nbf,omitempty"`
+	Subject    string   `json:"sub,omitempty"`
+	GivenName  string   `json:"given_name,omitempty"`
+	FamilyName string   `json:"family_name,omitempty"`
+	Email      string   `json:"email,omitempty"`
+	ZoneID     string   `json:"zone_uuid,omitempty"`
+	UserUUID   string   `json:"user_uuid,omitempty"`
 	mapClaims  map[string]interface{}
 }
 

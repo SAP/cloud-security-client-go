@@ -6,9 +6,11 @@ package auth
 
 import (
 	"context"
+	"github.com/lestrrat-go/jwx/jwa"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -37,7 +39,16 @@ func TestEnd2End(t *testing.T) {
 				Audience("notMyClient", oidcMockServer.Config.ClientID).
 				Build(),
 			wantErr: false,
-		}, {
+		},
+		{
+			name:   "valid with single aud",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Audience(oidcMockServer.Config.ClientID).
+				Build(),
+			wantErr: false,
+		},
+		{
 			name: "no key id in token",
 			header: NewOIDCHeaderBuilder(oidcMockServer.DefaultHeaders()).
 				KeyID("").
@@ -48,7 +59,7 @@ func TestEnd2End(t *testing.T) {
 			name:   "expired",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
-				ExpiresAt(time.Now().Add(-5 * time.Minute)).
+				ExpiresAt(time.Now().Add(-1 * time.Minute)).
 				Build(),
 			wantErr: true,
 		}, {
@@ -62,7 +73,7 @@ func TestEnd2End(t *testing.T) {
 			name:   "before validity",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
-				NotBefore(time.Now().Add(5 * time.Minute)).
+				NotBefore(time.Now().Add(1 * time.Minute)).
 				Build(),
 			wantErr: true,
 		}, {
@@ -87,10 +98,59 @@ func TestEnd2End(t *testing.T) {
 				Build(),
 			wantErr: true,
 		}, {
+			name:   "no http/s prefix for issuer",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Issuer("127.0.0.1:64004").
+				Build(),
+			wantErr: true,
+		}, {
 			name:   "issuer malicious",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
 				Issuer(oidcMockServer.Server.URL + "?redirect=https://malicious.ondemand.com/tokens%3Ftenant=9451dd2etrial").
+				Build(),
+			wantErr: true,
+		}, {
+			name:   "issuer malicious2",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Issuer(oidcMockServer.Server.URL + "\\\\@malicious.ondemand.com").
+				Build(),
+			wantErr: true,
+		}, {
+			name:   "issuer malicious3",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Issuer(oidcMockServer.Server.URL + "@malicious.ondemand.com").
+				Build(),
+			wantErr: true,
+		}, {
+			name:   "issuer malicious4",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Issuer("https://malicious.ondemand.com/token_keys///" + oidcMockServer.Server.URL).
+				Build(),
+			wantErr: true,
+		}, {
+			name:   "issuer malicious5",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Issuer("https://malicious.ondemand.com/token_keys@" + strings.TrimPrefix(oidcMockServer.Server.URL, "https://")).
+				Build(),
+			wantErr: true,
+		}, {
+			name:   "issuer malicious6",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Issuer(oidcMockServer.Server.URL + "///malicious.ondemand.com/token_keys").
+				Build(),
+			wantErr: true,
+		}, {
+			name:   "issuer malicious7",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Issuer(oidcMockServer.Server.URL + "\\\\@malicious.ondemand.com/token_keys").
 				Build(),
 			wantErr: true,
 		}, {
@@ -110,7 +170,7 @@ func TestEnd2End(t *testing.T) {
 		}, {
 			name: "none algorithm",
 			header: NewOIDCHeaderBuilder(oidcMockServer.DefaultHeaders()).
-				Alg("none").
+				Alg(jwa.NoSignature).
 				Build(),
 			claims:  oidcMockServer.DefaultClaims(),
 			wantErr: true,
@@ -124,7 +184,7 @@ func TestEnd2End(t *testing.T) {
 		}, {
 			name: "wrong algorithm",
 			header: NewOIDCHeaderBuilder(oidcMockServer.DefaultHeaders()).
-				Alg("HS256").
+				Alg(jwa.HS256).
 				Build(),
 			claims:  oidcMockServer.DefaultClaims(),
 			wantErr: true,

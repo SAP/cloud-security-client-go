@@ -5,14 +5,18 @@
 package auth
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	jwtgo "github.com/dgrijalva/jwt-go/v4"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/jws"
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/sap/cloud-security-client-go/oidcclient"
 	"math/big"
 	"net/http"
@@ -96,18 +100,33 @@ func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 
 // SignToken signs the provided OIDCClaims and header fields into a base64 encoded JWT token signed by the MockServer.
 func (m *MockServer) SignToken(claims OIDCClaims, header map[string]interface{}) (string, error) {
-	token := &jwtgo.Token{
-		Header: header,
-		Claims: claims,
-		Method: jwtgo.SigningMethodRS256,
+	var mapClaims map[string]interface{}
+
+	dataBytes, err := json.Marshal(claims)
+	if err != nil {
+		return "", fmt.Errorf("unable to convert OIDCClaims to map (marshal): %v", err)
 	}
-	return m.signToken(token)
+	err = json.Unmarshal(dataBytes, &mapClaims)
+	if err != nil {
+		return "", fmt.Errorf("unable to convert OIDCClaims to map (unmarshal): %v", err)
+	}
+
+	jwtToken := jwt.New()
+
+	for k, v := range mapClaims {
+		err := jwtToken.Set(k, v)
+		if err != nil {
+			return "", fmt.Errorf("unable to convert OIDCClaims to map: %v", err)
+		}
+	}
+
+	return m.signToken(jwtToken, header)
 }
 
 // SignTokenWithAdditionalClaims signs the token with additional non-standard oidc claims. additionalClaims must not contain any oidc standard claims or duplicates.
 // See also: SignToken
 func (m *MockServer) SignTokenWithAdditionalClaims(claims OIDCClaims, additionalClaims, header map[string]interface{}) (string, error) {
-	mapClaims := jwtgo.MapClaims{}
+	var mapClaims map[string]interface{}
 
 	dataBytes, err := json.Marshal(claims)
 	if err != nil {
@@ -124,38 +143,72 @@ func (m *MockServer) SignTokenWithAdditionalClaims(claims OIDCClaims, additional
 		}
 		mapClaims[k] = v
 	}
+	token := jwt.New()
 
-	token := &jwtgo.Token{
-		Header: header,
-		Claims: mapClaims,
-		Method: jwtgo.SigningMethodRS256,
+	for k, v := range mapClaims {
+		err := token.Set(k, v)
+		if err != nil {
+			return "", fmt.Errorf("unable to convert OIDCClaims to map: %v", err)
+		}
 	}
-	return m.signToken(token)
+
+	return m.signToken(token, header)
 }
 
-func (m *MockServer) signToken(token *jwtgo.Token) (string, error) {
-	signedString, err := token.SignedString(m.RSAKey)
+func (m *MockServer) signToken(token jwt.Token, header map[string]interface{}) (string, error) {
+	jwkKey, err := jwk.New(m.RSAKey)
 	if err != nil {
-		return "", fmt.Errorf("error signing token: %v", err)
+		return "", fmt.Errorf("failed to create JWK: %s", err)
 	}
-	return signedString, nil
+
+	_ = jwkKey.Set(jwk.KeyIDKey, header[headerKid])
+
+	signedJwt, err := jwt.Sign(token, jwa.RS256, jwkKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign the token: %v", err)
+	}
+
+	var alg, ok = header[headerAlg].(jwa.SignatureAlgorithm)
+	if !ok || alg != jwa.RS256 {
+		signedJwt, _ = modifySignedJwtHeader(signedJwt, header)
+	}
+
+	return string(signedJwt), nil
+}
+func modifySignedJwtHeader(signed []byte, headerMap map[string]interface{}) ([]byte, error) {
+	_, payload, signature, err := jws.SplitCompact(signed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to modify Jwt signature: %s", err)
+	}
+
+	headers := jws.NewHeaders()
+	_ = headers.Set(jws.AlgorithmKey, headerMap[headerAlg])
+	_ = headers.Set(jws.KeyIDKey, headerMap[headerKid])
+
+	marshaledHeaders, err := json.Marshal(headers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to modify Jwt signature: %s", err)
+	}
+	encodedHeaders := make([]byte, base64.RawURLEncoding.EncodedLen(len(marshaledHeaders)))
+	base64.RawURLEncoding.Encode(encodedHeaders, marshaledHeaders)
+
+	signedWithModifiedHeaders := bytes.Join([][]byte{encodedHeaders, payload, signature}, []byte{'.'})
+
+	return signedWithModifiedHeaders, nil
 }
 
 // DefaultClaims returns OIDCClaims with mock server specific default values for standard OIDC claims.
 func (m *MockServer) DefaultClaims() OIDCClaims {
-	now := jwtgo.Now()
-	iss := m.Server.URL
-	aud := jwtgo.ClaimStrings{m.Config.ClientID}
-	defaultJwtExpiration := time.Minute * 5
+	now := time.Now().Unix()
+	after5min := now + 5*60*1000
 	claims := OIDCClaims{
-		StandardClaims: jwtgo.StandardClaims{
-			Audience:  aud,
-			ExpiresAt: jwtgo.At(now.Add(defaultJwtExpiration)),
-			ID:        uuid.New().String(),
-			IssuedAt:  now,
-			Issuer:    iss,
-			NotBefore: now,
-		},
+
+		Audience:   []string{m.Config.ClientID},
+		ExpiresAt:  after5min,
+		ID:         uuid.New().String(),
+		IssuedAt:   now,
+		Issuer:     m.Server.URL,
+		NotBefore:  now,
 		GivenName:  "Foo",
 		FamilyName: "Bar",
 		Email:      "foo@bar.org",
@@ -170,8 +223,8 @@ func (m *MockServer) DefaultHeaders() map[string]interface{} {
 	header := make(map[string]interface{})
 
 	header["typ"] = "JWT"
-	header[propAlg] = jwtgo.SigningMethodRS256.Alg()
-	header[propKeyID] = "testKey"
+	header[headerAlg] = jwa.RS256
+	header[headerKid] = "testKey"
 
 	return header
 }

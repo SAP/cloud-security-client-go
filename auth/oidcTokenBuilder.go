@@ -5,7 +5,7 @@
 package auth
 
 import (
-	jwtgo "github.com/dgrijalva/jwt-go/v4"
+	"github.com/lestrrat-go/jwx/jwa"
 	"time"
 )
 
@@ -23,19 +23,19 @@ func NewOIDCHeaderBuilder(base map[string]interface{}) *OIDCHeaderBuilder {
 // KeyID sets the keyID field
 func (b *OIDCHeaderBuilder) KeyID(keyID string) *OIDCHeaderBuilder {
 	if keyID == "" {
-		b.header[propKeyID] = nil
+		b.header[headerKid] = nil
 	} else {
-		b.header[propKeyID] = keyID
+		b.header[headerKid] = keyID
 	}
 	return b
 }
 
 // Alg sets the alg field
-func (b *OIDCHeaderBuilder) Alg(alg string) *OIDCHeaderBuilder {
+func (b *OIDCHeaderBuilder) Alg(alg jwa.SignatureAlgorithm) *OIDCHeaderBuilder {
 	if alg == "" {
-		b.header[propAlg] = nil
+		b.header[headerAlg] = nil
 	} else {
-		b.header[propAlg] = alg
+		b.header[headerAlg] = alg
 	}
 	return b
 }
@@ -69,7 +69,7 @@ func (b *OIDCClaimsBuilder) Audience(aud ...string) *OIDCClaimsBuilder {
 
 // ExpiresAt sets the exp field
 func (b *OIDCClaimsBuilder) ExpiresAt(expiresAt time.Time) *OIDCClaimsBuilder {
-	b.claims.ExpiresAt = jwtgo.At(expiresAt)
+	b.claims.ExpiresAt = expiresAt.Unix()
 	return b
 }
 
@@ -81,7 +81,7 @@ func (b *OIDCClaimsBuilder) ID(id string) *OIDCClaimsBuilder {
 
 // IssuedAt sets the iat field
 func (b *OIDCClaimsBuilder) IssuedAt(issuedAt time.Time) *OIDCClaimsBuilder {
-	b.claims.IssuedAt = jwtgo.At(issuedAt)
+	b.claims.IssuedAt = issuedAt.Unix()
 	return b
 }
 
@@ -93,7 +93,7 @@ func (b *OIDCClaimsBuilder) Issuer(issuer string) *OIDCClaimsBuilder {
 
 // NotBefore sets the nbf field
 func (b *OIDCClaimsBuilder) NotBefore(notBefore time.Time) *OIDCClaimsBuilder {
-	b.claims.NotBefore = jwtgo.At(notBefore)
+	b.claims.NotBefore = notBefore.Unix()
 	return b
 }
 
@@ -141,18 +141,18 @@ func (b *OIDCClaimsBuilder) WithoutAudience() *OIDCClaimsBuilder {
 
 // WithoutExpiresAt removes the exp claim
 func (b *OIDCClaimsBuilder) WithoutExpiresAt() *OIDCClaimsBuilder {
-	b.claims.ExpiresAt = nil
+	b.claims.ExpiresAt = 0
 	return b
 }
 
 // WithoutIssuedAt removes the iat claim
 func (b *OIDCClaimsBuilder) WithoutIssuedAt() *OIDCClaimsBuilder {
-	b.claims.IssuedAt = nil
+	b.claims.IssuedAt = 0
 	return b
 }
 
 // WithoutNotBefore removes the nbf claim
 func (b *OIDCClaimsBuilder) WithoutNotBefore() *OIDCClaimsBuilder {
-	b.claims.NotBefore = nil
+	b.claims.NotBefore = 0
 	return b
 }

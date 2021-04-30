@@ -5,8 +5,11 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go/v4"
+	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/jws"
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/sap/cloud-security-client-go/oidcclient"
 	"net/url"
 	"strings"
@@ -14,15 +17,14 @@ import (
 )
 
 // parseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
-func (m *Middleware) parseAndValidateJWT(rawToken string) (*jwt.Token, error) {
-	token, parts, err := m.parser.ParseUnverified(rawToken, new(OIDCClaims))
+func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
+	token, err := NewToken(rawToken)
 	if err != nil {
 		return nil, err
 	}
-	token.Signature = parts[2]
 
 	// get keyset
-	keySet, err := m.getOIDCTenant(token)
+	keySet, err := m.getOIDCTenant(token.Issuer())
 	if err != nil {
 		return nil, err
 	}
@@ -37,87 +39,95 @@ func (m *Middleware) parseAndValidateJWT(rawToken string) (*jwt.Token, error) {
 		return nil, err
 	}
 
-	mapClaims, _, err := m.parser.ParseUnverified(rawToken, jwt.MapClaims{})
-	if err != nil {
-		return nil, err
-	}
-	token.Claims.(*OIDCClaims).mapClaims = mapClaims.Claims.(jwt.MapClaims)
-
-	token.Valid = true
 	return token, nil
 }
 
-func (m *Middleware) verifySignature(t *jwt.Token, ks *oidcclient.OIDCTenant) error {
-	jwks, err := ks.GetJWKs()
+func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant) (err error) {
+	headers, err := getHeaders(t.GetTokenValue())
 	if err != nil {
-		return fmt.Errorf("token is unverifiable: failed to fetch token keys from remote: %v", err)
+		return err
 	}
-	if len(jwks) == 0 {
-		return fmt.Errorf("token is unverifiable: remote returned no jwk to verify the token")
-	}
+	kid := headers.KeyID()
+	alg := headers.Algorithm()
 
-	var jwk *oidcclient.JSONWebKey
-
-	if kid := t.Header[propKeyID]; kid != nil {
-		for _, key := range jwks {
-			if key.Kid == kid {
-				jwk = key
-				break
-			}
-		}
-		if jwk == nil {
-			return fmt.Errorf("token is unverifiable: kid id specified in token not presented by remote")
-		}
-	} else if len(jwks) == 1 {
-		jwk = jwks[0]
-	} else {
-		return fmt.Errorf("token is unverifiable: no kid specified in token and more than one verification key available")
+	// fail early to avoid another parsing of encoded token
+	if alg == "" {
+		return errors.New("alg is missing from jwt header")
 	}
 
-	// join token together again, as t.Raw does not contain signature
-	if err := t.Method.Verify(strings.TrimSuffix(t.Raw, "."+t.Signature), t.Signature, jwk.Key); err != nil {
-		// invalid
-		return fmt.Errorf("token signature is invalid: %v", err)
+	publicKey, err := getPublicKey(kid, keySet)
+	if err != nil {
+		return err
+	}
+
+	// parse and verify signature
+	_, err = jwt.ParseString(t.GetTokenValue(), jwt.WithVerify(alg, publicKey))
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func (m *Middleware) validateClaims(t *jwt.Token, ks *oidcclient.OIDCTenant) error {
-	c := t.Claims.(*OIDCClaims)
-
-	if c.ExpiresAt == nil {
-		return fmt.Errorf("token is unverifiable: expiration time (exp) is unavailable")
+func getPublicKey(kid string, keySet *oidcclient.OIDCTenant) (jwk.Key, error) {
+	jwks, _ := keySet.GetJWKs()
+	var jsonWebKey *oidcclient.JSONWebKey
+	if kid != "" {
+		for _, key := range jwks {
+			if key.Kid == kid {
+				jsonWebKey = key
+				break
+			}
+		}
+		if jsonWebKey == nil {
+			return nil, fmt.Errorf("token is unverifiable: 'kid' is specified in token, but no jwk provided by server")
+		}
+	} else if len(jwks) == 1 {
+		jsonWebKey = jwks[0]
+	} else {
+		return nil, fmt.Errorf("token is unverifiable: no kid specified in token and more than one jwk available from server")
 	}
-	validationHelper := jwt.NewValidationHelper(
-		jwt.WithAudience(m.oAuthConfig.GetClientID()),
-		jwt.WithIssuer(ks.ProviderJSON.Issuer),
-		jwt.WithLeeway(1*time.Minute),
-	)
 
-	err := c.Valid(validationHelper)
+	pubKey, _ := jwk.New(jsonWebKey.Key)
+	_ = pubKey.Set(jwk.KeyIDKey, jsonWebKey.Kid)
+	_ = pubKey.Set(jwk.KeyTypeKey, jsonWebKey.Kty)
 
-	return err
+	return pubKey, nil
 }
 
-func (m *Middleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, error) {
-	claims, ok := t.Claims.(*OIDCClaims)
-	if !ok {
-		return nil, fmt.Errorf("token is unverifiable: internal validation error during type assertion: expected *OIDCClaims, got %T", t.Claims)
-	}
-
-	iss := claims.Issuer
-	issURI, err := url.Parse(iss)
+func getHeaders(encodedToken string) (jws.Headers, error) {
+	msg, err := jws.Parse([]byte(encodedToken))
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse issuer URI: %s", iss)
+		return nil, err
 	}
 
-	if !strings.HasSuffix(issURI.Host, m.oAuthConfig.GetDomain()) {
-		return nil, fmt.Errorf("token is unverifiable: token is issued by unknown oauth server: domain must end with %v", m.oAuthConfig.GetDomain())
+	return msg.Signatures()[0].ProtectedHeaders(), nil
+}
+
+func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error { // performing IsExpired check, because dgriljalva jwt.Validate() doesn't fail on missing 'exp' claim
+	// performing IsExpired check, because lestrrat-go jwt.Validate() doesn't fail on missing 'exp' claim
+	if t.IsExpired() {
+		return fmt.Errorf("token is expired, exp: %v", t.Expiration())
+	}
+	err := jwt.Validate(t.getJwtToken(),
+		jwt.WithAudience(m.oAuthConfig.GetClientID()),
+		jwt.WithIssuer(ks.ProviderJSON.Issuer),
+		jwt.WithAcceptableSkew(1*time.Minute)) // to keep leeway in sync with Token.IsExpired
+
+	if err != nil {
+		return fmt.Errorf("claim validation failed: %v", err)
+	}
+	return nil
+}
+
+func (m *Middleware) getOIDCTenant(tokenIssuer string) (*oidcclient.OIDCTenant, error) {
+	issURI, err := m.verifyIssuer(tokenIssuer)
+	if err != nil {
+		return nil, err
 	}
 
-	oidcTenant, exp, found := m.oidcTenants.GetWithExpiration(iss)
+	oidcTenant, exp, found := m.oidcTenants.GetWithExpiration(tokenIssuer)
 	if !found || time.Now().After(exp) {
-		newKeySet, err, _ := m.sf.Do(iss, func() (i interface{}, err error) {
+		newKeySet, err, _ := m.sf.Do(tokenIssuer, func() (i interface{}, err error) {
 			set, err := oidcclient.NewOIDCTenant(m.options.HTTPClient, issURI)
 			return set, err
 		})
@@ -129,4 +139,16 @@ func (m *Middleware) getOIDCTenant(t *jwt.Token) (*oidcclient.OIDCTenant, error)
 		m.oidcTenants.SetDefault(oidcTenant.(*oidcclient.OIDCTenant).ProviderJSON.Issuer, oidcTenant)
 	}
 	return oidcTenant.(*oidcclient.OIDCTenant), nil
+}
+
+func (m *Middleware) verifyIssuer(issuer string) (issURI *url.URL, err error) {
+	issURI, err = url.Parse(issuer)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse Issuer URI: %s", issuer)
+	}
+
+	if !strings.HasSuffix(issURI.Host, m.oAuthConfig.GetDomain()) {
+		return nil, fmt.Errorf("token is unverifiable: unknown server (domain doesn't match)")
+	}
+	return issURI, nil
 }
