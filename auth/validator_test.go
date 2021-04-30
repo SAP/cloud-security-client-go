@@ -6,13 +6,14 @@ package auth
 
 import (
 	"github.com/sap/cloud-security-client-go/env"
+	"github.com/sap/cloud-security-client-go/test"
 	"sync"
 	"testing"
 	"time"
 )
 
 func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
-	oidcMockServer, err := NewOIDCMockServer()
+	oidcMockServer, err := test.NewOIDCMockServer()
 	if err != nil {
 		t.Errorf("error creating test setup: %v", err)
 	}

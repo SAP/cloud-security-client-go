@@ -14,12 +14,12 @@ import (
 	"time"
 )
 
-// The ContextKey type is used as a key for library related values in the go context. See also UserContextKey
+// The ContextKey type is used as a key for library related values in the go context. See also TokenContextKey
 type ContextKey int
 
-// UserContextKey is the key that holds the authorization value (*OIDCClaims) in the request context
+// TokenContextKey is the key that holds the authorization value (*OIDCClaims) in the request context
 const (
-	UserContextKey ContextKey = 0
+	TokenContextKey ContextKey = 0
 
 	cacheExpiration      = 12 * time.Hour
 	cacheCleanupInterval = 24 * time.Hour
@@ -47,10 +47,10 @@ type OAuthConfig interface {
 	GetCertificateExpiresAt() string // Returns the client certificate expiration time. Optional
 }
 
-// GetClaims retrieves the claims of a request which
+// TokenFromCtx retrieves the claims of a request which
 // have been injected before via the auth middleware
-func GetClaims(r *http.Request) *OIDCClaims {
-	return r.Context().Value(UserContextKey).(*OIDCClaims)
+func TokenFromCtx(r *http.Request) Token {
+	return r.Context().Value(TokenContextKey).(Token)
 }
 
 // Middleware is the main entrypoint to the client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
@@ -108,14 +108,14 @@ func (m *Middleware) Authenticate(r *http.Request) (Token, error) {
 // the current request will stop.
 func (m *Middleware) AuthenticationHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		claims, err := m.Authenticate(r)
+		token, err := m.Authenticate(r)
 
 		if err != nil {
 			m.options.ErrorHandler(w, r, err)
 			return
 		}
 
-		reqWithContext := r.WithContext(context.WithValue(r.Context(), UserContextKey, claims))
+		reqWithContext := r.WithContext(context.WithValue(r.Context(), TokenContextKey, token))
 		*r = *reqWithContext
 
 		// Continue serving http if jwt was valid

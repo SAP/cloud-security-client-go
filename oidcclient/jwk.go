@@ -6,15 +6,12 @@ package oidcclient
 
 import (
 	"context"
-	"crypto/rsa"
-	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pquerna/cachecontrol"
 	"golang.org/x/sync/singleflight"
 	"io/ioutil"
-	"math/big"
 	"mime"
 	"net/http"
 	"net/url"
@@ -31,12 +28,12 @@ type OIDCTenant struct {
 	httpClient   *http.Client
 	singleFlight singleflight.Group
 	// A set of cached keys and their expiry.
-	jwks       []*JSONWebKey
+	jwks       jwk.Set
 	jwksExpiry time.Time
 }
 
 type updateKeysResult struct {
-	keys   []*JSONWebKey
+	keys   jwk.Set
 	expiry time.Time
 }
 
@@ -54,7 +51,7 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 }
 
 // GetJWKs returns the validation keys either cached or updated ones
-func (ks *OIDCTenant) GetJWKs() ([]*JSONWebKey, error) {
+func (ks *OIDCTenant) GetJWKs() (jwk.Set, error) {
 	if time.Now().Before(ks.jwksExpiry) {
 		return ks.jwks, nil
 	}
@@ -84,29 +81,16 @@ func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return result, fmt.Errorf("failed to read fetched jwks: %v", err)
-	}
-
 	if resp.StatusCode != http.StatusOK {
-		return result, fmt.Errorf("failed to fetch jwks: %s %s", resp.Status, body)
+		return result, fmt.Errorf("failed to fetch jwks: http %s", resp.Status)
 	}
 
-	var keySet JSONWebKeySet
-	err = unmarshalResponse(resp, body, &keySet)
+	jwks, err := jwk.ParseReader(resp.Body)
 	if err != nil {
-		return result, fmt.Errorf("failed to decode jwks: %v %s", err, body)
-	}
-	for _, jwk := range keySet.Keys {
-		err := jwk.assertKeyType()
-		if err != nil {
-			return result, fmt.Errorf("failed to build verification Key from jwk: %v", err)
-		}
+		return nil, fmt.Errorf("failed to parse JWK set: %w", err)
 	}
 
-	result.keys = keySet.Keys
-
+	result.keys = jwks
 	// If the server doesn't provide cache control headers, assume the keys expire in 15min.
 	result.expiry = time.Now().Add(defaultJwkExpiration)
 
@@ -159,44 +143,6 @@ type ProviderJSON struct {
 	TokenURL    string `json:"token_endpoint"`
 	JWKsURL     string `json:"jwks_uri"`
 	UserInfoURL string `json:"userinfo_endpoint"`
-}
-
-// JSONWebKeySet represents the data which is returned by the tenants /oauth2/certs endpoint
-type JSONWebKeySet struct {
-	Keys []*JSONWebKey `json:"keys"`
-}
-
-// JSONWebKey represents a single JWK
-type JSONWebKey struct {
-	Kty string
-	E   string
-	N   string
-	Use string
-	Kid string
-	Alg string
-	Key interface{}
-}
-
-func (jwk *JSONWebKey) assertKeyType() error {
-	switch jwk.Kty {
-	case "RSA":
-		NBytes, err := base64.RawURLEncoding.DecodeString(jwk.N)
-		if err != nil {
-			return err
-		}
-		EBytes, err := base64.RawURLEncoding.DecodeString(jwk.E)
-		if err != nil {
-			return err
-		}
-		jwk.Key = &rsa.PublicKey{
-			N: new(big.Int).SetBytes(NBytes),
-			E: int(new(big.Int).SetBytes(EBytes).Int64()),
-		}
-	default:
-		return errors.New("jwk remote presented unsupported key type: " + jwk.Kty)
-	}
-
-	return nil
 }
 
 func (p ProviderJSON) assertMandatoryFieldsPresent() error {

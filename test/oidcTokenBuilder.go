@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package auth
+package test
 
 import (
 	"github.com/lestrrat-go/jwx/jwa"
@@ -45,7 +45,7 @@ func (b *OIDCHeaderBuilder) Build() map[string]interface{} {
 	return b.header
 }
 
-// OIDCClaimsBuilder can construct token claims for test cases
+// OIDCClaimsBuilder can construct token claims for test cases. Use NewOIDCClaimsBuilder as a constructor.
 type OIDCClaimsBuilder struct {
 	claims OIDCClaims
 }

@@ -37,6 +37,6 @@ func main() {
 }
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
-	user := auth.GetClaims(r)
-	_, _ = w.Write([]byte(fmt.Sprintf("Hello world!\nYou're logged in as %s", user.Email)))
+	user := auth.TokenFromCtx(r)
+	_, _ = w.Write([]byte(fmt.Sprintf("Hello world!\nYou're logged in as %s", user.Email())))
 }
