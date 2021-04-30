@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package test
+package mocks
 
 // https://www.iana.org/assignments/jwt/jwt.xhtml#claims
 const (

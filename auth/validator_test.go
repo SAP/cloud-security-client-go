@@ -6,14 +6,14 @@ package auth
 
 import (
 	"github.com/sap/cloud-security-client-go/env"
-	"github.com/sap/cloud-security-client-go/test"
+	"github.com/sap/cloud-security-client-go/mocks"
 	"sync"
 	"testing"
 	"time"
 )
 
 func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
-	oidcMockServer, err := test.NewOIDCMockServer()
+	oidcMockServer, err := mocks.NewOIDCMockServer()
 	if err != nil {
 		t.Errorf("error creating test setup: %v", err)
 	}
@@ -60,8 +60,6 @@ func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 
 	if hits := oidcMockServer.WellKnownHitCounter; hits != 1 {
 		t.Errorf("GetOIDCTenant() /.well-known/openid-configuration endpoint called too often; got = %d, want: 1", hits)
-	} else {
-		t.Logf("GetOIDCTenant() /.well-known/openid-configuration endpoint called only once as expected")
 	}
 }
 
