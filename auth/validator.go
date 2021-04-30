@@ -104,7 +104,7 @@ func getHeaders(encodedToken string) (jws.Headers, error) {
 }
 
 func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error { // performing IsExpired check, because dgriljalva jwt.Validate() doesn't fail on missing 'exp' claim
-	// performing IsExpired check, because dgriljalva jwt.Validate() doesn't fail on missing 'exp' claim
+	// performing IsExpired check, because lestrrat-go jwt.Validate() doesn't fail on missing 'exp' claim
 	if t.IsExpired() {
 		return fmt.Errorf("token is expired, exp: %v", t.Expiration())
 	}
