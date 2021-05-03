@@ -14,12 +14,12 @@ import (
 	"time"
 )
 
-// The ContextKey type is used as a key for library related values in the go context. See also TokenContextKey
+// The ContextKey type is used as a key for library related values in the go context. See also TokenCtxKey
 type ContextKey int
 
-// TokenContextKey is the key that holds the authorization value (*OIDCClaims) in the request context
+// TokenCtxKey is the key that holds the authorization value (*OIDCClaims) in the request context
 const (
-	TokenContextKey ContextKey = 0
+	TokenCtxKey ContextKey = 0
 
 	cacheExpiration      = 12 * time.Hour
 	cacheCleanupInterval = 24 * time.Hour
@@ -50,7 +50,7 @@ type OAuthConfig interface {
 // TokenFromCtx retrieves the claims of a request which
 // have been injected before via the auth middleware
 func TokenFromCtx(r *http.Request) Token {
-	return r.Context().Value(TokenContextKey).(Token)
+	return r.Context().Value(TokenCtxKey).(Token)
 }
 
 // Middleware is the main entrypoint to the client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
@@ -115,7 +115,7 @@ func (m *Middleware) AuthenticationHandler(next http.Handler) http.Handler {
 			return
 		}
 
-		reqWithContext := r.WithContext(context.WithValue(r.Context(), TokenContextKey, token))
+		reqWithContext := r.WithContext(context.WithValue(r.Context(), TokenCtxKey, token))
 		*r = *reqWithContext
 
 		// Continue serving http if jwt was valid
