@@ -109,3 +109,6 @@ issues:
   # excluded by default patterns execute `golangci-lint run --help`
   exclude:
     - "Using the variable on range scope `tt` in function literal"
+    - "should have a package comment, unless it's in another file for this package"
+  include:
+    - EXC0002 # disable excluding of issues about comments from golint

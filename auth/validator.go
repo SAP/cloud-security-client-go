@@ -7,7 +7,6 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/sap/cloud-security-client-go/oidcclient"
@@ -18,7 +17,7 @@ import (
 
 // parseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
 func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
-	token, err := NewToken(rawToken)
+	token, err := newToken(rawToken)
 	if err != nil {
 		return nil, err
 	}
@@ -43,11 +42,10 @@ func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
 }
 
 func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant) (err error) {
-	headers, err := getHeaders(t.GetTokenValue())
+	headers, err := getHeaders(t.TokenValue())
 	if err != nil {
 		return err
 	}
-	kid := headers.KeyID()
 	alg := headers.Algorithm()
 
 	// fail early to avoid another parsing of encoded token
@@ -55,43 +53,16 @@ func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant) (er
 		return errors.New("alg is missing from jwt header")
 	}
 
-	publicKey, err := getPublicKey(kid, keySet)
+	// parse and verify signature
+	jwks, err := keySet.GetJWKs()
 	if err != nil {
 		return err
 	}
-
-	// parse and verify signature
-	_, err = jwt.ParseString(t.GetTokenValue(), jwt.WithVerify(alg, publicKey))
+	_, err = jwt.ParseString(t.TokenValue(), jwt.WithKeySet(jwks), jwt.UseDefaultKey(true))
 	if err != nil {
 		return err
 	}
 	return nil
-}
-
-func getPublicKey(kid string, keySet *oidcclient.OIDCTenant) (jwk.Key, error) {
-	jwks, _ := keySet.GetJWKs()
-	var jsonWebKey *oidcclient.JSONWebKey
-	if kid != "" {
-		for _, key := range jwks {
-			if key.Kid == kid {
-				jsonWebKey = key
-				break
-			}
-		}
-		if jsonWebKey == nil {
-			return nil, fmt.Errorf("token is unverifiable: 'kid' is specified in token, but no jwk provided by server")
-		}
-	} else if len(jwks) == 1 {
-		jsonWebKey = jwks[0]
-	} else {
-		return nil, fmt.Errorf("token is unverifiable: no kid specified in token and more than one jwk available from server")
-	}
-
-	pubKey, _ := jwk.New(jsonWebKey.Key)
-	_ = pubKey.Set(jwk.KeyIDKey, jsonWebKey.Kid)
-	_ = pubKey.Set(jwk.KeyTypeKey, jsonWebKey.Kty)
-
-	return pubKey, nil
 }
 
 func getHeaders(encodedToken string) (jws.Headers, error) {

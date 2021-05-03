@@ -14,6 +14,7 @@ import (
 const iasServiceName = "identity"
 const vcapServicesEnvKey = "VCAP_SERVICES"
 
+// VCAPServices is the Cloud Foundry environment variable that stores information about services bound to the application
 type VCAPServices struct {
 	Identity []struct {
 		Credentials Identity `json:"credentials"`

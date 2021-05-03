@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package auth
+package mocks
 
 import (
 	"bytes"
@@ -86,14 +86,15 @@ func (m *MockServer) WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 // JWKsHandler is the http handler which answers requests to the mock servers OIDC discovery endpoint.
 func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 	m.JWKsHitCounter++
-	key := &oidcclient.JSONWebKey{
+	key := &JSONWebKey{
 		Kid: "testKey",
 		Kty: "RSA",
+		Alg: "RS256",
 		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(m.RSAKey.PublicKey.E)).Bytes()),
 		N:   base64.RawURLEncoding.EncodeToString(m.RSAKey.PublicKey.N.Bytes()),
 		Use: "sig",
 	}
-	keySet := oidcclient.JSONWebKeySet{Keys: []*oidcclient.JSONWebKey{key}}
+	keySet := JSONWebKeySet{Keys: []*JSONWebKey{key}}
 	payload, _ := json.Marshal(keySet)
 	_, _ = w.Write(payload)
 }
@@ -291,4 +292,20 @@ func (c MockConfig) GetKey() string {
 // GetCertificateExpiresAt implements the auth.OAuthConfig interface.
 func (c MockConfig) GetCertificateExpiresAt() string {
 	return c.CertificateExpiresAt
+}
+
+// JSONWebKeySet represents the data which is returned by the tenants /oauth2/certs endpoint
+type JSONWebKeySet struct {
+	Keys []*JSONWebKey `json:"keys"`
+}
+
+// JSONWebKey represents a single JWK
+type JSONWebKey struct {
+	Kty string `json:"kty"`
+	E   string `json:"e"`
+	N   string `json:"n"`
+	Use string `json:"use"`
+	Kid string `json:"kid"`
+	Alg string `json:"alg"`
+	Key interface{}
 }

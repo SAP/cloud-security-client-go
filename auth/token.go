@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/lestrrat-go/jwx/jwt/openid"
@@ -19,117 +20,103 @@ const (
 	sapGlobalZoneID = "zone_uuid" // tenant GUID
 )
 
+// Token is the public API to access claims of the token
 type Token interface {
-	GetTokenValue() string
+	TokenValue() string                                   // TokenValue returns encoded token string
+	Audience() []string                                   // Audience returns "aud" claim, if it doesn't exist empty string is returned
+	Expiration() time.Time                                // Expiration returns "exp" claim, if it doesn't exist empty string is returned
+	IsExpired() bool                                      // IsExpired returns true, if 'exp' claim + leeway time of 1 minute is before current time
+	IssuedAt() time.Time                                  // IssuedAt returns "iat" claim, if it doesn't exist empty string is returned
+	Issuer() string                                       // Issuer returns "iss" claim, if it doesn't exist empty string is returned
+	NotBefore() time.Time                                 // NotBefore returns "nbf" claim, if it doesn't exist empty string is returned
+	Subject() string                                      // Subject returns "sub" claim, if it doesn't exist empty string is returned
+	GivenName() string                                    // GivenName returns "given_name" claim, if it doesn't exist empty string is returned
+	FamilyName() string                                   // FamilyName returns "family_name" claim, if it doesn't exist empty string is returned
+	Email() string                                        // Email returns "email" claim, if it doesn't exist empty string is returned
+	ZoneID() string                                       // ZoneID returns "zone_uuid" claim, if it doesn't exist empty string is returned
+	UserUUID() string                                     // UserUUID returns "user_uuid" claim, if it doesn't exist empty string is returned
+	GetClaimAsString(claim string) (string, error)        // GetClaimAsString returns a custom claim type asserted as string. Returns error if the claim is not available or not a string.
+	GetClaimAsStringSlice(claim string) ([]string, error) // GetClaimAsStringSlice returns a custom claim type asserted as string slice. The claim name is case sensitive. Returns error if the claim is not available or not an array
+	GetAllClaimsAsMap() map[string]interface{}            // GetAllClaimsAsMap returns a map of all claims contained in the token. The claim name is case sensitive. Includes also custom claims
 	getJwtToken() jwt.Token
-	Audience() []string
-	Expiration() time.Time
-	IsExpired() bool
-	IssuedAt() time.Time
-	Issuer() string
-	NotBefore() time.Time
-	Subject() string
-	GivenName() (string, error)
-	FamilyName() (string, error)
-	Email() (string, error)
-	ZoneID() (string, error)
-	UserUUID() (string, error)
-	GetClaimAsString(claim string) (string, error)
 }
 
-type StdToken struct {
+type stdToken struct {
 	encodedToken string
 	jwtToken     jwt.Token
 }
 
-func NewToken(encodedToken string) (Token, error) {
+func newToken(encodedToken string) (Token, error) {
 	decodedToken, err := jwt.ParseString(encodedToken, jwt.WithToken(openid.New()))
 	if err != nil {
 		return nil, err
 	}
 
-	return StdToken{
+	return stdToken{
 		encodedToken: encodedToken,
 		jwtToken:     decodedToken,
 	}, nil
 }
 
-// Returns encoded token string
-func (t StdToken) GetTokenValue() string {
+// TokenValue returns encoded token string
+func (t stdToken) TokenValue() string {
 	return t.encodedToken
 }
 
-// Setter for encodedToken field
-func (t StdToken) SetEncodedToken(encodedToken string) {
-	t.encodedToken = encodedToken
-}
-
-// Returns jwt.Token
-func (t StdToken) getJwtToken() jwt.Token {
-	return t.jwtToken
-}
-
-// Returns "aud" claim, if it doesn't exist empty string is returned
-func (t StdToken) Audience() []string {
+func (t stdToken) Audience() []string {
 	return t.jwtToken.Audience()
 }
 
-// Returns "exp" claim, if it doesn't exist empty string is returned
-func (t StdToken) Expiration() time.Time {
+func (t stdToken) Expiration() time.Time {
 	return t.jwtToken.Expiration()
 }
 
-// Returns true, if 'exp' claim + leeway time of 1 minute is before current time
-func (t StdToken) IsExpired() bool {
+func (t stdToken) IsExpired() bool {
 	return t.Expiration().Add(1 * time.Minute).Before(time.Now())
 }
 
-// Returns "iat" claim, if it doesn't exist empty string is returned
-func (t StdToken) IssuedAt() time.Time {
+func (t stdToken) IssuedAt() time.Time {
 	return t.jwtToken.IssuedAt()
 }
 
-// Returns "iss" claim, if it doesn't exist empty string is returned
-func (t StdToken) Issuer() string {
+func (t stdToken) Issuer() string {
 	return t.jwtToken.Issuer()
 }
 
-// Returns "nbf" claim, if it doesn't exist empty string is returned
-func (t StdToken) NotBefore() time.Time {
+func (t stdToken) NotBefore() time.Time {
 	return t.jwtToken.NotBefore()
 }
 
-// Returns "sub" claim, if it doesn't exist empty string is returned
-func (t StdToken) Subject() string {
+func (t stdToken) Subject() string {
 	return t.jwtToken.Subject()
 }
 
-// Returns "given_name" claim, if it doesn't exist empty string is returned
-func (t StdToken) GivenName() (string, error) {
-	return t.GetClaimAsString(givenName)
+func (t stdToken) GivenName() string {
+	v, _ := t.GetClaimAsString(givenName)
+	return v
 }
 
-// Returns "family_name" claim, if it doesn't exist empty string is returned
-func (t StdToken) FamilyName() (string, error) {
-	return t.GetClaimAsString(familyName)
+func (t stdToken) FamilyName() string {
+	v, _ := t.GetClaimAsString(familyName)
+	return v
 }
 
-// Returns "email" claim, if it doesn't exist empty string is returned
-func (t StdToken) Email() (string, error) {
-	return t.GetClaimAsString(email)
+func (t stdToken) Email() string {
+	v, _ := t.GetClaimAsString(email)
+	return v
 }
 
-// Returns "zone_uuid" claim, if it doesn't exist empty string is returned
-func (t StdToken) ZoneID() (string, error) {
-	return t.GetClaimAsString(sapGlobalZoneID)
+func (t stdToken) ZoneID() string {
+	v, _ := t.GetClaimAsString(sapGlobalZoneID)
+	return v
 }
 
-// Returns "user_uuid" claim, if it doesn't exist empty string is returned
-func (t StdToken) UserUUID() (string, error) {
-	return t.GetClaimAsString(sapGlobalUserID)
+func (t stdToken) UserUUID() string {
+	v, _ := t.GetClaimAsString(sapGlobalUserID)
+	return v
 }
 
-func (t StdToken) GetClaimAsString(claim string) (string, error) {
+func (t stdToken) GetClaimAsString(claim string) (string, error) {
 	value, exists := t.jwtToken.Get(claim)
 	if !exists {
 		return "", fmt.Errorf("claim %s not available in the token", claim)
@@ -139,4 +126,25 @@ func (t StdToken) GetClaimAsString(claim string) (string, error) {
 		return "", fmt.Errorf("unable to assert claim %s type as string. Actual type: %T", claim, value)
 	}
 	return stringValue, nil
+}
+
+func (t stdToken) GetClaimAsStringSlice(claim string) ([]string, error) {
+	value, exists := t.jwtToken.Get(claim)
+	if !exists {
+		return nil, fmt.Errorf("claim %s not available in the token", claim)
+	}
+	res, ok := value.([]string)
+	if !ok {
+		return nil, fmt.Errorf("unable to assert type of claim %s to string. Actual type: %T", claim, value)
+	}
+	return res, nil
+}
+
+func (t stdToken) GetAllClaimsAsMap() map[string]interface{} {
+	mapClaims, _ := t.jwtToken.AsMap(context.TODO()) // err can not really occur on jwt.Token
+	return mapClaims
+}
+
+func (t stdToken) getJwtToken() jwt.Token {
+	return t.jwtToken
 }

@@ -5,16 +5,17 @@
 package auth
 
 import (
+	"github.com/sap/cloud-security-client-go/mocks"
 	"testing"
 )
 
 func TestMockServer_SignTokenWithAdditionalClaims(t *testing.T) {
-	oidcMockServer, _ := NewOIDCMockServer()
+	oidcMockServer, _ := mocks.NewOIDCMockServer()
 	defer oidcMockServer.Server.Close()
 
 	tests := []struct {
 		name             string
-		claims           OIDCClaims
+		claims           mocks.OIDCClaims
 		additionalClaims map[string]interface{}
 		wantErr          bool
 	}{
@@ -42,7 +43,7 @@ func TestMockServer_SignTokenWithAdditionalClaims(t *testing.T) {
 				return
 			}
 			if !tt.wantErr {
-				token, err := NewToken(signedToken)
+				token, err := newToken(signedToken)
 				if err != nil {
 					t.Errorf("SignTokenWithAdditionalClaims() error = %v, wantErr %v", err, tt.wantErr)
 				}
