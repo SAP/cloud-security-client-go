@@ -154,7 +154,7 @@ func (t stdToken) GetClaimAsStringSlice(claim string) ([]string, error) {
 	return res, nil
 }
 
-// GetAllClaimsAsMap returns all a map of all claims contained in the token. The claim name is case sensitive. This includes any custom claims
+// GetAllClaimsAsMap returns a map of all claims contained in the token. The claim name is case sensitive. Includes also custom claims
 func (t stdToken) GetAllClaimsAsMap() map[string]interface{} {
 	mapClaims, _ := t.jwtToken.AsMap(context.TODO()) // err can not really occur on jwt.Token
 	return mapClaims
