@@ -43,7 +43,7 @@ func TestMockServer_SignTokenWithAdditionalClaims(t *testing.T) {
 				return
 			}
 			if !tt.wantErr {
-				token, err := newToken(signedToken)
+				token, err := NewToken(signedToken)
 				if err != nil {
 					t.Errorf("SignTokenWithAdditionalClaims() error = %v, wantErr %v", err, tt.wantErr)
 				}

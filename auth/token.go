@@ -46,7 +46,8 @@ type stdToken struct {
 	jwtToken     jwt.Token
 }
 
-func newToken(encodedToken string) (Token, error) {
+// NewToken creates a Token from an encoded jwt. !!! WARNING !!! No validation done when creating a Token this way. Use only in tests!
+func NewToken(encodedToken string) (Token, error) {
 	decodedToken, err := jwt.ParseString(encodedToken, jwt.WithToken(openid.New()))
 	if err != nil {
 		return nil, err

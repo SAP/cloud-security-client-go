@@ -17,7 +17,7 @@ import (
 
 // parseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
 func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
-	token, err := newToken(rawToken)
+	token, err := NewToken(rawToken)
 	if err != nil {
 		return nil, err
 	}
