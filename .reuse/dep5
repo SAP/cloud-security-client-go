@@ -28,6 +28,7 @@ Files:
     go.mod
     go.sum
     README.md
+    CONTRIBUTING.md
     oidcclient/oidcClient.md
     .gitignore
     .github/**
