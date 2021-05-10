@@ -70,3 +70,7 @@ To make use of our Makefile, please make sure you have installed [golangci-lint]
 
 All prerequisites for a pull request can then be checked with `make pull-request`. 
 
+More information can be found in [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+## Licensing
+Please see our [LICENSE](./LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available via the [REUSE tool](https://api.reuse.software/info/github.com/SAP/cloud-security-client-go).
