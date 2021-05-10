@@ -10,16 +10,6 @@ Client Library in GoLang for application developers requiring authentication wit
 ## Requirements
 In order to make use of this client library your application should be integrated with the [SAP Identity Authentication Service (IAS)](https://help.sap.com/viewer/6d6d63354d1242d185ab4830fc04feb1/LATEST/en-US/d17a116432d24470930ebea41977a888.html).
 
-## Auth
-Parsing claims of the JWT and validation the token signature, audience, issuer, … 
-
-## OIDC Client
-Any interaction with the Authorization Server e.g. OIDC discovery and fetching token keys
-
-## Env
-Parsing of environment provided by the Authorization Server e.g. IAS broker
-
-
 ## Download and Installation
 This project is a library for applications or services and does not run standalone.
 When integrating, the most important package is `auth`. It contains means for parsing claims of the JWT and validation 
