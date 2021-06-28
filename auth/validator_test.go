@@ -12,6 +12,31 @@ import (
 	"time"
 )
 
+func TestAdditionalDomain(t *testing.T) {
+	oidcMockServer, err := mocks.NewOIDCMockServer()
+	if err != nil {
+		t.Errorf("error creating test setup: %v", err)
+	}
+	m := NewMiddleware(env.Identity{
+		ClientID:     oidcMockServer.Config.ClientID,
+		ClientSecret: oidcMockServer.Config.ClientSecret,
+		URL:          oidcMockServer.Config.URL,
+		Domains:      append([]string{"my.primary.domain"}, oidcMockServer.Config.Domains...),
+	}, Options{
+		HTTPClient: oidcMockServer.Server.Client(),
+	})
+
+	rawToken, err := oidcMockServer.SignToken(oidcMockServer.DefaultClaims(), oidcMockServer.DefaultHeaders())
+	if err != nil {
+		t.Errorf("unable to sign provided test token: %v", err)
+	}
+
+	_, err = m.parseAndValidateJWT(rawToken)
+	if err != nil {
+		t.Error("unexpected error: ", err.Error())
+	}
+}
+
 func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 	oidcMockServer, err := mocks.NewOIDCMockServer()
 	if err != nil {
@@ -21,7 +46,7 @@ func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 		ClientID:     oidcMockServer.Config.ClientID,
 		ClientSecret: oidcMockServer.Config.ClientSecret,
 		URL:          oidcMockServer.Config.URL,
-		Domain:       oidcMockServer.Config.Domain,
+		Domains:      oidcMockServer.Config.Domains,
 	}, Options{
 		HTTPClient: oidcMockServer.Server.Client(),
 	})

@@ -6,14 +6,15 @@ package auth
 
 import (
 	"context"
-	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/sap/cloud-security-client-go/mocks"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/sap/cloud-security-client-go/mocks"
 )
 
 func TestEnd2End(t *testing.T) {

@@ -39,7 +39,7 @@ type OAuthConfig interface {
 	GetClientID() string             // Returns the client id of the oAuth client.
 	GetClientSecret() string         // Returns the client secret. Optional
 	GetURL() string                  // Returns the url to the Identity tenant. E.g. https://abcdefgh.accounts.ondemand.com
-	GetDomain() string               // Returns the domain of the Identity service. E.g. accounts.ondemand.com
+	GetDomains() []string            // Returns the domains of the Identity service. E.g. ["accounts.ondemand.com"]
 	GetZoneUUID() uuid.UUID          // Returns the zone uuid. Optional
 	GetProofTokenURL() string        // Returns the proof token url. Optional
 	GetCertificate() string          // Returns the client certificate. Optional
