@@ -14,7 +14,7 @@ import (
 var testConfig *Identity = &Identity{
 	ClientID:     "cef76757-de57-480f-be92-1d8c1c7abf16",
 	ClientSecret: "the_CLIENT.secret:3[/abc",
-	Domains:       []string{"accounts400.ondemand.com", "my.arbitrary.domain"},
+	Domains:      []string{"accounts400.ondemand.com", "my.arbitrary.domain"},
 	URL:          "https://mytenant.accounts400.ondemand.com",
 }
 
