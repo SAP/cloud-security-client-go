@@ -118,8 +118,17 @@ func (m *Middleware) verifyIssuer(issuer string) (issURI *url.URL, err error) {
 		return nil, fmt.Errorf("unable to parse Issuer URI: %s", issuer)
 	}
 
-	if !strings.HasSuffix(issURI.Host, m.oAuthConfig.GetDomain()) {
+	if !matchesDomain(issURI.Host, m.oAuthConfig.GetDomains()) {
 		return nil, fmt.Errorf("token is unverifiable: unknown server (domain doesn't match)")
 	}
 	return issURI, nil
+}
+
+func matchesDomain(hostname string, domains []string) bool {
+	for _, domain := range domains {
+		if strings.HasSuffix(hostname, domain) {
+			return true
+		}
+	}
+	return false
 }

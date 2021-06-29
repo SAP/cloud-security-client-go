@@ -25,7 +25,7 @@ type VCAPServices struct {
 type Identity struct {
 	ClientID             string    `json:"clientid"`
 	ClientSecret         string    `json:"clientsecret"`
-	Domain               string    `json:"domain"`
+	Domains              []string  `json:"domains"`
 	URL                  string    `json:"url"`
 	ZoneUUID             uuid.UUID `json:"zone_uuid"`
 	ProofTokenURL        string    `json:"prooftoken_url"`
@@ -74,9 +74,9 @@ func (c Identity) GetURL() string {
 	return c.URL
 }
 
-// GetDomain implements the auth.OAuthConfig interface.
-func (c Identity) GetDomain() string {
-	return c.Domain
+// GetDomains implements the auth.OAuthConfig interface.
+func (c Identity) GetDomains() []string {
+	return c.Domains
 }
 
 // GetZoneUUID implements the auth.OAuthConfig interface.

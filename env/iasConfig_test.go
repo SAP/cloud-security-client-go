@@ -14,7 +14,7 @@ import (
 var testConfig *Identity = &Identity{
 	ClientID:     "cef76757-de57-480f-be92-1d8c1c7abf16",
 	ClientSecret: "the_CLIENT.secret:3[/abc",
-	Domain:       "accounts400.ondemand.com",
+	Domains:      []string{"accounts400.ondemand.com", "my.arbitrary.domain"},
 	URL:          "https://mytenant.accounts400.ondemand.com",
 }
 
@@ -27,13 +27,13 @@ func TestGetIASConfig(t *testing.T) {
 	}{
 		{
 			name:    "all present",
-			env:     "{\"identity\":[{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domain\":\"accounts400.ondemand.com\",\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]}]}",
+			env:     "{\"identity\":[{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domains\":[\"accounts400.ondemand.com\",\"my.arbitrary.domain\"],\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]}]}",
 			want:    testConfig,
 			wantErr: false,
 		},
 		{
 			name:    "multiple bindings",
-			env:     "{\"identity\":[{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domain\":\"accounts400.ondemand.com\",\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]},{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domain\":\"accounts400.ondemand.com\",\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]}]}",
+			env:     "{\"identity\":[{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domains\":[\"accounts400.ondemand.com\",\"my.arbitrary.domain\"],\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]},{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domain\":\"accounts400.ondemand.com\",\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]}]}",
 			want:    nil,
 			wantErr: true,
 		},

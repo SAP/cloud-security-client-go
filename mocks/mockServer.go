@@ -54,7 +54,7 @@ func NewOIDCMockServer() (*MockServer, error) {
 			ClientID:     "clientid",
 			ClientSecret: "clientsecret",
 			URL:          server.URL,
-			Domain:       domain.Host,
+			Domains:      []string{domain.Host},
 		},
 		RSAKey: rsaKey,
 	}
@@ -235,7 +235,7 @@ type MockConfig struct {
 	ClientID             string
 	ClientSecret         string
 	URL                  string
-	Domain               string
+	Domains              []string
 	ZoneUUID             uuid.UUID
 	ProofTokenURL        string
 	OsbURL               string
@@ -259,9 +259,9 @@ func (c MockConfig) GetURL() string {
 	return c.URL
 }
 
-// GetDomain implements the auth.OAuthConfig interface.
-func (c MockConfig) GetDomain() string {
-	return c.Domain
+// GetDomains implements the auth.OAuthConfig interface.
+func (c MockConfig) GetDomains() []string {
+	return c.Domains
 }
 
 // GetZoneUUID implements the auth.OAuthConfig interface.
