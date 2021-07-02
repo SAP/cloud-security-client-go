@@ -190,6 +190,13 @@ func TestEnd2End(t *testing.T) {
 				Build(),
 			claims:  oidcMockServer.DefaultClaims(),
 			wantErr: true,
+		}, {
+			name:   "jwks rejects zone",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				ZoneID("22222222-3333-4444-5555-666666666666").
+				Build(),
+			wantErr: true,
 		},
 		// TODO: ProviderJSON with different issuer key (e.g. iss)
 	}

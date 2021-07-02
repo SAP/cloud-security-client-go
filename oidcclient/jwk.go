@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pquerna/cachecontrol"
-	"golang.org/x/sync/singleflight"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -20,13 +19,13 @@ import (
 )
 
 const defaultJwkExpiration = 15 * time.Minute
+const zoneIDHeader = "x-zone_uuid"
 
-// OIDCTenant represents one IAS tenant with it's OIDC discovery results and cached JWKs
+// OIDCTenant represents one IAS tenant correlating with one zone with it's OIDC discovery results and cached JWKs
 type OIDCTenant struct {
-	ProviderJSON ProviderJSON
-
-	httpClient   *http.Client
-	singleFlight singleflight.Group
+	ProviderJSON    ProviderJSON
+	acceptedZoneIds []string
+	httpClient      *http.Client
 	// A set of cached keys and their expiry.
 	jwks       jwk.Set
 	jwksExpiry time.Time
@@ -41,7 +40,6 @@ type updateKeysResult struct {
 func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
 	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
-
 	err := ks.performDiscovery(targetIss.Host)
 	if err != nil {
 		return nil, err
@@ -51,12 +49,11 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 }
 
 // GetJWKs returns the validation keys either cached or updated ones
-func (ks *OIDCTenant) GetJWKs() (jwk.Set, error) {
-	if time.Now().Before(ks.jwksExpiry) {
+func (ks *OIDCTenant) GetJWKs(zoneID string) (jwk.Set, error) {
+	if time.Now().Before(ks.jwksExpiry) && contains(ks.acceptedZoneIds, zoneID) {
 		return ks.jwks, nil
 	}
-
-	updatedKeys, err, _ := ks.singleFlight.Do("updateKeys", ks.updateKeys)
+	updatedKeys, err := ks.updateKeys(zoneID)
 	if err != nil {
 		return nil, fmt.Errorf("error updating JWKs: %v", err)
 	}
@@ -68,12 +65,15 @@ func (ks *OIDCTenant) GetJWKs() (jwk.Set, error) {
 	return ks.jwks, nil
 }
 
-func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
+// TODO apply sync instead of singleflight
+func (ks *OIDCTenant) updateKeys(zoneID string) (r interface{}, err error) {
 	result := updateKeysResult{}
 	req, err := http.NewRequestWithContext(context.TODO(), "GET", ks.ProviderJSON.JWKsURL, nil)
 	if err != nil {
 		return result, fmt.Errorf("can't create request to fetch jwk: %v", err)
 	}
+
+	req.Header.Add(zoneIDHeader, zoneID)
 
 	resp, err := ks.httpClient.Do(req)
 	if err != nil {
@@ -82,9 +82,10 @@ func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return result, fmt.Errorf("failed to fetch jwks: http %s", resp.Status)
+		return result, fmt.Errorf("failed to fetch jwks from remote for x-zone_uuid %s: %v (%s)", zoneID, err, resp.Body)
 	}
 
+	ks.acceptedZoneIds = append(ks.acceptedZoneIds, zoneID)
 	jwks, err := jwk.ParseReader(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse JWK set: %w", err)
@@ -98,7 +99,6 @@ func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
 	if err == nil && e.After(result.expiry) {
 		result.expiry = e
 	}
-
 	return result, nil
 }
 
@@ -172,4 +172,13 @@ func unmarshalResponse(r *http.Response, body []byte, v interface{}) error {
 	}
 
 	return fmt.Errorf("expected Content-Type = application/json, got %q: %v", ct, err)
+}
+
+func contains(arr []string, str string) bool {
+	for _, a := range arr {
+		if a == str {
+			return true
+		}
+	}
+	return false
 }
