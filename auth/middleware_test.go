@@ -197,6 +197,13 @@ func TestEnd2End(t *testing.T) {
 				ZoneID("22222222-3333-4444-5555-666666666666").
 				Build(),
 			wantErr: true,
+		}, {
+			name:   "lib rejects unaccepted zone again",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				ZoneID("22222222-3333-4444-5555-666666666666").
+				Build(),
+			wantErr: true,
 		},
 		// TODO: ProviderJSON with different issuer key (e.g. iss)
 	}
