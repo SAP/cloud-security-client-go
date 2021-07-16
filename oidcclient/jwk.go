@@ -57,7 +57,7 @@ func (ks *OIDCTenant) GetJWKs(zoneID string) (jwk.Set, error) {
 		if isZoneAccepted {
 			return ks.jwks, nil
 		}
-		return nil, fmt.Errorf("Severe Security issue: zone_uuid %v is still not accepted", zoneID)
+		return nil, fmt.Errorf("severe Security issue: zone_uuid %v is still not accepted", zoneID)
 	}
 	updatedKeys, err := ks.updateKeys(zoneID)
 	if err != nil {
@@ -176,13 +176,4 @@ func unmarshalResponse(r *http.Response, body []byte, v interface{}) error {
 	}
 
 	return fmt.Errorf("expected Content-Type = application/json, got %q: %v", ct, err)
-}
-
-func contains(arr []string, str string) bool {
-	for _, a := range arr {
-		if a == str {
-			return true
-		}
-	}
-	return false
 }
