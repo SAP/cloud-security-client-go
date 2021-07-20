@@ -64,8 +64,8 @@ func TestProviderJSON_assertMandatoryFieldsPresent(t *testing.T) {
 
 func TestOIDCTenant_ReadJWKs(t *testing.T) {
 	type fields struct {
-		Duration time.Duration
-		ZoneID string
+		Duration         time.Duration
+		ZoneID           string
 		ExpectedErrorMsg string
 	}
 	tests := []struct {
@@ -172,11 +172,11 @@ func NewRouter() (r *mux.Router) {
 }
 
 func ReturnJWKS(writer http.ResponseWriter, request *http.Request) {
-	writer.Write([]byte(jwksJSONString))
+	_, _ = writer.Write([]byte(jwksJSONString))
 }
 
 func ReturnInvalidJWKS(writer http.ResponseWriter, request *http.Request) {
-	writer.Write([]byte("\"kid\":\"default-kid-ias\""))
+	_, _ = writer.Write([]byte("\"kid\":\"default-kid-ias\""))
 }
 
 func ReturnInvalidZone(writer http.ResponseWriter, request *http.Request) {
