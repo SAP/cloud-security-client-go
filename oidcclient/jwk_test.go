@@ -77,16 +77,16 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 		{
 			name: "read from cache with accepted zone",
 			fields: fields{
-				Duration:  2 * time.Second,
-				ZoneID: "zone-id",
+				Duration: 2 * time.Second,
+				ZoneID:   "zone-id",
 			},
 			wantErr:          false,
 			wantProviderJSON: false,
 		}, {
 			name: "read from cache with denied zone",
 			fields: fields{
-				Duration:  2 * time.Second,
-				ZoneID: "unknown-zone-id",
+				Duration:         2 * time.Second,
+				ZoneID:           "unknown-zone-id",
 				ExpectedErrorMsg: "severe security issue: zone_uuid unknown-zone-id is still not accepted",
 			},
 			wantErr:          true,
@@ -95,16 +95,16 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 		{
 			name: "read from token keys endpoint with accepted zone",
 			fields: fields{
-				Duration:  0,
-				ZoneID: "zone-id",
+				Duration: 0,
+				ZoneID:   "zone-id",
 			},
 			wantErr:          false,
 			wantProviderJSON: true,
 		}, {
 			name: "read from token keys endpoint with denied zone",
 			fields: fields{
-				Duration:  0,
-				ZoneID: "unknown-zone-id",
+				Duration:         0,
+				ZoneID:           "unknown-zone-id",
 				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for x-zone_uuid unknown-zone-id",
 			},
 			wantErr:          true,
@@ -112,26 +112,35 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 		}, {
 			name: "read from token keys endpoint with accepted zone but no jwks response",
 			fields: fields{
-				Duration:  0,
-				ZoneID: "provide-invalidJWKS",
+				Duration:         0,
+				ZoneID:           "provide-invalidJWKS",
 				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote: ",
 			},
 			wantErr:          true, // as providerJSON is nil
 			wantProviderJSON: false,
 		}, {
 			name: "read from token keys endpoint with accepted zone provoking parsing error",
-				fields: fields{
-				Duration:  0,
-				ZoneID: "provide-invalidJWKS",
+			fields: fields{
+				Duration:         0,
+				ZoneID:           "provide-invalidJWKS",
 				ExpectedErrorMsg: "error updating JWKs: failed to parse JWK set: failed to unmarshal JWK set",
 			},
 			wantErr:          true, // as jwks endpoint returns no JSON
+			wantProviderJSON: true,
+		}, {
+			name: "read from token keys endpoint with deleted zone",
+			fields: fields{
+				Duration:         0,
+				ZoneID:           "deleted-zone-id",
+				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for x-zone_uuid deleted-zone-id",
+			},
+			wantErr:          true,
 			wantProviderJSON: true,
 		},
 	}
 	for _, tt := range tests {
 		var providerJSON ProviderJSON
-		if (tt.wantProviderJSON) {
+		if tt.wantProviderJSON {
 			router := NewRouter()
 			localServer := httptest.NewServer(router)
 			defer localServer.Close()
@@ -142,31 +151,31 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			jwksJSON, _ := jwk.ParseString(jwksJSONString)
 			tenant := OIDCTenant{
 				jwksExpiry:      time.Now().Add(tt.fields.Duration),
-				acceptedZoneIds: map[string]bool{"zone-id": true, "unknown-zone-id": false},
+				acceptedZoneIds: map[string]bool{"zone-id": true, "deleted-zone-id": true, "unknown-zone-id": false},
 				httpClient:      http.DefaultClient,
 				jwks:            jwksJSON,
 				ProviderJSON:    providerJSON,
 			}
 			jwks, err := tenant.GetJWKs(tt.fields.ZoneID)
-			if(tt.wantErr) {
-				if (err == nil) {
+			if tt.wantErr {
+				if err == nil {
 					t.Errorf("GetJWKs() does not provide error = %v, zoneID %v", err, tt.fields.ZoneID)
 				}
-				if(!strings.HasPrefix(err.Error(), tt.fields.ExpectedErrorMsg)) {
+				if !strings.HasPrefix(err.Error(), tt.fields.ExpectedErrorMsg) {
 					t.Errorf("GetJWKs() does not provide expected error message = %v", err.Error())
 				}
-			} else if (jwks == nil) {
+			} else if jwks == nil {
 				t.Errorf("GetJWKs() returns nil = %v, zoneID %v", err, tt.fields.ZoneID)
 			}
 		})
 	}
 }
 
-
 func NewRouter() (r *mux.Router) {
 	r = mux.NewRouter()
 	r.HandleFunc("/oauth2/certs", ReturnJWKS).Methods("GET").Headers("x-zone_uuid", "zone-id")
 	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods("GET").Headers("x-zone_uuid", "unknown-zone-id")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods("GET").Headers("x-zone_uuid", "deleted-zone-id")
 	r.HandleFunc("/oauth2/certs", ReturnInvalidJWKS).Methods("GET").Headers("x-zone_uuid", "provide-invalidJWKS")
 	return r
 }
