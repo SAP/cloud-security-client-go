@@ -57,7 +57,7 @@ func (ks *OIDCTenant) GetJWKs(zoneID string) (jwk.Set, error) {
 		if isZoneAccepted {
 			return ks.jwks, nil
 		}
-		return nil, fmt.Errorf("severe Security issue: zone_uuid %v is still not accepted", zoneID)
+		return nil, fmt.Errorf("severe security issue: zone_uuid %v is still not accepted", zoneID)
 	}
 	updatedKeys, err := ks.updateKeys(zoneID)
 	if err != nil {
