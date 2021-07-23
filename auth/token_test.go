@@ -129,3 +129,53 @@ func TestOIDCClaims_getAllClaimsAsMap(t *testing.T) {
 		t.Errorf("GetAllClaimsAsMap() number of attributes got = %v, want %v", len(got), 12)
 	}
 }
+
+func TestOIDCClaims_getIasIssuer(t *testing.T) {
+	tests := []struct {
+		name       string
+		iss        string
+		iasIss     string
+		wantIss    string
+		wantIasIss string
+	}{
+		{
+			name:    "iss claim only",
+			iss:     "http://localhost:3030",
+			wantIss: "http://localhost:3030",
+		},
+		{
+			name:       "iss claim only - empty string",
+			iss:        "http://localhost:3030",
+			iasIss:     "",
+			wantIss:    "http://localhost:3030",
+			wantIasIss: "",
+		},
+		{
+			name:       "iss and ias_iss claim",
+			iss:        "http://localhost:3030",
+			iasIss:     "https://custom.oidc-server.com",
+			wantIss:    "https://custom.oidc-server.com",
+			wantIasIss: "https://custom.oidc-server.com",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			token, err := NewToken("eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo")
+			jwtToken := token.getJwtToken()
+			_ = jwtToken.Set("iss", tt.iss)
+			_ = jwtToken.Set("ias_iss", tt.iasIss)
+			if err != nil {
+				t.Errorf("Error while preparing test: %v", err)
+			}
+			issuerActual := token.Issuer()
+			if issuerActual != tt.wantIss {
+				t.Errorf("Issuer() got = %v, want %v", issuerActual, tt.wantIss)
+			}
+			iasIssuerActual := token.IasIssuer()
+			if iasIssuerActual != tt.wantIasIss {
+				t.Errorf("IasIssuer() got = %v, want %v", iasIssuerActual, tt.wantIasIss)
+			}
+		})
+	}
+}

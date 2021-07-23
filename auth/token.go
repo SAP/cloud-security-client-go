@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/lestrrat-go/jwx/jwt/openid"
+	"log"
 	"time"
 )
 
@@ -18,6 +19,7 @@ const (
 	email           = "email"
 	sapGlobalUserID = "user_uuid"
 	sapGlobalZoneID = "zone_uuid" // tenant GUID
+	iasIssuer       = "ias_iss"
 )
 
 // Token is the public API to access claims of the token
@@ -28,6 +30,7 @@ type Token interface {
 	IsExpired() bool                                      // IsExpired returns true, if 'exp' claim + leeway time of 1 minute is before current time
 	IssuedAt() time.Time                                  // IssuedAt returns "iat" claim, if it doesn't exist empty string is returned
 	Issuer() string                                       // Issuer returns "iss" claim, if it doesn't exist empty string is returned
+	IasIssuer() string                                    // IasIssuer returns "ias_iss" claim, if it doesn't exist empty string is returned
 	NotBefore() time.Time                                 // NotBefore returns "nbf" claim, if it doesn't exist empty string is returned
 	Subject() string                                      // Subject returns "sub" claim, if it doesn't exist empty string is returned
 	GivenName() string                                    // GivenName returns "given_name" claim, if it doesn't exist empty string is returned
@@ -55,7 +58,7 @@ func NewToken(encodedToken string) (Token, error) {
 
 	return stdToken{
 		encodedToken: encodedToken,
-		jwtToken:     decodedToken,
+		jwtToken:     decodedToken, // encapsulates jwt.token_gen from github.com/lestrrat-go/jwx/jwt
 	}, nil
 }
 
@@ -81,7 +84,17 @@ func (t stdToken) IssuedAt() time.Time {
 }
 
 func (t stdToken) Issuer() string {
-	return t.jwtToken.Issuer()
+	// support ias custom domains
+	iss := t.IasIssuer()
+	if iss == "" {
+		iss = t.jwtToken.Issuer()
+	}
+	return iss
+}
+
+func (t stdToken) IasIssuer() string {
+	v, _ := t.GetClaimAsString(iasIssuer)
+	return v
 }
 
 func (t stdToken) NotBefore() time.Time {
@@ -147,5 +160,12 @@ func (t stdToken) GetAllClaimsAsMap() map[string]interface{} {
 }
 
 func (t stdToken) getJwtToken() jwt.Token {
+	// support ias custom domains
+	if t.IasIssuer() != "" {
+		err := t.jwtToken.Set("iss", t.IasIssuer())
+		if err != nil {
+			log.Printf("unable to overwrite 'iss' claim with %s", t.IasIssuer())
+		}
+	}
 	return t.jwtToken
 }

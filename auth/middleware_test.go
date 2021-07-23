@@ -6,6 +6,7 @@ package auth
 
 import (
 	"context"
+	"github.com/lestrrat-go/jwx/jwa"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/sap/cloud-security-client-go/mocks"
 )
 
@@ -99,6 +99,14 @@ func TestEnd2End(t *testing.T) {
 				Issuer("https://another.oidc-server.com/").
 				Build(),
 			wantErr: true,
+		}, {
+			name:   "custom issuer",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				Issuer("https://custom.oidc-server.com/").
+				IasIssuer(oidcMockServer.Server.URL).
+				Build(),
+			wantErr: false,
 		}, {
 			name:   "no http/s prefix for issuer",
 			header: oidcMockServer.DefaultHeaders(),
@@ -191,7 +199,6 @@ func TestEnd2End(t *testing.T) {
 			claims:  oidcMockServer.DefaultClaims(),
 			wantErr: true,
 		},
-		// TODO: ProviderJSON with different issuer key (e.g. iss)
 	}
 
 	for _, tt := range tests {
