@@ -1,0 +1,13 @@
+version: 1
+updates:
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+      time: "10:00"
+      timezone: Etc/UCT
+    reviewers:
+      - "nenaraab"
+      - "liga-oz"
+      - "f-blass"
+    open-pull-requests-limit: 10
