@@ -10,26 +10,27 @@ import (
 	"fmt"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pquerna/cachecontrol"
-	"golang.org/x/sync/singleflight"
 	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
 const defaultJwkExpiration = 15 * time.Minute
+const zoneIDHeader = "x-zone_uuid"
 
-// OIDCTenant represents one IAS tenant with it's OIDC discovery results and cached JWKs
+// OIDCTenant represents one IAS tenant correlating with one zone with it's OIDC discovery results and cached JWKs
 type OIDCTenant struct {
-	ProviderJSON ProviderJSON
-
-	httpClient   *http.Client
-	singleFlight singleflight.Group
+	ProviderJSON    ProviderJSON
+	acceptedZoneIds map[string]bool
+	httpClient      *http.Client
 	// A set of cached keys and their expiry.
 	jwks       jwk.Set
 	jwksExpiry time.Time
+	mu         sync.RWMutex
 }
 
 type updateKeysResult struct {
@@ -41,7 +42,7 @@ type updateKeysResult struct {
 func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
 	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
-
+	ks.acceptedZoneIds = make(map[string]bool)
 	err := ks.performDiscovery(targetIss.Host)
 	if err != nil {
 		return nil, err
@@ -51,12 +52,39 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 }
 
 // GetJWKs returns the validation keys either cached or updated ones
-func (ks *OIDCTenant) GetJWKs() (jwk.Set, error) {
-	if time.Now().Before(ks.jwksExpiry) {
-		return ks.jwks, nil
+func (ks *OIDCTenant) GetJWKs(zoneID string) (jwk.Set, error) {
+	keys, err := ks.readJWKsFromMemory(zoneID)
+	if keys == nil {
+		if err != nil {
+			return nil, err
+		}
+		return ks.updateJWKsMemory(zoneID)
 	}
+	return keys, nil
+}
 
-	updatedKeys, err, _ := ks.singleFlight.Do("updateKeys", ks.updateKeys)
+// readJWKsFromMemory returns the validation keys from memory, or error in case of invalid zone or nil, in case nothing found in memory
+func (ks *OIDCTenant) readJWKsFromMemory(zoneID string) (jwk.Set, error) {
+	ks.mu.RLock()
+	defer ks.mu.RUnlock()
+
+	isZoneAccepted, isZoneKnown := ks.acceptedZoneIds[zoneID]
+
+	if time.Now().Before(ks.jwksExpiry) && isZoneKnown {
+		if isZoneAccepted {
+			return ks.jwks, nil
+		}
+		return nil, fmt.Errorf("zone_uuid %v is not accepted by the identity service tenant", zoneID)
+	}
+	return nil, nil
+}
+
+// updateJWKsMemory updates and returns the validation keys from memory, or error in case of invalid zone or nil, in case nothing found in memory
+func (ks *OIDCTenant) updateJWKsMemory(zoneID string) (jwk.Set, error) {
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
+
+	updatedKeys, err := ks.getJWKsFromServer(zoneID)
 	if err != nil {
 		return nil, fmt.Errorf("error updating JWKs: %v", err)
 	}
@@ -64,16 +92,16 @@ func (ks *OIDCTenant) GetJWKs() (jwk.Set, error) {
 
 	ks.jwksExpiry = keysResult.expiry
 	ks.jwks = keysResult.keys
-
 	return ks.jwks, nil
 }
 
-func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
+func (ks *OIDCTenant) getJWKsFromServer(zoneID string) (r interface{}, err error) {
 	result := updateKeysResult{}
 	req, err := http.NewRequestWithContext(context.TODO(), "GET", ks.ProviderJSON.JWKsURL, nil)
 	if err != nil {
 		return result, fmt.Errorf("can't create request to fetch jwk: %v", err)
 	}
+	req.Header.Add(zoneIDHeader, zoneID)
 
 	resp, err := ks.httpClient.Do(req)
 	if err != nil {
@@ -82,14 +110,14 @@ func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return result, fmt.Errorf("failed to fetch jwks: http %s", resp.Status)
+		ks.acceptedZoneIds[zoneID] = false
+		return result, fmt.Errorf("failed to fetch jwks from remote for x-zone_uuid %s: %v (%s)", zoneID, err, resp.Body)
 	}
-
+	ks.acceptedZoneIds[zoneID] = true
 	jwks, err := jwk.ParseReader(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse JWK set: %w", err)
 	}
-
 	result.keys = jwks
 	// If the server doesn't provide cache control headers, assume the keys expire in 15min.
 	result.expiry = time.Now().Add(defaultJwkExpiration)
@@ -98,7 +126,6 @@ func (ks *OIDCTenant) updateKeys() (r interface{}, err error) {
 	if err == nil && e.After(result.expiry) {
 		result.expiry = e
 	}
-
 	return result, nil
 }
 

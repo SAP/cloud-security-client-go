@@ -60,7 +60,8 @@ func NewOIDCMockServer() (*MockServer, error) {
 	}
 
 	r.HandleFunc("/.well-known/openid-configuration", mockServer.WellKnownHandler).Methods("GET")
-	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandler).Methods("GET")
+	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandler).Methods("GET").Headers("x-zone_uuid", mockServer.DefaultClaims().ZoneID)
+	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandlerInvalidZone).Methods("GET").Headers("x-zone_uuid", "22222222-3333-4444-5555-666666666666")
 
 	return mockServer, nil
 }
@@ -83,7 +84,7 @@ func (m *MockServer) WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write(payload)
 }
 
-// JWKsHandler is the http handler which answers requests to the mock servers OIDC discovery endpoint.
+// JWKsHandler is the http handler which answers requests to the JWKS endpoint.
 func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 	m.JWKsHitCounter++
 	key := &JSONWebKey{
@@ -97,6 +98,13 @@ func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 	keySet := JSONWebKeySet{Keys: []*JSONWebKey{key}}
 	payload, _ := json.Marshal(keySet)
 	_, _ = w.Write(payload)
+}
+
+// JWKsHandlerInvalidZone is the http handler which answers invalid requests to the JWKS endpoint.
+// in reality it returns "{ \"msg\":\"Invalid zone_uuid provided\" }"
+func (m *MockServer) JWKsHandlerInvalidZone(w http.ResponseWriter, _ *http.Request) {
+	m.JWKsHitCounter++
+	w.WriteHeader(http.StatusBadRequest)
 }
 
 // SignToken signs the provided OIDCClaims and header fields into a base64 encoded JWT token signed by the MockServer.
