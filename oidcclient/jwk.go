@@ -28,9 +28,9 @@ type OIDCTenant struct {
 	acceptedZoneIds map[string]bool
 	httpClient      *http.Client
 	// A set of cached keys and their expiry.
-	jwks            jwk.Set
-	jwksExpiry      time.Time
-	mu              sync.RWMutex
+	jwks       jwk.Set
+	jwksExpiry time.Time
+	mu         sync.RWMutex
 }
 
 type updateKeysResult struct {
