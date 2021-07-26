@@ -25,8 +25,6 @@ import (
 	"time"
 )
 
-const badRequest int = 400
-
 // MockServer serves as a single tenant OIDC mock server for tests.
 // Requests to the MockServer must be done by the mockServers client: MockServer.Server.Client()
 type MockServer struct {
@@ -106,7 +104,7 @@ func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 // in reality it returns "{ \"msg\":\"Invalid zone_uuid provided\" }"
 func (m *MockServer) JWKsHandlerInvalidZone(w http.ResponseWriter, _ *http.Request) {
 	m.JWKsHitCounter++
-	w.WriteHeader(badRequest)
+	w.WriteHeader(http.StatusBadRequest)
 }
 
 // SignToken signs the provided OIDCClaims and header fields into a base64 encoded JWT token signed by the MockServer.

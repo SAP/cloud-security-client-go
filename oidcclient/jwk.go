@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -27,8 +28,9 @@ type OIDCTenant struct {
 	acceptedZoneIds map[string]bool
 	httpClient      *http.Client
 	// A set of cached keys and their expiry.
-	jwks       jwk.Set
-	jwksExpiry time.Time
+	jwks            jwk.Set
+	jwksExpiry      time.Time
+	mu              sync.RWMutex
 }
 
 type updateKeysResult struct {
@@ -51,15 +53,38 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 
 // GetJWKs returns the validation keys either cached or updated ones
 func (ks *OIDCTenant) GetJWKs(zoneID string) (jwk.Set, error) {
-	isZoneAccepted, ok := ks.acceptedZoneIds[zoneID]
+	keys, err := ks.readJWKsFromMemory(zoneID)
+	if keys == nil {
+		if err != nil {
+			return nil, err
+		}
+		return ks.updateJWKsMemory(zoneID)
+	}
+	return keys, nil
+}
 
-	if time.Now().Before(ks.jwksExpiry) && ok {
+// readJWKsFromMemory returns the validation keys from memory, or error in case of invalid zone or nil, in case nothing found in memory
+func (ks *OIDCTenant) readJWKsFromMemory(zoneID string) (jwk.Set, error) {
+	ks.mu.RLock()
+	defer ks.mu.RUnlock()
+
+	isZoneAccepted, isZoneKnown := ks.acceptedZoneIds[zoneID]
+
+	if time.Now().Before(ks.jwksExpiry) && isZoneKnown {
 		if isZoneAccepted {
 			return ks.jwks, nil
 		}
-		return nil, fmt.Errorf("severe security issue: zone_uuid %v is still not accepted", zoneID)
+		return nil, fmt.Errorf("severe security issue: zone_uuid %v is not accepted by the identity service tenant", zoneID)
 	}
-	updatedKeys, err := ks.updateKeys(zoneID)
+	return nil, nil
+}
+
+// updateJWKsMemory updates and returns the validation keys from memory, or error in case of invalid zone or nil, in case nothing found in memory
+func (ks *OIDCTenant) updateJWKsMemory(zoneID string) (jwk.Set, error) {
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
+
+	updatedKeys, err := ks.getJWKsFromServer(zoneID)
 	if err != nil {
 		return nil, fmt.Errorf("error updating JWKs: %v", err)
 	}
@@ -67,12 +92,10 @@ func (ks *OIDCTenant) GetJWKs(zoneID string) (jwk.Set, error) {
 
 	ks.jwksExpiry = keysResult.expiry
 	ks.jwks = keysResult.keys
-
 	return ks.jwks, nil
 }
 
-// TODO apply sync instead of singleflight
-func (ks *OIDCTenant) updateKeys(zoneID string) (r interface{}, err error) {
+func (ks *OIDCTenant) getJWKsFromServer(zoneID string) (r interface{}, err error) {
 	result := updateKeysResult{}
 	req, err := http.NewRequestWithContext(context.TODO(), "GET", ks.ProviderJSON.JWKsURL, nil)
 	if err != nil {
