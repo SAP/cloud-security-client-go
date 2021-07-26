@@ -87,7 +87,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			fields: fields{
 				Duration:         2 * time.Second,
 				ZoneID:           "unknown-zone-id",
-				ExpectedErrorMsg: "severe security issue: zone_uuid unknown-zone-id is not accepted by the identity service tenant",
+				ExpectedErrorMsg: "zone_uuid unknown-zone-id is not accepted by the identity service tenant",
 			},
 			wantErr:          true,
 			wantProviderJSON: false,

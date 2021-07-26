@@ -74,7 +74,7 @@ func (ks *OIDCTenant) readJWKsFromMemory(zoneID string) (jwk.Set, error) {
 		if isZoneAccepted {
 			return ks.jwks, nil
 		}
-		return nil, fmt.Errorf("severe security issue: zone_uuid %v is not accepted by the identity service tenant", zoneID)
+		return nil, fmt.Errorf("zone_uuid %v is not accepted by the identity service tenant", zoneID)
 	}
 	return nil, nil
 }
