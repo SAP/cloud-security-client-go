@@ -91,6 +91,12 @@ func (b *OIDCClaimsBuilder) Issuer(issuer string) *OIDCClaimsBuilder {
 	return b
 }
 
+// IasIssuer sets the ias_iss field
+func (b *OIDCClaimsBuilder) IasIssuer(issuer string) *OIDCClaimsBuilder {
+	b.claims.IasIssuer = issuer
+	return b
+}
+
 // NotBefore sets the nbf field
 func (b *OIDCClaimsBuilder) NotBefore(notBefore time.Time) *OIDCClaimsBuilder {
 	b.claims.NotBefore = notBefore.Unix()

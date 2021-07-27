@@ -49,7 +49,7 @@ Full example: [samples/middleware.go](samples/middleware.go)
 The client library offers an OIDC Mock Server with means to create arbitrary tokens for testing purposes. Examples for the usage of the Mock Server in combination with the OIDC Token Builder can be found in [auth/middleware_test.go](auth/middleware_test.go) 
 
 ## Current limitations
-The client library does not yet provide support for IAS custom domains. It will be added once there is full support for validating such tokens from IAS and IAS-Broker side.
+Not Known.
 
 ## How to obtain support
 In case of questions or bug or reports please open a GitHub Issue in this repository.

@@ -17,6 +17,7 @@ type OIDCClaims struct {
 	ID         string   `json:"jti,omitempty"`
 	IssuedAt   int64    `json:"iat,omitempty"`
 	Issuer     string   `json:"iss,omitempty"`
+	IasIssuer  string   `json:"ias_iss,omitempty"`
 	NotBefore  int64    `json:"nbf,omitempty"`
 	Subject    string   `json:"sub,omitempty"`
 	GivenName  string   `json:"given_name,omitempty"`
