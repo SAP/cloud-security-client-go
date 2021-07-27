@@ -6,6 +6,7 @@ package auth
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/jwa"
 	"io/ioutil"
 	"net/http"
@@ -202,16 +203,23 @@ func TestEnd2End(t *testing.T) {
 			name:   "jwks rejects zone",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
-				ZoneID("22222222-3333-4444-5555-666666666666").
+				ZoneID(mocks.InvalidZoneID).
 				Build(),
 			wantErr: true,
 		}, {
 			name:   "lib rejects unaccepted zone again",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
-				ZoneID("22222222-3333-4444-5555-666666666666").
+				ZoneID(mocks.InvalidZoneID).
 				Build(),
 			wantErr: true,
+		}, {
+			name:   "lib accepts any zone",
+			header: oidcMockServer.DefaultHeaders(),
+			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+				ZoneID(uuid.New().String()).
+				Build(),
+			wantErr: false,
 		},
 	}
 

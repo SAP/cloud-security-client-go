@@ -35,6 +35,9 @@ type MockServer struct {
 	JWKsHitCounter      int              // JWKsHitCounter holds the number of requests to the JWKsHandler.
 }
 
+// InvalidZoneID represents a zone guid which is rejected by mock server on behalf of IAS tenant
+const InvalidZoneID string = "dff69954-a259-4104-9074-193bc9a366ce"
+
 // NewOIDCMockServer instantiates a new MockServer.
 func NewOIDCMockServer() (*MockServer, error) {
 	r := mux.NewRouter()
@@ -60,8 +63,8 @@ func NewOIDCMockServer() (*MockServer, error) {
 	}
 
 	r.HandleFunc("/.well-known/openid-configuration", mockServer.WellKnownHandler).Methods("GET")
-	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandler).Methods("GET").Headers("x-zone_uuid", mockServer.DefaultClaims().ZoneID)
-	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandlerInvalidZone).Methods("GET").Headers("x-zone_uuid", "22222222-3333-4444-5555-666666666666")
+	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandlerInvalidZone).Methods("GET").Headers("x-zone_uuid", InvalidZoneID)
+	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandler).Methods("GET")
 
 	return mockServer, nil
 }
