@@ -42,7 +42,7 @@ type updateKeysResult struct {
 func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
 	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
-	ks.acceptedZoneIds = make(map[string]bool)
+	ks.acceptedZoneIds = make(map[string]bool, 5)
 	err := ks.performDiscovery(targetIss.Host)
 	if err != nil {
 		return nil, err
@@ -84,6 +84,9 @@ func (ks *OIDCTenant) updateJWKsMemory(zoneID string) (jwk.Set, error) {
 	ks.mu.Lock()
 	defer ks.mu.Unlock()
 
+	for k := range ks.acceptedZoneIds {
+		delete(ks.acceptedZoneIds, k)
+	}
 	updatedKeys, err := ks.getJWKsFromServer(zoneID)
 	if err != nil {
 		return nil, fmt.Errorf("error updating JWKs: %v", err)
