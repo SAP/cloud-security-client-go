@@ -22,7 +22,7 @@ func getPlatform() Platform {
 	switch {
 	case strings.TrimSpace(os.Getenv("VCAP_SERVICES")) != "":
 		return cloudFoundry
-	case false: // kubernetes not yet supported
+	case strings.TrimSpace(os.Getenv("KUBERNETES_SERVICE_HOST")) != "":
 		return kubernetes
 	default:
 		return unknown

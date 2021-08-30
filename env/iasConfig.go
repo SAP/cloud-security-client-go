@@ -8,11 +8,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"io/ioutil"
 	"os"
+	"path"
 )
 
 const iasServiceName = "identity"
 const vcapServicesEnvKey = "VCAP_SERVICES"
+const iasConfigPathKey = "IAS_CONFIG_PATH"
+const iasConfigPathDefault = "/etc/secrets/sapcp/ias"
 
 // VCAPServices is the Cloud Foundry environment variable that stores information about services bound to the application
 type VCAPServices struct {
@@ -46,17 +50,76 @@ func GetIASConfig() (*Identity, error) {
 			return nil, fmt.Errorf("cannot parse vcap services: %w", err)
 		}
 		if len(vcapServices.Identity) == 0 {
-			return nil, fmt.Errorf("no '" + iasServiceName + "' service instance bound to the application")
+			return nil, fmt.Errorf("no '%s' service instance bound to the application", iasServiceName)
 		}
 		if len(vcapServices.Identity) > 1 {
-			return nil, fmt.Errorf("more than one '" + iasServiceName + "' service instance bound to the application. This is currently not supported")
+			return nil, fmt.Errorf("more than one '%s' service instance bound to the application. This is currently not supported", iasServiceName)
 		}
 		return &vcapServices.Identity[0].Credentials, nil
 	case kubernetes:
-		return nil, fmt.Errorf("unable to parse ias config: kubernetes env detected but not yet supported")
+		var secretPath = os.Getenv(iasConfigPathKey)
+		if secretPath == "" {
+			secretPath = iasConfigPathDefault
+		}
+		identities, err := readServiceBindings(secretPath)
+		if err != nil || len(identities) == 0 {
+			return nil, fmt.Errorf("cannot find service binding on secret path '%s'", secretPath)
+		} else if len(identities) > 1 {
+			return nil, fmt.Errorf("found more than one service instance on secret path '%s'. This is currently not supported", secretPath)
+		}
+		return &identities[0], nil
 	default:
 		return nil, fmt.Errorf("unable to parse ias config: unknown environment detected")
 	}
+}
+
+func readServiceBindings(secretPath string) ([]Identity, error) {
+	bindingFiles, err := ioutil.ReadDir(secretPath)
+	identities := []Identity{}
+	if err != nil {
+		return nil, fmt.Errorf("cannot read service directory '%s' for ias service: %w", secretPath, err)
+	}
+	for _, instancesBoundDir := range bindingFiles {
+		if !instancesBoundDir.IsDir() {
+			continue
+		}
+		instancePropertiesMap := make(map[string]interface{})
+		serviceInstancePath := path.Join(secretPath, instancesBoundDir.Name())
+		instancePropertyFiles, err := ioutil.ReadDir(serviceInstancePath)
+		if err != nil {
+			return nil, fmt.Errorf("cannot read service instance directory '%s' for ias service instance '%s': %w", serviceInstancePath, instancesBoundDir.Name(), err)
+		}
+		for _, instancePropertyFile := range instancePropertyFiles {
+			if instancePropertyFile.IsDir() {
+				continue
+			}
+			serviceInstancePropertyPath := path.Join(serviceInstancePath, instancePropertyFile.Name())
+			var property []byte
+			property, err = ioutil.ReadFile(serviceInstancePropertyPath)
+			if err != nil {
+				return nil, fmt.Errorf("cannot read property file '%s' from '%s': %w", instancePropertyFile.Name(), serviceInstancePropertyPath, err)
+			}
+			if instancePropertyFile.Name() == "domains" {
+				var domains []string
+				if err := json.Unmarshal(property, &domains); err != nil {
+					return nil, fmt.Errorf("cannot unmarshal content of property file '%s' from '%s': %w", instancePropertyFile.Name(), serviceInstancePropertyPath, err)
+				}
+				instancePropertiesMap[instancePropertyFile.Name()] = domains
+			} else {
+				instancePropertiesMap[instancePropertyFile.Name()] = string(property)
+			}
+		}
+		instancePropertiesJSON, err := json.Marshal(instancePropertiesMap)
+		if err != nil {
+			return nil, fmt.Errorf("cannot marshal map into json: %w", err)
+		}
+		identity := Identity{}
+		if err := json.Unmarshal(instancePropertiesJSON, &identity); err != nil {
+			return nil, fmt.Errorf("cannot unmarshal json content: %w", err)
+		}
+		identities = append(identities, identity)
+	}
+	return identities, nil
 }
 
 // GetClientID implements the auth.OAuthConfig interface.
