@@ -54,10 +54,10 @@ func TestGetIASConfig(t *testing.T) {
 			wantErr:       false,
 		},
 		{
-			name:    "[K8s] no bindings on default secret path",
+			name:          "[K8s] no bindings on default secret path",
 			k8sSecretPath: "ignore",
-			want:    nil,
-			wantErr: true,
+			want:          nil,
+			wantErr:       true,
 		},
 		{
 			name:          "[K8s] multiple identity service bindings",
