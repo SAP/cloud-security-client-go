@@ -15,6 +15,7 @@ import (
 )
 
 const iasServiceName = "identity"
+const iasSecretKeyDefault = "credentials"
 const vcapServicesEnvKey = "VCAP_SERVICES"
 const iasConfigPathKey = "IAS_CONFIG_PATH"
 const iasConfigPathDefault = "/etc/secrets/sapcp/ias"
@@ -89,9 +90,12 @@ func readServiceBindings(secretPath string) ([]Identity, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cannot read service instance directory '%s' for ias service instance '%s': %w", serviceInstancePath, instancesBoundDir.Name(), err)
 		}
-		instancePropertiesJSON, err := readPropertyFilesToJSON(serviceInstancePath, instancePropertyFiles)
-		if err != nil {
-			return nil, err
+		instancePropertiesJSON, err := readCredentialsFileToJSON(serviceInstancePath, instancePropertyFiles)
+		if instancePropertiesJSON == nil || err != nil {
+			instancePropertiesJSON, err = readPropertyFilesToJSON(serviceInstancePath, instancePropertyFiles)
+			if err != nil {
+				return nil, err
+			}
 		}
 		identity := Identity{}
 		if err := json.Unmarshal(instancePropertiesJSON, &identity); err != nil {
@@ -100,6 +104,22 @@ func readServiceBindings(secretPath string) ([]Identity, error) {
 		identities = append(identities, identity)
 	}
 	return identities, nil
+}
+
+func readCredentialsFileToJSON(serviceInstancePath string, instanceSecretFiles []fs.FileInfo) ([]byte, error) {
+	for _, instanceSecretFile := range instanceSecretFiles {
+		if !instanceSecretFile.IsDir() && instanceSecretFile.Name() == iasSecretKeyDefault {
+			serviceInstanceCredentialsPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
+			credentials, err := ioutil.ReadFile(serviceInstanceCredentialsPath)
+			if err != nil {
+				return nil, fmt.Errorf("cannot read 'credentials' file from '%s': %w", serviceInstanceCredentialsPath, err)
+			}
+			if json.Valid(credentials) {
+				return credentials, nil
+			}
+		}
+	}
+	return nil, nil
 }
 
 func readPropertyFilesToJSON(serviceInstancePath string, instancePropertyFiles []fs.FileInfo) ([]byte, error) {

@@ -65,6 +65,12 @@ func TestGetIASConfig(t *testing.T) {
 			want:          nil,
 			wantErr:       true,
 		},
+		{
+			name:          "[K8s] single identity service instance bound with secretKey=credentials",
+			k8sSecretPath: path.Join("testdata", "k8s", "single-instance-2"),
+			want:          testConfig,
+			wantErr:       false,
+		},
 	}
 
 	for _, tt := range tests {
