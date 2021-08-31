@@ -65,20 +65,20 @@ func GetIASConfig() (*Identity, error) {
 		}
 		identities, err := readServiceBindings(secretPath)
 		if err != nil || len(identities) == 0 {
-			return nil, fmt.Errorf("cannot find service binding on secret path '%s'", secretPath)
+			return nil, fmt.Errorf("cannot find '%s' service binding on secret path '%s'", iasServiceName, secretPath)
 		} else if len(identities) > 1 {
-			return nil, fmt.Errorf("found more than one service instance on secret path '%s'. This is currently not supported", secretPath)
+			return nil, fmt.Errorf("found more than one '%s' service instance on secret path '%s'. This is currently not supported", iasServiceName, secretPath)
 		}
 		return &identities[0], nil
 	default:
-		return nil, fmt.Errorf("unable to parse ias config: unknown environment detected")
+		return nil, fmt.Errorf("unable to parse '%s' service config: unknown environment detected", iasServiceName)
 	}
 }
 
 func readServiceBindings(secretPath string) ([]Identity, error) {
 	bindingFiles, err := ioutil.ReadDir(secretPath)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read service directory '%s' for ias service: %w", secretPath, err)
+		return nil, fmt.Errorf("cannot read service directory '%s' for identity service: %w", secretPath, err)
 	}
 	identities := []Identity{}
 	for _, instancesBoundDir := range bindingFiles {
@@ -86,20 +86,20 @@ func readServiceBindings(secretPath string) ([]Identity, error) {
 			continue
 		}
 		serviceInstancePath := path.Join(secretPath, instancesBoundDir.Name())
-		instancePropertyFiles, err := ioutil.ReadDir(serviceInstancePath)
+		instanceSecretFiles, err := ioutil.ReadDir(serviceInstancePath)
 		if err != nil {
-			return nil, fmt.Errorf("cannot read service instance directory '%s' for ias service instance '%s': %w", serviceInstancePath, instancesBoundDir.Name(), err)
+			return nil, fmt.Errorf("cannot read service instance directory '%s' for '%s' service instance '%s': %w", serviceInstancePath, iasServiceName, instancesBoundDir.Name(), err)
 		}
-		instancePropertiesJSON, err := readCredentialsFileToJSON(serviceInstancePath, instancePropertyFiles)
-		if instancePropertiesJSON == nil || err != nil {
-			instancePropertiesJSON, err = readPropertyFilesToJSON(serviceInstancePath, instancePropertyFiles)
+		instanceSecretsJSON, err := readCredentialsFileToJSON(serviceInstancePath, instanceSecretFiles)
+		if instanceSecretsJSON == nil || err != nil {
+			instanceSecretsJSON, err = readSecretFilesToJSON(serviceInstancePath, instanceSecretFiles)
 			if err != nil {
 				return nil, err
 			}
 		}
 		identity := Identity{}
-		if err := json.Unmarshal(instancePropertiesJSON, &identity); err != nil {
-			return nil, fmt.Errorf("cannot unmarshal json content: %w", err)
+		if err := json.Unmarshal(instanceSecretsJSON, &identity); err != nil {
+			return nil, fmt.Errorf("cannot unmarshal json content in directory '%s' for '%s' service instance: %w", serviceInstancePath, iasServiceName, err)
 		}
 		identities = append(identities, identity)
 	}
@@ -112,7 +112,7 @@ func readCredentialsFileToJSON(serviceInstancePath string, instanceSecretFiles [
 			serviceInstanceCredentialsPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
 			credentials, err := ioutil.ReadFile(serviceInstanceCredentialsPath)
 			if err != nil {
-				return nil, fmt.Errorf("cannot read 'credentials' file from '%s': %w", serviceInstanceCredentialsPath, err)
+				return nil, fmt.Errorf("cannot read content from '%s': %w", serviceInstanceCredentialsPath, err)
 			}
 			if json.Valid(credentials) {
 				return credentials, nil
@@ -122,33 +122,33 @@ func readCredentialsFileToJSON(serviceInstancePath string, instanceSecretFiles [
 	return nil, nil
 }
 
-func readPropertyFilesToJSON(serviceInstancePath string, instancePropertyFiles []fs.FileInfo) ([]byte, error) {
-	instancePropertiesMap := make(map[string]interface{})
-	for _, instancePropertyFile := range instancePropertyFiles {
-		if instancePropertyFile.IsDir() {
+func readSecretFilesToJSON(serviceInstancePath string, instanceSecretFiles []fs.FileInfo) ([]byte, error) {
+	instanceCredentialsMap := make(map[string]interface{})
+	for _, instanceSecretFile := range instanceSecretFiles {
+		if instanceSecretFile.IsDir() {
 			continue
 		}
-		serviceInstancePropertyPath := path.Join(serviceInstancePath, instancePropertyFile.Name())
-		var property []byte
-		property, err := ioutil.ReadFile(serviceInstancePropertyPath)
+		serviceInstanceSecretPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
+		var secretContent []byte
+		secretContent, err := ioutil.ReadFile(serviceInstanceSecretPath)
 		if err != nil {
-			return nil, fmt.Errorf("cannot read property file '%s' from '%s': %w", instancePropertyFile.Name(), serviceInstancePropertyPath, err)
+			return nil, fmt.Errorf("cannot read secret file '%s' from '%s': %w", instanceSecretFile.Name(), serviceInstanceSecretPath, err)
 		}
-		if instancePropertyFile.Name() == "domains" {
+		if instanceSecretFile.Name() == "domains" {
 			var domains []string
-			if err := json.Unmarshal(property, &domains); err != nil {
-				return nil, fmt.Errorf("cannot unmarshal content of property file '%s' from '%s': %w", instancePropertyFile.Name(), serviceInstancePropertyPath, err)
+			if err := json.Unmarshal(secretContent, &domains); err != nil {
+				return nil, fmt.Errorf("cannot unmarshal content of secret file '%s' from '%s': %w", instanceSecretFile.Name(), serviceInstanceSecretPath, err)
 			}
-			instancePropertiesMap[instancePropertyFile.Name()] = domains
+			instanceCredentialsMap[instanceSecretFile.Name()] = domains
 		} else {
-			instancePropertiesMap[instancePropertyFile.Name()] = string(property)
+			instanceCredentialsMap[instanceSecretFile.Name()] = string(secretContent)
 		}
 	}
-	instancePropertiesJSON, err := json.Marshal(instancePropertiesMap)
+	instanceCredentialsJSON, err := json.Marshal(instanceCredentialsMap)
 	if err != nil {
 		return nil, fmt.Errorf("cannot marshal map into json: %w", err)
 	}
-	return instancePropertiesJSON, nil
+	return instanceCredentialsJSON, nil
 }
 
 // GetClientID implements the auth.OAuthConfig interface.
