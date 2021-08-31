@@ -15,7 +15,7 @@ import (
 
 var testConfig = &Identity{
 	ClientID:     "cef76757-de57-480f-be92-1d8c1c7abf16",
-	ClientSecret: "the_CLIENT.secret:3[/abc",
+	ClientSecret: "[the_CLIENT.secret:3[/abc",
 	Domains:      []string{"accounts400.ondemand.com", "my.arbitrary.domain"},
 	URL:          "https://mytenant.accounts400.ondemand.com",
 	ZoneUUID:     uuid.MustParse("bef12345-de57-480f-be92-1d8c1c7abf16"),
@@ -30,30 +30,37 @@ func TestGetIASConfig(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name:    "[CF] single ias service instance bound",
-			env:     "{\"identity\":[{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domains\":[\"accounts400.ondemand.com\",\"my.arbitrary.domain\"],\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\",\"zone_uuid\":\"bef12345-de57-480f-be92-1d8c1c7abf16\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]}]}",
+			name:    "[CF] single identity service instance bound",
+			env:     "{\"identity\":[{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"[the_CLIENT.secret:3[/abc\",\"domains\":[\"accounts400.ondemand.com\",\"my.arbitrary.domain\"],\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\",\"zone_uuid\":\"bef12345-de57-480f-be92-1d8c1c7abf16\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]}]}",
 			want:    testConfig,
 			wantErr: false,
 		},
 		{
-			name:    "[CF] multiple bindings",
-			env:     "{\"identity\":[{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domains\":[\"accounts400.ondemand.com\",\"my.arbitrary.domain\"],\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]},{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domain\":\"accounts400.ondemand.com\",\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]}]}",
+			name:    "[CF] multiple identity service bindings",
+			env:     "{\"identity\":[{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"[the_CLIENT.secret:3[/abc\",\"domains\":[\"accounts400.ondemand.com\",\"my.arbitrary.domain\"],\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]},{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"the_CLIENT.secret:3[/abc\",\"domain\":\"accounts400.ondemand.com\",\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]}]}",
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:          "[K8s] single ias service instance bound",
+			name:    "[CF] no identity service binding",
+			env:     "{}",
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:          "[K8s] single identity service instance bound",
 			k8sSecretPath: path.Join("testdata", "k8s", "identity"),
-			want:          testK8sConfig,
+			want:          testConfig,
 			wantErr:       false,
 		},
 		{
 			name:    "[K8s] no bindings on default secret path",
+			k8sSecretPath: "ignore",
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:          "[K8s] multiple bindings",
+			name:          "[K8s] multiple identity service bindings",
 			k8sSecretPath: path.Join("testdata", "k8s", "multi-instances"),
 			want:          nil,
 			wantErr:       true,
@@ -65,8 +72,7 @@ func TestGetIASConfig(t *testing.T) {
 			var err error
 			if tt.env != "" {
 				err = setTestEnv(tt.env)
-			}
-			if tt.k8sSecretPath != "" {
+			} else if tt.k8sSecretPath != "" {
 				err = setK8sTestEnv(tt.k8sSecretPath)
 			}
 			if err != nil {
@@ -108,7 +114,7 @@ func setK8sTestEnv(secretPath string) error {
 	if err != nil {
 		return fmt.Errorf("error preparing test: could not set env KUBERNETES_SERVICE_HOST: %w", err)
 	}
-	if secretPath != "" {
+	if secretPath != "" && secretPath != "ignore" {
 		err = os.Setenv("IAS_CONFIG_PATH", secretPath)
 		if err != nil {
 			return fmt.Errorf("error preparing test: could not set env IAS_CONFIG_PATH: %w", err)
