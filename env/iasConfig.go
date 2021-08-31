@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path"
@@ -75,43 +76,22 @@ func GetIASConfig() (*Identity, error) {
 
 func readServiceBindings(secretPath string) ([]Identity, error) {
 	bindingFiles, err := ioutil.ReadDir(secretPath)
-	identities := []Identity{}
 	if err != nil {
 		return nil, fmt.Errorf("cannot read service directory '%s' for ias service: %w", secretPath, err)
 	}
+	identities := []Identity{}
 	for _, instancesBoundDir := range bindingFiles {
 		if !instancesBoundDir.IsDir() {
 			continue
 		}
-		instancePropertiesMap := make(map[string]interface{})
 		serviceInstancePath := path.Join(secretPath, instancesBoundDir.Name())
 		instancePropertyFiles, err := ioutil.ReadDir(serviceInstancePath)
 		if err != nil {
 			return nil, fmt.Errorf("cannot read service instance directory '%s' for ias service instance '%s': %w", serviceInstancePath, instancesBoundDir.Name(), err)
 		}
-		for _, instancePropertyFile := range instancePropertyFiles {
-			if instancePropertyFile.IsDir() {
-				continue
-			}
-			serviceInstancePropertyPath := path.Join(serviceInstancePath, instancePropertyFile.Name())
-			var property []byte
-			property, err = ioutil.ReadFile(serviceInstancePropertyPath)
-			if err != nil {
-				return nil, fmt.Errorf("cannot read property file '%s' from '%s': %w", instancePropertyFile.Name(), serviceInstancePropertyPath, err)
-			}
-			if instancePropertyFile.Name() == "domains" {
-				var domains []string
-				if err := json.Unmarshal(property, &domains); err != nil {
-					return nil, fmt.Errorf("cannot unmarshal content of property file '%s' from '%s': %w", instancePropertyFile.Name(), serviceInstancePropertyPath, err)
-				}
-				instancePropertiesMap[instancePropertyFile.Name()] = domains
-			} else {
-				instancePropertiesMap[instancePropertyFile.Name()] = string(property)
-			}
-		}
-		instancePropertiesJSON, err := json.Marshal(instancePropertiesMap)
+		instancePropertiesJSON, err := readPropertyFilesToJSON(serviceInstancePath, instancePropertyFiles)
 		if err != nil {
-			return nil, fmt.Errorf("cannot marshal map into json: %w", err)
+			return nil, err
 		}
 		identity := Identity{}
 		if err := json.Unmarshal(instancePropertiesJSON, &identity); err != nil {
@@ -120,6 +100,35 @@ func readServiceBindings(secretPath string) ([]Identity, error) {
 		identities = append(identities, identity)
 	}
 	return identities, nil
+}
+
+func readPropertyFilesToJSON(serviceInstancePath string, instancePropertyFiles []fs.FileInfo) ([]byte, error) {
+	instancePropertiesMap := make(map[string]interface{})
+	for _, instancePropertyFile := range instancePropertyFiles {
+		if instancePropertyFile.IsDir() {
+			continue
+		}
+		serviceInstancePropertyPath := path.Join(serviceInstancePath, instancePropertyFile.Name())
+		var property []byte
+		property, err := ioutil.ReadFile(serviceInstancePropertyPath)
+		if err != nil {
+			return nil, fmt.Errorf("cannot read property file '%s' from '%s': %w", instancePropertyFile.Name(), serviceInstancePropertyPath, err)
+		}
+		if instancePropertyFile.Name() == "domains" {
+			var domains []string
+			if err := json.Unmarshal(property, &domains); err != nil {
+				return nil, fmt.Errorf("cannot unmarshal content of property file '%s' from '%s': %w", instancePropertyFile.Name(), serviceInstancePropertyPath, err)
+			}
+			instancePropertiesMap[instancePropertyFile.Name()] = domains
+		} else {
+			instancePropertiesMap[instancePropertyFile.Name()] = string(property)
+		}
+	}
+	instancePropertiesJSON, err := json.Marshal(instancePropertiesMap)
+	if err != nil {
+		return nil, fmt.Errorf("cannot marshal map into json: %w", err)
+	}
+	return instancePropertiesJSON, nil
 }
 
 // GetClientID implements the auth.OAuthConfig interface.

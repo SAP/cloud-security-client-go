@@ -49,7 +49,7 @@ func TestGetIASConfig(t *testing.T) {
 		},
 		{
 			name:          "[K8s] single identity service instance bound",
-			k8sSecretPath: path.Join("testdata", "k8s", "identity"),
+			k8sSecretPath: path.Join("testdata", "k8s", "single-instance"),
 			want:          testConfig,
 			wantErr:       false,
 		},

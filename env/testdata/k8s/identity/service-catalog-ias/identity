@@ -1,9 +1,0 @@
-{
-    "certificate": "-----BEGIN CERTIFICATE-----\nMIIGIDCCBAigAwIBAgIRALiWZEK9H1Dskxr+8AVTCUcwDQYJKoZIhvcNAQELBQAw\n-----END CERTIFICATE-----",
-    "clientid": "4a78ba3c-5cfe-476c-b217-2d263f4f7fe4",
-    "domains": [
-        "accounts400.ondemand.com"
-    ],
-    "key": "dummy key",
-    "url": "https://aoxk2addh.accounts400.ondemand.com"
-}
