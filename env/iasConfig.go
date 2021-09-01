@@ -18,7 +18,7 @@ const iasServiceName = "identity"
 const iasSecretKeyDefault = "credentials"
 const vcapServicesEnvKey = "VCAP_SERVICES"
 const iasConfigPathKey = "IAS_CONFIG_PATH"
-const iasConfigPathDefault = "/etc/secrets/sapcp/ias"
+const iasConfigPathDefault = "/etc/secrets/sapcp/identity"
 
 // VCAPServices is the Cloud Foundry environment variable that stores information about services bound to the application
 type VCAPServices struct {
@@ -65,9 +65,9 @@ func GetIASConfig() (*Identity, error) {
 		}
 		identities, err := readServiceBindings(secretPath)
 		if err != nil || len(identities) == 0 {
-			return nil, fmt.Errorf("cannot find '%s' service binding on secret path '%s'", iasServiceName, secretPath)
+			return nil, fmt.Errorf("cannot find '%s' service binding from secret path '%s'", iasServiceName, secretPath)
 		} else if len(identities) > 1 {
-			return nil, fmt.Errorf("found more than one '%s' service instance on secret path '%s'. This is currently not supported", iasServiceName, secretPath)
+			return nil, fmt.Errorf("found more than one '%s' service instance from secret path '%s'. This is currently not supported", iasServiceName, secretPath)
 		}
 		return &identities[0], nil
 	default:
@@ -76,19 +76,19 @@ func GetIASConfig() (*Identity, error) {
 }
 
 func readServiceBindings(secretPath string) ([]Identity, error) {
-	bindingFiles, err := ioutil.ReadDir(secretPath)
+	instancesBound, err := ioutil.ReadDir(secretPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read service directory '%s' for identity service: %w", secretPath, err)
 	}
 	identities := []Identity{}
-	for _, instancesBoundDir := range bindingFiles {
-		if !instancesBoundDir.IsDir() {
+	for _, instanceBound := range instancesBound {
+		if !instanceBound.IsDir() {
 			continue
 		}
-		serviceInstancePath := path.Join(secretPath, instancesBoundDir.Name())
+		serviceInstancePath := path.Join(secretPath, instanceBound.Name())
 		instanceSecretFiles, err := ioutil.ReadDir(serviceInstancePath)
 		if err != nil {
-			return nil, fmt.Errorf("cannot read service instance directory '%s' for '%s' service instance '%s': %w", serviceInstancePath, iasServiceName, instancesBoundDir.Name(), err)
+			return nil, fmt.Errorf("cannot read service instance directory '%s' for '%s' service instance '%s': %w", serviceInstancePath, iasServiceName, instanceBound.Name(), err)
 		}
 		instanceSecretsJSON, err := readCredentialsFileToJSON(serviceInstancePath, instanceSecretFiles)
 		if instanceSecretsJSON == nil || err != nil {
@@ -140,7 +140,7 @@ func readSecretFilesToJSON(serviceInstancePath string, instanceSecretFiles []fs.
 				return nil, fmt.Errorf("cannot unmarshal content of secret file '%s' from '%s': %w", instanceSecretFile.Name(), serviceInstanceSecretPath, err)
 			}
 			instanceCredentialsMap[instanceSecretFile.Name()] = domains
-		} else {
+		} else if instanceSecretFile.Size() > 0 {
 			instanceCredentialsMap[instanceSecretFile.Name()] = string(secretContent)
 		}
 	}
