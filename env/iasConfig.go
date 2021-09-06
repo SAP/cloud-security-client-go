@@ -18,7 +18,7 @@ const iasServiceName = "identity"
 const iasSecretKeyDefault = "credentials"
 const vcapServicesEnvKey = "VCAP_SERVICES"
 const iasConfigPathKey = "IAS_CONFIG_PATH"
-const iasConfigPathDefault = "/etc/secrets/sapcp/identity"
+const iasConfigPathDefault = "/etc/secrets/sapbtp/identity"
 
 // VCAPServices is the Cloud Foundry environment variable that stores information about services bound to the application
 type VCAPServices struct {

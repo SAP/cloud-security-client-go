@@ -26,7 +26,7 @@ The client library works as a middleware and has to be instantiated with `NewMid
  - **Authenticate func**: More flexible, can be wrapped with an own middleware func to propagate the users claims. 
 
 ### Service configuration in Kubernetes environment
-To access service instance configurations from the application, Kubernetes secrets need to be provided as files in a volume mounted on application's container. Library will look up the configuration files on the `mountPath:"/etc/secrets/sapcp/identity/<YOUR IAS INSTANCE NAME>"`.
+To access service instance configurations from the application, Kubernetes secrets need to be provided as files in a volume mounted on application's container. Library will look up the configuration files on the `mountPath:"/etc/secrets/sapbtp/identity/<YOUR IAS INSTANCE NAME>"`.
 
 
 ### Sample Code
