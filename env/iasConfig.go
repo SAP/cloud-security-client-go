@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	yaml "gopkg.in/yaml.v3"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -134,13 +135,11 @@ func readSecretFilesToJSON(serviceInstancePath string, instanceSecretFiles []fs.
 		if err != nil {
 			return nil, fmt.Errorf("cannot read secret file '%s' from '%s': %w", instanceSecretFile.Name(), serviceInstanceSecretPath, err)
 		}
-		if instanceSecretFile.Name() == "domains" {
-			var domains []string
-			if err := json.Unmarshal(secretContent, &domains); err != nil {
-				return nil, fmt.Errorf("cannot unmarshal content of secret file '%s' from '%s': %w", instanceSecretFile.Name(), serviceInstanceSecretPath, err)
-			}
-			instanceCredentialsMap[instanceSecretFile.Name()] = domains
-		} else if instanceSecretFile.Size() > 0 {
+		var v interface{}
+		if err := yaml.Unmarshal(secretContent, &v); err == nil {
+			instanceCredentialsMap[instanceSecretFile.Name()] = v
+		} else {
+			fmt.Printf("cannot unmarshal content of secret file '%s' from '%s': %s", instanceSecretFile.Name(), serviceInstanceSecretPath, err)
 			instanceCredentialsMap[instanceSecretFile.Name()] = string(secretContent)
 		}
 	}
