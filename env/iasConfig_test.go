@@ -103,6 +103,8 @@ func TestGetIASConfig(t *testing.T) {
 	}
 }
 
+// TODO go 1.17 supports T.SetEnv https://pkg.go.dev/testing#T.Setenv
+// Cleanup when go 1.18 is released
 func setTestEnv(vcapServices string) error {
 	err := os.Setenv("VCAP_SERVICES", vcapServices)
 	if err != nil {
