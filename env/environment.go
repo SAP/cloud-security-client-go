@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2020 SAP SE or an SAP affiliate company and Cloud Security Client Go contributors
+// SPDX-FileCopyrightText: 2020-2021 SAP SE or an SAP affiliate company and Cloud Security Client Go contributors
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -22,7 +22,7 @@ func getPlatform() Platform {
 	switch {
 	case strings.TrimSpace(os.Getenv("VCAP_SERVICES")) != "":
 		return cloudFoundry
-	case false: // kubernetes not yet supported
+	case strings.TrimSpace(os.Getenv("KUBERNETES_SERVICE_HOST")) != "":
 		return kubernetes
 	default:
 		return unknown

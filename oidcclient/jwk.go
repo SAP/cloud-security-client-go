@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pquerna/cachecontrol"
-	"io/ioutil"
+	"io"
 	"mime"
 	"net/http"
 	"net/url"
@@ -140,7 +140,7 @@ func (ks *OIDCTenant) performDiscovery(baseURL string) error {
 		return fmt.Errorf("unable to perform oidc discovery request: %v", err)
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("unable to read response body: %v", err)
 	}

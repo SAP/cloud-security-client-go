@@ -9,6 +9,10 @@
 ## Description
 Client Library in GoLang for application developers requiring authentication with the SAP Identity Authentication Service (IAS). The library provides means for validating the Open ID Connect Token (OIDC) and accessing authentication information like user uuid, user attributes and audiences from the token.
 
+## Supported Environments
+- Cloud Foundry
+- Kubernetes/Kyma as of 0.11 version
+
 ## Requirements
 In order to make use of this client library your application should be integrated with the [SAP Identity Authentication Service (IAS)](https://help.sap.com/viewer/6d6d63354d1242d185ab4830fc04feb1/LATEST/en-US/d17a116432d24470930ebea41977a888.html).
 
@@ -21,7 +25,10 @@ The client library works as a middleware and has to be instantiated with `NewMid
  - Ready-to-use **Middleware Handler**: The `AuthenticationHandler` which implements the standard `http/Handler` interface. Thus, it can be used easily e.g. in an `gorilla/mux` router or a plain `http/Server` implementation. The claims can be retrieved with `auth.GetClaims(req)` in the HTTP handler.
  - **Authenticate func**: More flexible, can be wrapped with an own middleware func to propagate the users claims. 
 
- 
+### Service configuration in Kubernetes environment
+To access service instance configurations from the application, Kubernetes secrets need to be provided as files in a volume mounted on application's container. Library will look up the configuration files on the `mountPath:"/etc/secrets/sapbtp/identity/<YOUR IAS INSTANCE NAME>"`.
+
+
 ### Sample Code
 
 ```go
