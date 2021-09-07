@@ -8,7 +8,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/jwa"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -249,7 +249,7 @@ func TestEnd2End(t *testing.T) {
 					t.Errorf("req to test server succeeded unexpectatly: expected: 401, got: %d", response.StatusCode)
 				}
 			}
-			body, _ := ioutil.ReadAll(response.Body)
+			body, _ := io.ReadAll(response.Body)
 			t.Log(string(body))
 		})
 	}

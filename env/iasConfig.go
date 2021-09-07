@@ -8,9 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
-	yaml "gopkg.in/yaml.v3"
-	"io/fs"
-	"io/ioutil"
+	"gopkg.in/yaml.v3"
 	"os"
 	"path"
 )
@@ -77,7 +75,7 @@ func GetIASConfig() (*Identity, error) {
 }
 
 func readServiceBindings(secretPath string) ([]Identity, error) {
-	instancesBound, err := ioutil.ReadDir(secretPath)
+	instancesBound, err := os.ReadDir(secretPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read service directory '%s' for identity service: %w", secretPath, err)
 	}
@@ -87,7 +85,7 @@ func readServiceBindings(secretPath string) ([]Identity, error) {
 			continue
 		}
 		serviceInstancePath := path.Join(secretPath, instanceBound.Name())
-		instanceSecretFiles, err := ioutil.ReadDir(serviceInstancePath)
+		instanceSecretFiles, err := os.ReadDir(serviceInstancePath)
 		if err != nil {
 			return nil, fmt.Errorf("cannot read service instance directory '%s' for '%s' service instance '%s': %w", serviceInstancePath, iasServiceName, instanceBound.Name(), err)
 		}
@@ -107,11 +105,11 @@ func readServiceBindings(secretPath string) ([]Identity, error) {
 	return identities, nil
 }
 
-func readCredentialsFileToJSON(serviceInstancePath string, instanceSecretFiles []fs.FileInfo) ([]byte, error) {
+func readCredentialsFileToJSON(serviceInstancePath string, instanceSecretFiles []os.DirEntry) ([]byte, error) {
 	for _, instanceSecretFile := range instanceSecretFiles {
 		if !instanceSecretFile.IsDir() && instanceSecretFile.Name() == iasSecretKeyDefault {
 			serviceInstanceCredentialsPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
-			credentials, err := ioutil.ReadFile(serviceInstanceCredentialsPath)
+			credentials, err := os.ReadFile(serviceInstanceCredentialsPath)
 			if err != nil {
 				return nil, fmt.Errorf("cannot read content from '%s': %w", serviceInstanceCredentialsPath, err)
 			}
@@ -123,7 +121,7 @@ func readCredentialsFileToJSON(serviceInstancePath string, instanceSecretFiles [
 	return nil, nil
 }
 
-func readSecretFilesToJSON(serviceInstancePath string, instanceSecretFiles []fs.FileInfo) ([]byte, error) {
+func readSecretFilesToJSON(serviceInstancePath string, instanceSecretFiles []os.DirEntry) ([]byte, error) {
 	instanceCredentialsMap := make(map[string]interface{})
 	for _, instanceSecretFile := range instanceSecretFiles {
 		if instanceSecretFile.IsDir() {
@@ -131,7 +129,7 @@ func readSecretFilesToJSON(serviceInstancePath string, instanceSecretFiles []fs.
 		}
 		serviceInstanceSecretPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
 		var secretContent []byte
-		secretContent, err := ioutil.ReadFile(serviceInstanceSecretPath)
+		secretContent, err := os.ReadFile(serviceInstanceSecretPath)
 		if err != nil {
 			return nil, fmt.Errorf("cannot read secret file '%s' from '%s': %w", instanceSecretFile.Name(), serviceInstanceSecretPath, err)
 		}
