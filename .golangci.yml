@@ -70,7 +70,6 @@ linters:
     - gocritic
     - gocyclo
     - gofmt
-    - golint
     - gomnd
     - goprintffuncname
     - gosec
@@ -92,6 +91,7 @@ linters:
     - unused
     - varcheck
     - whitespace
+    - revive
 
 issues:
   # Excluding configuration per-path, per-linter, per-text and per-source
@@ -101,7 +101,7 @@ issues:
         - gomnd
         - funlen
     - linters:
-      - gocritic
+        - gocritic
       text: "hugeParam:"
   # List of regexps of issue texts to exclude, empty list by default.
   # But independently from this option we use default exclude patterns,

@@ -6,11 +6,12 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
+
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/lestrrat-go/jwx/jwt/openid"
-	"log"
-	"time"
 )
 
 const (
@@ -30,7 +31,7 @@ type Token interface {
 	IsExpired() bool                                      // IsExpired returns true, if 'exp' claim + leeway time of 1 minute is before current time
 	IssuedAt() time.Time                                  // IssuedAt returns "iat" claim, if it doesn't exist empty string is returned
 	Issuer() string                                       // Issuer returns "iss" claim, if it doesn't exist empty string is returned
-	IasIssuer() string                                    // IasIssuer returns "ias_iss" claim, if it doesn't exist empty string is returned
+	IasIssuer() string                                    // IasIssuer returns "ias_iss" (only set if custom domains are used) claim, if it doesn't exist the value of Issuer() returned
 	NotBefore() time.Time                                 // NotBefore returns "nbf" claim, if it doesn't exist empty string is returned
 	Subject() string                                      // Subject returns "sub" claim, if it doesn't exist empty string is returned
 	GivenName() string                                    // GivenName returns "given_name" claim, if it doesn't exist empty string is returned
@@ -84,16 +85,15 @@ func (t stdToken) IssuedAt() time.Time {
 }
 
 func (t stdToken) Issuer() string {
-	// support ias custom domains
-	iss := t.IasIssuer()
-	if iss == "" {
-		iss = t.jwtToken.Issuer()
-	}
-	return iss
+	return t.jwtToken.Issuer()
 }
 
 func (t stdToken) IasIssuer() string {
-	v, _ := t.GetClaimAsString(iasIssuer)
+	// return standard issuer if ias_iss is not set
+	v, err := t.GetClaimAsString(iasIssuer)
+	if errors.Is(err, ErrClaimNotExists) {
+		return t.Issuer()
+	}
 	return v
 }
 
@@ -130,10 +130,13 @@ func (t stdToken) UserUUID() string {
 	return v
 }
 
+// ErrClaimNotExists shows that the requested custom claim does not exist in the token
+var ErrClaimNotExists = errors.New("claim does not exist in the token")
+
 func (t stdToken) GetClaimAsString(claim string) (string, error) {
 	value, exists := t.jwtToken.Get(claim)
 	if !exists {
-		return "", fmt.Errorf("claim %s not available in the token", claim)
+		return "", ErrClaimNotExists
 	}
 	stringValue, ok := value.(string)
 	if !ok {
@@ -145,7 +148,7 @@ func (t stdToken) GetClaimAsString(claim string) (string, error) {
 func (t stdToken) GetClaimAsStringSlice(claim string) ([]string, error) {
 	value, exists := t.jwtToken.Get(claim)
 	if !exists {
-		return nil, fmt.Errorf("claim %s not available in the token", claim)
+		return nil, ErrClaimNotExists
 	}
 	res, ok := value.([]string)
 	if !ok {
@@ -160,12 +163,5 @@ func (t stdToken) GetAllClaimsAsMap() map[string]interface{} {
 }
 
 func (t stdToken) getJwtToken() jwt.Token {
-	// support ias custom domains
-	if t.IasIssuer() != "" {
-		err := t.jwtToken.Set("iss", t.IasIssuer())
-		if err != nil {
-			log.Printf("unable to overwrite 'iss' claim with %s", t.IasIssuer())
-		}
-	}
 	return t.jwtToken
 }

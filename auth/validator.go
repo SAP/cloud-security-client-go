@@ -7,12 +7,14 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"github.com/lestrrat-go/jwx/jws"
-	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/sap/cloud-security-client-go/oidcclient"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/lestrrat-go/jwx/jws"
+	"github.com/lestrrat-go/jwx/jwt"
+
+	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
 // parseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
@@ -23,7 +25,7 @@ func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
 	}
 
 	// get keyset
-	keySet, err := m.getOIDCTenant(token.Issuer())
+	keySet, err := m.getOIDCTenant(token.IasIssuer())
 	if err != nil {
 		return nil, err
 	}

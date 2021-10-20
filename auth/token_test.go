@@ -5,9 +5,10 @@
 package auth
 
 import (
-	"github.com/lestrrat-go/jwx/jwt"
 	"reflect"
 	"testing"
+
+	"github.com/lestrrat-go/jwx/jwt"
 )
 
 func TestToken_getClaimAsString(t *testing.T) {
@@ -139,22 +140,16 @@ func TestOIDCClaims_getIasIssuer(t *testing.T) {
 		wantIasIss string
 	}{
 		{
-			name:    "iss claim only",
-			iss:     "http://localhost:3030",
-			wantIss: "http://localhost:3030",
-		},
-		{
-			name:       "iss claim only - empty string",
+			name:       "iss claim only",
 			iss:        "http://localhost:3030",
-			iasIss:     "",
 			wantIss:    "http://localhost:3030",
-			wantIasIss: "",
+			wantIasIss: "http://localhost:3030",
 		},
 		{
 			name:       "iss and ias_iss claim",
 			iss:        "http://localhost:3030",
 			iasIss:     "https://custom.oidc-server.com",
-			wantIss:    "https://custom.oidc-server.com",
+			wantIss:    "http://localhost:3030",
 			wantIasIss: "https://custom.oidc-server.com",
 		},
 	}
@@ -164,7 +159,9 @@ func TestOIDCClaims_getIasIssuer(t *testing.T) {
 			token, err := NewToken("eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo")
 			jwtToken := token.getJwtToken()
 			_ = jwtToken.Set("iss", tt.iss)
-			_ = jwtToken.Set("ias_iss", tt.iasIss)
+			if tt.iasIss != "" {
+				_ = jwtToken.Set("ias_iss", tt.iasIss)
+			}
 			if err != nil {
 				t.Errorf("Error while preparing test: %v", err)
 			}
