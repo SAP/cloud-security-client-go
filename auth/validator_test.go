@@ -5,11 +5,12 @@
 package auth
 
 import (
-	"github.com/sap/cloud-security-client-go/env"
-	"github.com/sap/cloud-security-client-go/mocks"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/sap/cloud-security-client-go/env"
+	"github.com/sap/cloud-security-client-go/mocks"
 )
 
 func TestAdditionalDomain(t *testing.T) {
@@ -69,7 +70,7 @@ func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 
-			set, err := m.getOIDCTenant(token.getJwtToken().Issuer())
+			set, err := m.getOIDCTenant(token.getJwtToken().Issuer(), token.IasIssuer())
 			if err != nil || set == nil {
 				t.Errorf("unexpected error on getOIDCTenant(), %v", err)
 			}
