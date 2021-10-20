@@ -25,7 +25,7 @@ func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
 	}
 
 	// get keyset
-	keySet, err := m.getOIDCTenant(token.IasIssuer())
+	keySet, err := m.getOIDCTenant(token.Issuer(), token.IasIssuer())
 	if err != nil {
 		return nil, err
 	}
@@ -92,15 +92,21 @@ func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error { 
 	return nil
 }
 
-func (m *Middleware) getOIDCTenant(tokenIssuer string) (*oidcclient.OIDCTenant, error) {
-	issURI, err := m.verifyIssuer(tokenIssuer)
+// getOIDCTenant returns an OIDC Tenant with discovered .well-known/openid-configuration.
+//
+// tokenIssuer is the iss claim of the incoming token
+//
+// iasIssuer is the ias_iss claim of the incoming token
+func (m *Middleware) getOIDCTenant(tokenIssuer, iasIssuer string) (*oidcclient.OIDCTenant, error) {
+	issURI, err := m.verifyIssuer(iasIssuer)
 	if err != nil {
 		return nil, err
 	}
 
-	oidcTenant, exp, found := m.oidcTenants.GetWithExpiration(tokenIssuer)
-	if !found || time.Now().After(exp) {
-		newKeySet, err, _ := m.sf.Do(tokenIssuer, func() (i interface{}, err error) {
+	oidcTenant, exp, found := m.oidcTenants.GetWithExpiration(iasIssuer)
+	// redo discovery if not found, cache expired, or tokenIssuer is not the same as Issuer on providerJSON (e.g. custom domain config just changed for that tenant)
+	if !found || time.Now().After(exp) || oidcTenant.(*oidcclient.OIDCTenant).ProviderJSON.Issuer != tokenIssuer {
+		newKeySet, err, _ := m.sf.Do(iasIssuer, func() (i interface{}, err error) {
 			set, err := oidcclient.NewOIDCTenant(m.options.HTTPClient, issURI)
 			return set, err
 		})
