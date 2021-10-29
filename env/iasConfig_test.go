@@ -6,11 +6,12 @@ package env
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"os"
 	"path"
 	"reflect"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 var testConfig = &Identity{
@@ -19,6 +20,19 @@ var testConfig = &Identity{
 	Domains:      []string{"accounts400.ondemand.com", "my.arbitrary.domain"},
 	URL:          "https://mytenant.accounts400.ondemand.com",
 	ZoneUUID:     uuid.MustParse("bef12345-de57-480f-be92-1d8c1c7abf16"),
+}
+
+var identityAuthz = &Identity{
+	AuthzObjectStore: ObjectStoreCredentials{
+		AccessKeyID:     "myawstestaccesskeyid",
+		Bucket:          "my-bucket",
+		Host:            "s3-eu-central-1.amazonaws.com",
+		Region:          "eu-central-1",
+		SecretAccessKey: "mysecretaccesskey",
+		URI:             "s3://myawstestaccesskeyid:mysecretaccesskey@s3-eu-central-1.amazonaws.com/my-bucket",
+		Username:        "my-username",
+	},
+	Domains: []string{"tenant.domain"},
 }
 
 func TestGetIASConfig(t *testing.T) {
@@ -46,6 +60,12 @@ func TestGetIASConfig(t *testing.T) {
 			env:     "{}",
 			want:    nil,
 			wantErr: true,
+		},
+		{
+			name:    "[CF] single identity service instance with authorization bound",
+			env:     `{"identity":[{"credentials":{"domains": ["tenant.domain"],"authorization_object_store":{"access_key_id":"myawstestaccesskeyid","bucket":"my-bucket","host":"s3-eu-central-1.amazonaws.com","region":"eu-central-1","secret_access_key":"mysecretaccesskey","uri":"s3:\/\/myawstestaccesskeyid:mysecretaccesskey@s3-eu-central-1.amazonaws.com\/my-bucket","username":"my-username"},"authorization_value_help_certificate_issuer":"{\"Country\":[\"DE\"],\"Organization\":[\"SAP SE\"],\"Locality\":[\"Walldorf\"],\"CommonName\":\"SAP Cloud Root CA\"}","authorization_value_help_certificate_subject":"{\"Country\":[\"DE\"],\"Organization\":[\"SAP SE\"],\"OrganizationalUnit\":[\"SAP Cloud Platform Clients\",\"Canary\",\"someuid\"],\"Locality\":[\"AMS\"],\"CommonName\":\"ValueHelpmTLSCert\"}"}}]}`,
+			want:    identityAuthz,
+			wantErr: false,
 		},
 		{
 			name:          "[K8s] single identity service instance bound",

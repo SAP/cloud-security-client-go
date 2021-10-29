@@ -7,10 +7,11 @@ package env
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path"
+
+	"github.com/google/uuid"
+	"gopkg.in/yaml.v3"
 )
 
 const iasServiceName = "identity"
@@ -28,16 +29,31 @@ type VCAPServices struct {
 
 // Identity represents the parsed credentials from the ias binding
 type Identity struct {
-	ClientID             string    `json:"clientid"`
-	ClientSecret         string    `json:"clientsecret"`
-	Domains              []string  `json:"domains"`
-	URL                  string    `json:"url"`
-	ZoneUUID             uuid.UUID `json:"zone_uuid"`
-	ProofTokenURL        string    `json:"prooftoken_url"`
-	OsbURL               string    `json:"osb_url"`
-	Certificate          string    `json:"certificate"`
-	Key                  string    `json:"key"`
-	CertificateExpiresAt string    `json:"certificate_expires_at"`
+	ClientID             string                 `json:"clientid"`
+	ClientSecret         string                 `json:"clientsecret"`
+	Domains              []string               `json:"domains"`
+	URL                  string                 `json:"url"`
+	ZoneUUID             uuid.UUID              `json:"zone_uuid"`
+	ProofTokenURL        string                 `json:"prooftoken_url"`
+	OsbURL               string                 `json:"osb_url"`
+	Certificate          string                 `json:"certificate"`
+	Key                  string                 `json:"key"`
+	CertificateExpiresAt string                 `json:"certificate_expires_at"`
+	AuthzObjectStore     ObjectStoreCredentials `json:"authorization_object_store"`
+	AuthzUIURL           string                 `json:"authorization_ui_url"`
+	// AuthzVHCertIssuer string "authorization_value_help_certificate_issuer"
+	// AuthzVHCertSubject string "authorization_value_help_certificate_subject"
+}
+
+// ObjectStoreCredentials represent credentials for a service of type ObjectStore
+type ObjectStoreCredentials struct {
+	AccessKeyID     string `json:"access_key_id"`
+	Bucket          string `json:"bucket"`
+	Host            string `json:"host"`
+	Region          string `json:"region"`
+	SecretAccessKey string `json:"secret_access_key"`
+	URI             string `json:"uri"`
+	Username        string `json:"username"`
 }
 
 // GetIASConfig parses the IAS config from the applications environment
