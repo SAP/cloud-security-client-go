@@ -25,7 +25,7 @@ func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
 	}
 
 	// get keyset
-	keySet, err := m.getOIDCTenant(token.Issuer(), token.IasIssuer())
+	keySet, err := m.getOIDCTenant(token.issuer(), token.iasIssuer())
 	if err != nil {
 		return nil, err
 	}
@@ -76,15 +76,15 @@ func getHeaders(encodedToken string) (jws.Headers, error) {
 	return msg.Signatures()[0].ProtectedHeaders(), nil
 }
 
-func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error { // performing IsExpired check, because dgriljalva jwt.Validate() doesn't fail on missing 'exp' claim
-	// performing IsExpired check, because lestrrat-go jwt.Validate() doesn't fail on missing 'exp' claim
-	if t.IsExpired() {
-		return fmt.Errorf("token is expired, exp: %v", t.Expiration())
+func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error { // performing isExpired check, because dgriljalva jwt.Validate() doesn't fail on missing 'exp' claim
+	// performing isExpired check, because lestrrat-go jwt.Validate() doesn't fail on missing 'exp' claim
+	if t.isExpired() {
+		return fmt.Errorf("token is expired, exp: %v", t.expiration())
 	}
 	err := jwt.Validate(t.getJwtToken(),
 		jwt.WithAudience(m.oAuthConfig.GetClientID()),
 		jwt.WithIssuer(ks.ProviderJSON.Issuer),
-		jwt.WithAcceptableSkew(1*time.Minute)) // to keep leeway in sync with Token.IsExpired
+		jwt.WithAcceptableSkew(1*time.Minute)) // to keep leeway in sync with Token.isExpired
 
 	if err != nil {
 		return fmt.Errorf("claim validation failed: %v", err)
