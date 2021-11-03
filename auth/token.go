@@ -17,7 +17,7 @@ import (
 const (
 	claimGivenName       = "given_name"
 	claimFamilyName      = "family_name"
-	claimEmail           = "claimEmail"
+	claimEmail           = "email"
 	claimSapGlobalUserID = "user_uuid"
 	claimSapGlobalZoneID = "zone_uuid" // tenant GUID
 	claimIasIssuer       = "ias_iss"
@@ -31,7 +31,7 @@ type Token interface {
 	IsExpired() bool                                      // IsExpired returns true, if 'exp' claim + leeway time of 1 minute is before current time
 	IssuedAt() time.Time                                  // IssuedAt returns "iat" claim, if it doesn't exist empty string is returned
 	CustomIssuer() string                                 // CustomIssuer returns "iss" claim if it is a custom domain ("ias_iss" claim available), if it doesn't exist empty string is returned
-	Issuer() string                                       // Issuer returns "ias_iss" (SAP domain, only set if custom domains are used) claim, if it doesn't exist the standard "iss" claim is returned
+	Issuer() string                                       // Issuer returns "ias_iss" (SAP domain, only set if a custom non-SAP domain is used as "iss") claim, otherwise the standard "iss" claim is returned
 	NotBefore() time.Time                                 // NotBefore returns "nbf" claim, if it doesn't exist empty string is returned
 	Subject() string                                      // Subject returns "sub" claim, if it doesn't exist empty string is returned
 	GivenName() string                                    // GivenName returns "given_name" claim, if it doesn't exist empty string is returned
@@ -39,6 +39,7 @@ type Token interface {
 	Email() string                                        // Email returns "email" claim, if it doesn't exist empty string is returned
 	ZoneID() string                                       // ZoneID returns "zone_uuid" claim, if it doesn't exist empty string is returned
 	UserUUID() string                                     // UserUUID returns "user_uuid" claim, if it doesn't exist empty string is returned
+	HasClaim(claim string) bool                           // HasClaim returns true if the provided claim exists in the token
 	GetClaimAsString(claim string) (string, error)        // GetClaimAsString returns a custom claim type asserted as string. Returns error if the claim is not available or not a string.
 	GetClaimAsStringSlice(claim string) ([]string, error) // GetClaimAsStringSlice returns a custom claim type asserted as string slice. The claim name is case sensitive. Returns error if the claim is not available or not an array
 	GetAllClaimsAsMap() map[string]interface{}            // GetAllClaimsAsMap returns a map of all claims contained in the token. The claim name is case sensitive. Includes also custom claims
@@ -86,8 +87,7 @@ func (t stdToken) IssuedAt() time.Time {
 
 func (t stdToken) CustomIssuer() string {
 	// only return iss if ias_iss does exist
-	_, err := t.GetClaimAsString(claimIasIssuer)
-	if errors.Is(err, ErrClaimNotExists) {
+	if !t.HasClaim(claimIasIssuer) {
 		return ""
 	}
 	return t.jwtToken.Issuer()
@@ -137,6 +137,11 @@ func (t stdToken) UserUUID() string {
 
 // ErrClaimNotExists shows that the requested custom claim does not exist in the token
 var ErrClaimNotExists = errors.New("claim does not exist in the token")
+
+func (t stdToken) HasClaim(claim string) bool {
+	_, exists := t.jwtToken.Get(claim)
+	return exists
+}
 
 func (t stdToken) GetClaimAsString(claim string) (string, error) {
 	value, exists := t.jwtToken.Get(claim)
