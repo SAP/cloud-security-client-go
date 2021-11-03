@@ -165,13 +165,13 @@ func TestOIDCClaims_getIasIssuer(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error while preparing test: %v", err)
 			}
-			issuerActual := token.issuer()
+			issuerActual := token.Issuer()
 			if issuerActual != tt.wantIss {
 				t.Errorf("Issuer() got = %v, want %v", issuerActual, tt.wantIss)
 			}
-			iasIssuerActual := token.iasIssuer()
+			iasIssuerActual := token.IasIssuer()
 			if iasIssuerActual != tt.wantIasIss {
-				t.Errorf("iasIssuer() got = %v, want %v", iasIssuerActual, tt.wantIasIss)
+				t.Errorf("IasIssuer() got = %v, want %v", iasIssuerActual, tt.wantIasIss)
 			}
 		})
 	}

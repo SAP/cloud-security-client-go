@@ -26,6 +26,14 @@ const (
 // Token is the public API to access claims of the token
 type Token interface {
 	TokenValue() string                                   // TokenValue returns encoded token string
+	Audience() []string                                   // Audience returns "aud" claim, if it doesn't exist empty string is returned
+	Expiration() time.Time                                // Expiration returns "exp" claim, if it doesn't exist empty string is returned
+	IsExpired() bool                                      // IsExpired returns true, if 'exp' claim + leeway time of 1 minute is before current time
+	IssuedAt() time.Time                                  // IssuedAt returns "iat" claim, if it doesn't exist empty string is returned
+	Issuer() string                                       // Issuer returns "iss" claim, if it doesn't exist empty string is returned
+	IasIssuer() string                                    // IasIssuer returns "ias_iss" (only set if custom domains are used) claim, if it doesn't exist the value of Issuer() returned
+	NotBefore() time.Time                                 // NotBefore returns "nbf" claim, if it doesn't exist empty string is returned
+	Subject() string                                      // Subject returns "sub" claim, if it doesn't exist empty string is returned
 	GivenName() string                                    // GivenName returns "given_name" claim, if it doesn't exist empty string is returned
 	FamilyName() string                                   // FamilyName returns "family_name" claim, if it doesn't exist empty string is returned
 	Email() string                                        // Email returns "email" claim, if it doesn't exist empty string is returned
@@ -34,15 +42,6 @@ type Token interface {
 	GetClaimAsString(claim string) (string, error)        // GetClaimAsString returns a custom claim type asserted as string. Returns error if the claim is not available or not a string.
 	GetClaimAsStringSlice(claim string) ([]string, error) // GetClaimAsStringSlice returns a custom claim type asserted as string slice. The claim name is case sensitive. Returns error if the claim is not available or not an array
 	GetAllClaimsAsMap() map[string]interface{}            // GetAllClaimsAsMap returns a map of all claims contained in the token. The claim name is case sensitive. Includes also custom claims
-	// only for internal usage
-	audience() []string    // audience returns "aud" claim, if it doesn't exist empty string is returned
-	expiration() time.Time // expiration returns "exp" claim, if it doesn't exist empty string is returned
-	isExpired() bool       // isExpired returns true, if 'exp' claim + leeway time of 1 minute is before current time
-	issuedAt() time.Time   // issuedAt returns "iat" claim, if it doesn't exist empty string is returned
-	issuer() string        // issuer returns "iss" claim, if it doesn't exist empty string is returned
-	iasIssuer() string     // iasIssuer returns "ias_iss" (only set if custom domains are used) claim, if it doesn't exist the value of Issuer() returned
-	notBefore() time.Time  // notBefore returns "nbf" claim, if it doesn't exist empty string is returned
-	subject() string       // subject returns "sub" claim, if it doesn't exist empty string is returned
 	getJwtToken() jwt.Token
 }
 
@@ -69,40 +68,40 @@ func (t stdToken) TokenValue() string {
 	return t.encodedToken
 }
 
-func (t stdToken) audience() []string {
+func (t stdToken) Audience() []string {
 	return t.jwtToken.Audience()
 }
 
-func (t stdToken) expiration() time.Time {
+func (t stdToken) Expiration() time.Time {
 	return t.jwtToken.Expiration()
 }
 
-func (t stdToken) isExpired() bool {
-	return t.expiration().Add(1 * time.Minute).Before(time.Now())
+func (t stdToken) IsExpired() bool {
+	return t.Expiration().Add(1 * time.Minute).Before(time.Now())
 }
 
-func (t stdToken) issuedAt() time.Time {
+func (t stdToken) IssuedAt() time.Time {
 	return t.jwtToken.IssuedAt()
 }
 
-func (t stdToken) issuer() string {
+func (t stdToken) Issuer() string {
 	return t.jwtToken.Issuer()
 }
 
-func (t stdToken) iasIssuer() string {
+func (t stdToken) IasIssuer() string {
 	// return standard issuer if ias_iss is not set
 	v, err := t.GetClaimAsString(iasIssuer)
 	if errors.Is(err, ErrClaimNotExists) {
-		return t.issuer()
+		return t.Issuer()
 	}
 	return v
 }
 
-func (t stdToken) notBefore() time.Time {
+func (t stdToken) NotBefore() time.Time {
 	return t.jwtToken.NotBefore()
 }
 
-func (t stdToken) subject() string {
+func (t stdToken) Subject() string {
 	return t.jwtToken.Subject()
 }
 

@@ -70,7 +70,7 @@ func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 
-			set, err := m.getOIDCTenant(token.getJwtToken().Issuer(), token.iasIssuer())
+			set, err := m.getOIDCTenant(token.getJwtToken().Issuer(), token.IasIssuer())
 			if err != nil || set == nil {
 				t.Errorf("unexpected error on getOIDCTenant(), %v", err)
 			}
