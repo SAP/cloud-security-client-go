@@ -131,26 +131,26 @@ func TestOIDCClaims_getAllClaimsAsMap(t *testing.T) {
 	}
 }
 
-func TestOIDCClaims_getIasIssuer(t *testing.T) {
+func TestOIDCClaims_getSAPIssuer(t *testing.T) {
 	tests := []struct {
-		name       string
-		iss        string
-		iasIss     string
-		wantIss    string
-		wantIasIss string
+		name          string
+		iss           string
+		iasIss        string
+		WantCustomIss string
+		wantIasIss    string
 	}{
 		{
-			name:       "iss claim only",
-			iss:        "http://localhost:3030",
-			wantIss:    "http://localhost:3030",
-			wantIasIss: "http://localhost:3030",
+			name:          "iss claim only",
+			iss:           "http://localhost:3030",
+			wantIasIss:    "http://localhost:3030",
+			WantCustomIss: "",
 		},
 		{
-			name:       "iss and ias_iss claim",
-			iss:        "http://localhost:3030",
-			iasIss:     "https://custom.oidc-server.com",
-			wantIss:    "http://localhost:3030",
-			wantIasIss: "https://custom.oidc-server.com",
+			name:          "iss and ias_iss claim",
+			iss:           "http://localhost:3030",
+			iasIss:        "https://custom.oidc-server.com",
+			wantIasIss:    "https://custom.oidc-server.com",
+			WantCustomIss: "http://localhost:3030",
 		},
 	}
 	for _, tt := range tests {
@@ -165,13 +165,13 @@ func TestOIDCClaims_getIasIssuer(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error while preparing test: %v", err)
 			}
-			issuerActual := token.Issuer()
-			if issuerActual != tt.wantIss {
-				t.Errorf("Issuer() got = %v, want %v", issuerActual, tt.wantIss)
+			issuerActual := token.CustomIssuer()
+			if issuerActual != tt.WantCustomIss {
+				t.Errorf("CustomIssuer() got = %v, want %v", issuerActual, tt.WantCustomIss)
 			}
-			iasIssuerActual := token.IasIssuer()
+			iasIssuerActual := token.Issuer()
 			if iasIssuerActual != tt.wantIasIss {
-				t.Errorf("IasIssuer() got = %v, want %v", iasIssuerActual, tt.wantIasIss)
+				t.Errorf("Issuer() got = %v, want %v", iasIssuerActual, tt.wantIasIss)
 			}
 		})
 	}
