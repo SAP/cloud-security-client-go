@@ -6,20 +6,21 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
+
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/lestrrat-go/jwx/jwt/openid"
-	"log"
-	"time"
 )
 
 const (
-	givenName       = "given_name"
-	familyName      = "family_name"
-	email           = "email"
-	sapGlobalUserID = "user_uuid"
-	sapGlobalZoneID = "zone_uuid" // tenant GUID
-	iasIssuer       = "ias_iss"
+	claimGivenName       = "given_name"
+	claimFamilyName      = "family_name"
+	claimEmail           = "email"
+	claimSapGlobalUserID = "user_uuid"
+	claimSapGlobalZoneID = "zone_uuid" // tenant GUID
+	claimIasIssuer       = "ias_iss"
 )
 
 // Token is the public API to access claims of the token
@@ -29,8 +30,8 @@ type Token interface {
 	Expiration() time.Time                                // Expiration returns "exp" claim, if it doesn't exist empty string is returned
 	IsExpired() bool                                      // IsExpired returns true, if 'exp' claim + leeway time of 1 minute is before current time
 	IssuedAt() time.Time                                  // IssuedAt returns "iat" claim, if it doesn't exist empty string is returned
-	Issuer() string                                       // Issuer returns "iss" claim, if it doesn't exist empty string is returned
-	IasIssuer() string                                    // IasIssuer returns "ias_iss" claim, if it doesn't exist empty string is returned
+	CustomIssuer() string                                 // CustomIssuer returns "iss" claim if it is a custom domain ("ias_iss" claim available), if it doesn't exist empty string is returned
+	Issuer() string                                       // Issuer returns "ias_iss" (SAP domain, only set if a custom non-SAP domain is used as "iss") claim, otherwise the standard "iss" claim is returned
 	NotBefore() time.Time                                 // NotBefore returns "nbf" claim, if it doesn't exist empty string is returned
 	Subject() string                                      // Subject returns "sub" claim, if it doesn't exist empty string is returned
 	GivenName() string                                    // GivenName returns "given_name" claim, if it doesn't exist empty string is returned
@@ -38,6 +39,7 @@ type Token interface {
 	Email() string                                        // Email returns "email" claim, if it doesn't exist empty string is returned
 	ZoneID() string                                       // ZoneID returns "zone_uuid" claim, if it doesn't exist empty string is returned
 	UserUUID() string                                     // UserUUID returns "user_uuid" claim, if it doesn't exist empty string is returned
+	HasClaim(claim string) bool                           // HasClaim returns true if the provided claim exists in the token
 	GetClaimAsString(claim string) (string, error)        // GetClaimAsString returns a custom claim type asserted as string. Returns error if the claim is not available or not a string.
 	GetClaimAsStringSlice(claim string) ([]string, error) // GetClaimAsStringSlice returns a custom claim type asserted as string slice. The claim name is case sensitive. Returns error if the claim is not available or not an array
 	GetAllClaimsAsMap() map[string]interface{}            // GetAllClaimsAsMap returns a map of all claims contained in the token. The claim name is case sensitive. Includes also custom claims
@@ -83,17 +85,20 @@ func (t stdToken) IssuedAt() time.Time {
 	return t.jwtToken.IssuedAt()
 }
 
-func (t stdToken) Issuer() string {
-	// support ias custom domains
-	iss := t.IasIssuer()
-	if iss == "" {
-		iss = t.jwtToken.Issuer()
+func (t stdToken) CustomIssuer() string {
+	// only return iss if ias_iss does exist
+	if !t.HasClaim(claimIasIssuer) {
+		return ""
 	}
-	return iss
+	return t.jwtToken.Issuer()
 }
 
-func (t stdToken) IasIssuer() string {
-	v, _ := t.GetClaimAsString(iasIssuer)
+func (t stdToken) Issuer() string {
+	// return standard issuer if ias_iss is not set
+	v, err := t.GetClaimAsString(claimIasIssuer)
+	if errors.Is(err, ErrClaimNotExists) {
+		return t.jwtToken.Issuer()
+	}
 	return v
 }
 
@@ -106,34 +111,42 @@ func (t stdToken) Subject() string {
 }
 
 func (t stdToken) GivenName() string {
-	v, _ := t.GetClaimAsString(givenName)
+	v, _ := t.GetClaimAsString(claimGivenName)
 	return v
 }
 
 func (t stdToken) FamilyName() string {
-	v, _ := t.GetClaimAsString(familyName)
+	v, _ := t.GetClaimAsString(claimFamilyName)
 	return v
 }
 
 func (t stdToken) Email() string {
-	v, _ := t.GetClaimAsString(email)
+	v, _ := t.GetClaimAsString(claimEmail)
 	return v
 }
 
 func (t stdToken) ZoneID() string {
-	v, _ := t.GetClaimAsString(sapGlobalZoneID)
+	v, _ := t.GetClaimAsString(claimSapGlobalZoneID)
 	return v
 }
 
 func (t stdToken) UserUUID() string {
-	v, _ := t.GetClaimAsString(sapGlobalUserID)
+	v, _ := t.GetClaimAsString(claimSapGlobalUserID)
 	return v
+}
+
+// ErrClaimNotExists shows that the requested custom claim does not exist in the token
+var ErrClaimNotExists = errors.New("claim does not exist in the token")
+
+func (t stdToken) HasClaim(claim string) bool {
+	_, exists := t.jwtToken.Get(claim)
+	return exists
 }
 
 func (t stdToken) GetClaimAsString(claim string) (string, error) {
 	value, exists := t.jwtToken.Get(claim)
 	if !exists {
-		return "", fmt.Errorf("claim %s not available in the token", claim)
+		return "", ErrClaimNotExists
 	}
 	stringValue, ok := value.(string)
 	if !ok {
@@ -145,7 +158,7 @@ func (t stdToken) GetClaimAsString(claim string) (string, error) {
 func (t stdToken) GetClaimAsStringSlice(claim string) ([]string, error) {
 	value, exists := t.jwtToken.Get(claim)
 	if !exists {
-		return nil, fmt.Errorf("claim %s not available in the token", claim)
+		return nil, ErrClaimNotExists
 	}
 	res, ok := value.([]string)
 	if !ok {
@@ -160,12 +173,5 @@ func (t stdToken) GetAllClaimsAsMap() map[string]interface{} {
 }
 
 func (t stdToken) getJwtToken() jwt.Token {
-	// support ias custom domains
-	if t.IasIssuer() != "" {
-		err := t.jwtToken.Set("iss", t.IasIssuer())
-		if err != nil {
-			log.Printf("unable to overwrite 'iss' claim with %s", t.IasIssuer())
-		}
-	}
 	return t.jwtToken
 }

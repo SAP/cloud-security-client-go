@@ -6,8 +6,6 @@ package auth
 
 import (
 	"context"
-	"github.com/google/uuid"
-	"github.com/lestrrat-go/jwx/jwa"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,20 +13,29 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/lestrrat-go/jwx/jwa"
+
 	"github.com/sap/cloud-security-client-go/mocks"
 )
 
 func TestEnd2End(t *testing.T) {
-	testServer, oidcMockServer := GetTestServer()
+	testServer, oidcMockServer := GetTestServer("")
 	client := testServer.Client()
 	defer testServer.Close()
 	defer oidcMockServer.Server.Close()
 
+	customDomainTestServer, customDomainOidcMockServer := GetTestServer("https://custom.oidc-server.com/")
+	customDomainClient := customDomainTestServer.Client()
+	defer customDomainTestServer.Close()
+	defer customDomainOidcMockServer.Server.Close()
+
 	tests := []struct {
-		name    string
-		header  map[string]interface{}
-		claims  mocks.OIDCClaims
-		wantErr bool
+		name                string
+		header              map[string]interface{}
+		claims              mocks.OIDCClaims
+		optCustomDomainTest bool
+		wantErr             bool
 	}{
 		{
 			name:    "valid",
@@ -102,12 +109,13 @@ func TestEnd2End(t *testing.T) {
 			wantErr: true,
 		}, {
 			name:   "custom issuer",
-			header: oidcMockServer.DefaultHeaders(),
-			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
+			header: customDomainOidcMockServer.DefaultHeaders(),
+			claims: mocks.NewOIDCClaimsBuilder(customDomainOidcMockServer.DefaultClaims()).
 				Issuer("https://custom.oidc-server.com/").
-				IasIssuer(oidcMockServer.Server.URL).
+				IasIssuer(customDomainOidcMockServer.Server.URL).
 				Build(),
-			wantErr: false,
+			optCustomDomainTest: true,
+			wantErr:             false,
 		}, {
 			name:   "no http/s prefix for issuer",
 			header: oidcMockServer.DefaultHeaders(),
@@ -226,15 +234,22 @@ func TestEnd2End(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			s, ts, c := oidcMockServer, testServer, client
+			if tt.optCustomDomainTest {
+				s = customDomainOidcMockServer
+				ts = customDomainTestServer
+				c = customDomainClient
+			}
+
 			timeout, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancelFunc()
-			req, _ := http.NewRequestWithContext(timeout, "GET", testServer.URL+"/helloWorld", nil)
-			authHeader, err := oidcMockServer.SignToken(tt.claims, tt.header)
+			req, _ := http.NewRequestWithContext(timeout, "GET", ts.URL+"/helloWorld", nil)
+			authHeader, err := s.SignToken(tt.claims, tt.header)
 			if err != nil {
 				t.Errorf("unable to sign provided test token: %v", err)
 			}
 			req.Header.Add("Authorization", "Bearer "+authHeader)
-			response, err := client.Do(req)
+			response, err := c.Do(req)
 			if err != nil {
 				t.Errorf("unexpected error during request: %v", err)
 			}
@@ -261,8 +276,8 @@ func GetTestHandler() http.HandlerFunc {
 	}
 }
 
-func GetTestServer() (clientServer *httptest.Server, oidcServer *mocks.MockServer) {
-	mockServer, _ := mocks.NewOIDCMockServer()
+func GetTestServer(customIssuer string) (clientServer *httptest.Server, oidcServer *mocks.MockServer) {
+	mockServer, _ := mocks.NewOIDCMockServerWithCustomIssuer(customIssuer)
 	options := Options{
 		ErrorHandler: nil,
 		HTTPClient:   mockServer.Server.Client(),

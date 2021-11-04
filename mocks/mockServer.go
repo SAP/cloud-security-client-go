@@ -11,19 +11,23 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/lestrrat-go/jwx/jwt"
+
 	"github.com/sap/cloud-security-client-go/oidcclient"
-	"math/big"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"time"
 )
+
+const keyLength = 2048
 
 // MockServer serves as a single tenant OIDC mock server for tests.
 // Requests to the MockServer must be done by the mockServers client: MockServer.Server.Client()
@@ -33,6 +37,7 @@ type MockServer struct {
 	RSAKey              *rsa.PrivateKey  // RSAKey holds the servers private key to sign tokens.
 	WellKnownHitCounter int              // JWKsHitCounter holds the number of requests to the WellKnownHandler.
 	JWKsHitCounter      int              // JWKsHitCounter holds the number of requests to the JWKsHandler.
+	CustomIssuer        string           // CustomIssuer holds a custom domain returned by the discovery endpoint
 }
 
 // InvalidZoneID represents a zone guid which is rejected by mock server on behalf of IAS tenant
@@ -40,8 +45,17 @@ const InvalidZoneID string = "dff69954-a259-4104-9074-193bc9a366ce"
 
 // NewOIDCMockServer instantiates a new MockServer.
 func NewOIDCMockServer() (*MockServer, error) {
+	return newOIDCMockServer("")
+}
+
+// NewOIDCMockServerWithCustomIssuer instantiates a new MockServer with a custom issuer domain returned by the discovery endpoint.
+func NewOIDCMockServerWithCustomIssuer(customIssuer string) (*MockServer, error) {
+	return newOIDCMockServer(customIssuer)
+}
+
+func newOIDCMockServer(customIssuer string) (*MockServer, error) {
 	r := mux.NewRouter()
-	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	rsaKey, err := rsa.GenerateKey(rand.Reader, keyLength)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create mock server: error generating rsa key: %v", err)
 	}
@@ -59,7 +73,8 @@ func NewOIDCMockServer() (*MockServer, error) {
 			URL:          server.URL,
 			Domains:      []string{domain.Host},
 		},
-		RSAKey: rsaKey,
+		RSAKey:       rsaKey,
+		CustomIssuer: customIssuer,
 	}
 
 	r.HandleFunc("/.well-known/openid-configuration", mockServer.WellKnownHandler).Methods("GET")
@@ -77,10 +92,13 @@ func (m *MockServer) ClearAllHitCounters() {
 
 // WellKnownHandler is the http handler which answers requests to the mock servers OIDC discovery endpoint.
 func (m *MockServer) WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
-	// TODO: make response configurable for better tests (well_known and jwks)
 	m.WellKnownHitCounter++
+	issuer := m.Config.URL
+	if m.CustomIssuer != "" {
+		issuer = m.CustomIssuer
+	}
 	wellKnown := oidcclient.ProviderJSON{
-		Issuer:  m.Config.URL,
+		Issuer:  issuer,
 		JWKsURL: fmt.Sprintf("%s/oauth2/certs", m.Server.URL),
 	}
 	payload, _ := json.Marshal(wellKnown)

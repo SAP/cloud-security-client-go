@@ -7,12 +7,14 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"github.com/lestrrat-go/jwx/jws"
-	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/sap/cloud-security-client-go/oidcclient"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/lestrrat-go/jwx/jws"
+	"github.com/lestrrat-go/jwx/jwt"
+
+	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
 // parseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
@@ -23,7 +25,7 @@ func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
 	}
 
 	// get keyset
-	keySet, err := m.getOIDCTenant(token.Issuer())
+	keySet, err := m.getOIDCTenant(token.Issuer(), token.CustomIssuer())
 	if err != nil {
 		return nil, err
 	}
@@ -90,15 +92,25 @@ func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error { 
 	return nil
 }
 
-func (m *Middleware) getOIDCTenant(tokenIssuer string) (*oidcclient.OIDCTenant, error) {
-	issURI, err := m.verifyIssuer(tokenIssuer)
+// getOIDCTenant returns an OIDC Tenant with discovered .well-known/openid-configuration.
+//
+// issuer is the iss (or ias_iss, if set) of the incoming token
+//
+// customIssuer is the iss claim of the incoming token
+func (m *Middleware) getOIDCTenant(issuer, customIssuer string) (*oidcclient.OIDCTenant, error) {
+	issURI, err := m.verifyIssuer(issuer)
 	if err != nil {
 		return nil, err
 	}
 
-	oidcTenant, exp, found := m.oidcTenants.GetWithExpiration(tokenIssuer)
-	if !found || time.Now().After(exp) {
-		newKeySet, err, _ := m.sf.Do(tokenIssuer, func() (i interface{}, err error) {
+	if customIssuer == "" {
+		customIssuer = issuer
+	}
+
+	oidcTenant, exp, found := m.oidcTenants.GetWithExpiration(issuer)
+	// redo discovery if not found, cache expired, or tokenIssuer is not the same as Issuer on providerJSON (e.g. custom domain config just changed for that tenant)
+	if !found || time.Now().After(exp) || oidcTenant.(*oidcclient.OIDCTenant).ProviderJSON.Issuer != customIssuer {
+		newKeySet, err, _ := m.sf.Do(issuer, func() (i interface{}, err error) {
 			set, err := oidcclient.NewOIDCTenant(m.options.HTTPClient, issURI)
 			return set, err
 		})
@@ -115,7 +127,7 @@ func (m *Middleware) getOIDCTenant(tokenIssuer string) (*oidcclient.OIDCTenant, 
 func (m *Middleware) verifyIssuer(issuer string) (issURI *url.URL, err error) {
 	issURI, err = url.Parse(issuer)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse Issuer URI: %s", issuer)
+		return nil, fmt.Errorf("unable to parse issuer URI: %s", issuer)
 	}
 
 	if !matchesDomain(issURI.Host, m.oAuthConfig.GetDomains()) {

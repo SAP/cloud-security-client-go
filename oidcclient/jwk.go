@@ -8,8 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/pquerna/cachecontrol"
 	"io"
 	"mime"
 	"net/http"
@@ -17,6 +15,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/pquerna/cachecontrol"
 )
 
 const defaultJwkExpiration = 15 * time.Minute
@@ -173,7 +174,7 @@ type ProviderJSON struct {
 }
 
 func (p ProviderJSON) assertMandatoryFieldsPresent() error {
-	missing := make([]string, 0, 2)
+	var missing []string
 	if p.Issuer == "" {
 		missing = append(missing, "issuer")
 	}

@@ -6,12 +6,13 @@ package auth
 
 import (
 	"context"
-	"github.com/google/uuid"
-	"github.com/patrickmn/go-cache"
-	"golang.org/x/sync/singleflight"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/patrickmn/go-cache"
+	"golang.org/x/sync/singleflight"
 )
 
 // The ContextKey type is used as a key for library related values in the go context. See also TokenCtxKey
