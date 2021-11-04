@@ -127,7 +127,7 @@ func (m *Middleware) getOIDCTenant(issuer, customIssuer string) (*oidcclient.OID
 func (m *Middleware) verifyIssuer(issuer string) (issURI *url.URL, err error) {
 	issURI, err = url.Parse(issuer)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse CustomIssuer URI: %s", issuer)
+		return nil, fmt.Errorf("unable to parse issuer URI: %s", issuer)
 	}
 
 	if !matchesDomain(issURI.Host, m.oAuthConfig.GetDomains()) {
