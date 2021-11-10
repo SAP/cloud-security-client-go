@@ -131,6 +131,22 @@ func TestOIDCClaims_getAllClaimsAsMap(t *testing.T) {
 	}
 }
 
+func TestOIDCClaims_parseIssuerWithEscapeChar(t *testing.T) {
+	token, err := NewToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiaXNzIjoiaHR0cHM6Ly9zdWJkb21haW4uYWNjb3VudHM0MDAub25kZW1hbmQuY29tIn0.psfkd91nGytry3w4G1xOtq-sz6hRkfCsCqwgy_2TsQQ")
+	if err != nil {
+		t.Errorf("Error while preparing test: %v", err)
+	}
+
+	got, err := token.GetClaimAsString("iss")
+	if err != nil {
+		t.Errorf("GetClaimAsString() error = %v", err)
+	}
+	if got != "https://subdomain.accounts400.ondemand.com" {
+		t.Errorf("GetClaimAsString('iss') got = %v", got)
+	}
+}
+
+
 func TestOIDCClaims_getSAPIssuer(t *testing.T) {
 	tests := []struct {
 		name          string
