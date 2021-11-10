@@ -137,19 +137,19 @@ func TestOIDCClaims_getSAPIssuer(t *testing.T) {
 		iss           string
 		iasIss        string
 		WantCustomIss string
-		wantIasIss    string
+		wantIss       string
 	}{
 		{
 			name:          "iss claim only",
 			iss:           "http://localhost:3030",
-			wantIasIss:    "http://localhost:3030",
+			wantIss:       "http://localhost:3030",
 			WantCustomIss: "",
 		},
 		{
 			name:          "iss and ias_iss claim",
 			iss:           "http://localhost:3030",
 			iasIss:        "https://custom.oidc-server.com",
-			wantIasIss:    "https://custom.oidc-server.com",
+			wantIss:       "https://custom.oidc-server.com",
 			WantCustomIss: "http://localhost:3030",
 		},
 	}
@@ -170,8 +170,8 @@ func TestOIDCClaims_getSAPIssuer(t *testing.T) {
 				t.Errorf("CustomIssuer() got = %v, want %v", issuerActual, tt.WantCustomIss)
 			}
 			iasIssuerActual := token.Issuer()
-			if iasIssuerActual != tt.wantIasIss {
-				t.Errorf("Issuer() got = %v, want %v", iasIssuerActual, tt.wantIasIss)
+			if iasIssuerActual != tt.wantIss {
+				t.Errorf("Issuer() got = %v, want %v", iasIssuerActual, tt.wantIss)
 			}
 		})
 	}

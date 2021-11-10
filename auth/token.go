@@ -30,8 +30,8 @@ type Token interface {
 	Expiration() time.Time                                // Expiration returns "exp" claim, if it doesn't exist empty string is returned
 	IsExpired() bool                                      // IsExpired returns true, if 'exp' claim + leeway time of 1 minute is before current time
 	IssuedAt() time.Time                                  // IssuedAt returns "iat" claim, if it doesn't exist empty string is returned
-	CustomIssuer() string                                 // CustomIssuer returns "iss" claim if it is a custom domain ("ias_iss" claim available), if it doesn't exist empty string is returned
-	Issuer() string                                       // Issuer returns "ias_iss" (SAP domain, only set if a custom non-SAP domain is used as "iss") claim, otherwise the standard "iss" claim is returned
+	CustomIssuer() string                                 // CustomIssuer returns "iss" claim if it is a custom domain (i.e. "ias_iss" claim available), otherwise empty string is returned
+	Issuer() string                                       // Issuer returns token issuer with SAP domain, "ias_iss" if it is a custom domain, otherwise the standard "iss" claim is returned
 	NotBefore() time.Time                                 // NotBefore returns "nbf" claim, if it doesn't exist empty string is returned
 	Subject() string                                      // Subject returns "sub" claim, if it doesn't exist empty string is returned
 	GivenName() string                                    // GivenName returns "given_name" claim, if it doesn't exist empty string is returned
