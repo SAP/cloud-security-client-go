@@ -131,6 +131,25 @@ func TestOIDCClaims_getAllClaimsAsMap(t *testing.T) {
 	}
 }
 
+func TestOIDCClaims_getClaimAsMap(t *testing.T) {
+	token, err := NewToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbmYiOnsieDV0I1MyNTYiOiIwX3daeG5EUXd6dkxqLWh0NHNZbFQ3RzBIMURuT2ZPUC02MGFxeU1PVDI4IiwicHJvb2Z0b2tlbiI6InRydWUifX0.3Xi2fe-m-6lc1Ze9_AsnNpkYAG-LKFPHCld5EggQTW4")
+	if err != nil {
+		t.Errorf("Error while preparing test: %v", err)
+	}
+
+	got, err := token.GetClaimAsMap("cnf")
+	if err != nil {
+		t.Errorf("GetClaimAsStringSlice() error = %v", err)
+		return
+	}
+	if len(got) != 2 {
+		t.Errorf("GetClaimAsMap() number of members got = %v, want %v", len(got), 2)
+	}
+	if got["x5t#S256"] != "0_wZxnDQwzvLj-ht4sYlT7G0H1DnOfOP-60aqyMOT28" {
+		t.Errorf("GetClaimAsMap()[\"x5t#S256\"] got = %v", got["x5t#S256"])
+	}
+}
+
 func TestOIDCClaims_getSAPIssuer(t *testing.T) {
 	tests := []struct {
 		name          string
