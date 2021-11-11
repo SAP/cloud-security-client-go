@@ -15,6 +15,8 @@ import (
 )
 
 const (
+	claimCnf             = "cnf"
+	claimCnfMemberX5t    = "x5t#S256"
 	claimGivenName       = "given_name"
 	claimFamilyName      = "family_name"
 	claimEmail           = "email"
@@ -43,8 +45,9 @@ type Token interface {
 	GetClaimAsString(claim string) (string, error)              // GetClaimAsString returns a custom claim type asserted as string. Returns error if the claim is not available or not a string
 	GetClaimAsStringSlice(claim string) ([]string, error)       // GetClaimAsStringSlice returns a custom claim type asserted as string slice. The claim name is case sensitive. Returns error if the claim is not available or not an array
 	GetClaimAsMap(claim string) (map[string]interface{}, error) // GetClaimAsMap returns a map of all members and its values of a custom claim in the token. The member name is case sensitive. Returns error if the claim is not available or not a map
-	GetAllClaimsAsMap() map[string]interface{}                  // GetAllClaimsAsMap returns a map of all claims contained in the token. The claim name is case sensitive. Includes also custom claims
+	GetAllClaimsAsMap() map[string]interface{}                  // GetAllClaimsAsMap returns a map of all claims contained in the token. The claim names are case sensitive. Includes also custom claims
 	getJwtToken() jwt.Token
+	getCnfClaimMember(memberName string) string // getCnfClaimMember returns "cnf" claim. The cnf member name is case sensitive. If it doesn't exist empty string is returned
 }
 
 type stdToken struct {
@@ -187,4 +190,18 @@ func (t stdToken) GetClaimAsMap(claim string) (map[string]interface{}, error) {
 
 func (t stdToken) getJwtToken() jwt.Token {
 	return t.jwtToken
+}
+
+func (t stdToken) getCnfClaimMember(memberName string) string {
+	if t.HasClaim(claimCnf) {
+		cnfClaim, err := t.GetClaimAsMap(claimCnf)
+		fmt.Printf("Error getting cnf claim as map: %v", err)
+		if cnfClaim != nil {
+			res, ok := cnfClaim[memberName]
+			if ok {
+				return res.(string)
+			}
+		}
+	}
+	return ""
 }

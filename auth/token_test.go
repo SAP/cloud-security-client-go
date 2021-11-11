@@ -137,7 +137,7 @@ func TestOIDCClaims_getClaimAsMap(t *testing.T) {
 		t.Errorf("Error while preparing test: %v", err)
 	}
 
-	got, err := token.GetClaimAsMap("cnf")
+	got, err := token.GetClaimAsMap(claimCnf)
 	if err != nil {
 		t.Errorf("GetClaimAsStringSlice() error = %v", err)
 		return
@@ -145,8 +145,9 @@ func TestOIDCClaims_getClaimAsMap(t *testing.T) {
 	if len(got) != 2 {
 		t.Errorf("GetClaimAsMap() number of members got = %v, want %v", len(got), 2)
 	}
-	if got["x5t#S256"] != "0_wZxnDQwzvLj-ht4sYlT7G0H1DnOfOP-60aqyMOT28" {
-		t.Errorf("GetClaimAsMap()[\"x5t#S256\"] got = %v", got["x5t#S256"])
+	cnfClaimMemberX5t := token.getCnfClaimMember(claimCnfMemberX5t)
+	if cnfClaimMemberX5t != "0_wZxnDQwzvLj-ht4sYlT7G0H1DnOfOP-60aqyMOT28" {
+		t.Errorf("getCnfClaimMember()[%v] got = %v", claimCnfMemberX5t, cnfClaimMemberX5t)
 	}
 }
 
