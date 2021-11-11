@@ -54,7 +54,7 @@ func TokenFromCtx(r *http.Request) Token {
 	return r.Context().Value(TokenCtxKey).(Token)
 }
 
-// Middleware is the main entrypoint to the client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
+// Middleware is the main entrypoint to the authn client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
 // Use either the ready to use AuthenticationHandler as a middleware or implement your own middleware with the help of Authenticate.
 type Middleware struct {
 	oAuthConfig OAuthConfig
@@ -99,6 +99,13 @@ func (m *Middleware) Authenticate(r *http.Request) (Token, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO integrate proof of possession into middleware
+	//const FORWARDED_CLIENT_CERT_HEADER = "x-forwarded-client-cert"
+	//err = parseAndValidateCertificate(r.Header.Get(FORWARDED_CLIENT_CERT_HEADER), token)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	return token, nil
 }
