@@ -54,12 +54,12 @@ func ParseCertHeader(certHeader string) (*x509.Certificate, error) {
 	if certHeader == "" {
 		return nil, fmt.Errorf("there is no certificate header provided")
 	}
-	const PEM_INDICATOR string = "-----BEGIN"
+	const PEMIndicator string = "-----BEGIN"
 	decoded, err := base64.StdEncoding.DecodeString(certHeader)
 	if err != nil {
 		return nil, fmt.Errorf("cannot base64 decode certificate header: %w", err)
 	}
-	if bytes.HasPrefix(decoded, []byte(PEM_INDICATOR)) { // in case of apache proxy
+	if bytes.HasPrefix(decoded, []byte(PEMIndicator)) { // in case of apache proxy
 		pemBlock, _ := pem.Decode(decoded)
 		if pemBlock == nil {
 			return nil, fmt.Errorf("cannot decode PEM formatted certificate header: %v", err)

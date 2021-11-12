@@ -33,6 +33,27 @@ func TestProofOfPossession_ParseCertHeader_edgeCases(t *testing.T) {
 	})
 }
 
+func TestProofOfPossession_parseAndValidateCertificate_edgeCases(t *testing.T) {
+	t.Run("parseAndValidateCertificate() fails when no cert is given", func(t *testing.T) {
+		err := ValidateX5tThumbprint(nil, createToken(t, "abc"))
+		assert.Equal(t, "there is no x509 client certificate provided", err.Error())
+	})
+
+	t.Run("parseAndValidateCertificate() fails when no token is given", func(t *testing.T) {
+		x509Cert, err := ParseCertHeader(generateCert(t, false))
+		require.NoError(t, err, "Failed to parse cert header: %v", err)
+		err = ValidateX5tThumbprint(x509Cert, nil)
+		assert.Equal(t, "there is no token provided", err.Error())
+	})
+
+	t.Run("parseAndValidateCertificate() fails when cert does not match x5t", func(t *testing.T) {
+		x509Cert, err := ParseCertHeader(generateCert(t, false))
+		require.NoError(t, err, "Failed to parse cert header: %v", err)
+		err = ValidateX5tThumbprint(x509Cert, createToken(t, "abc"))
+		assert.Equal(t, "token thumbprint confirmation failed", err.Error())
+	})
+}
+
 func TestProofOfPossession_validateX5tThumbprint_edgeCases(t *testing.T) {
 	t.Run("ValidateX5tThumbprint() fails when no cert is given", func(t *testing.T) {
 		err := ValidateX5tThumbprint(nil, createToken(t, "abc"))
@@ -40,7 +61,7 @@ func TestProofOfPossession_validateX5tThumbprint_edgeCases(t *testing.T) {
 	})
 
 	t.Run("ValidateX5tThumbprint() fails when no token is given", func(t *testing.T) {
-		x509Cert, err := ParseCertHeader(generateCert(t, "test-issuer-org", "test-subject-org", false))
+		x509Cert, err := ParseCertHeader(generateCert(t, false))
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
 		err = ValidateX5tThumbprint(x509Cert, nil)
 		assert.Equal(t, "there is no token provided", err.Error())
@@ -92,7 +113,7 @@ func TestProofOfPossession_validateX5tThumbprint(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var cert string
 			if tt.certFile == "" {
-				cert = generateCert(t, "test-issuer-org", "test-subject-org", tt.pemEncoded)
+				cert = generateCert(t, tt.pemEncoded)
 			} else {
 				cert = readCert(t, tt.certFile, tt.pemEncoded)
 			}
@@ -132,17 +153,17 @@ func readCert(t *testing.T, fileName string, pemEncoded bool) string {
 	return encodeDERBytes(x509Cert.Raw, pemEncoded)
 }
 
-func generateCert(t *testing.T, issuerOrg, subjectOrg string, pemEncoded bool) string {
+func generateCert(t *testing.T, pemEncoded bool) string {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err, "")
 
 	issuerName := pkix.Name{
-		Organization: []string{issuerOrg},
+		Organization: []string{"my-issuer-org"},
 	}
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(125),
 		Subject: pkix.Name{
-			Organization: []string{subjectOrg},
+			Organization: []string{"my-subject-org"},
 		},
 		Issuer: issuerName,
 	}

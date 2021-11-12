@@ -100,13 +100,13 @@ func (m *Middleware) Authenticate(r *http.Request) (Token, error) {
 		return nil, err
 	}
 
-	// TODO integrate proof of possession into middleware
-	//const FORWARDED_CLIENT_CERT_HEADER = "x-forwarded-client-cert"
-	//err = parseAndValidateCertificate(r.Header.Get(FORWARDED_CLIENT_CERT_HEADER), token)
-	//if err != nil {
-	//	return nil, err
-	//}
-
+	if "1" == "" { // TODO integrate proof of possession into middleware
+		const forwardedClientCertHeader = "x-forwarded-client-cert"
+		err = parseAndValidateCertificate(r.Header.Get(forwardedClientCertHeader), token)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return token, nil
 }
 
