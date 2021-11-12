@@ -31,7 +31,10 @@ func parseAndValidateCertificate(clientCertificate string, token Token) error {
 	return ValidateX5tThumbprint(x509ClientCert, token)
 }
 
-// Checks whether
+// In order to check whether the token was issued for the sender,
+// the cnf token claim with the confirmation method “x5t#S256” needs to be compared with the thumbprint of the
+// provided X509 client certificate.
+// See also RFC 8705
 func ValidateX5tThumbprint(clientCertificate *x509.Certificate, token Token) error {
 	if clientCertificate == nil {
 		return fmt.Errorf("there is no x509 client certificate provided")
@@ -54,6 +57,8 @@ func ValidateX5tThumbprint(clientCertificate *x509.Certificate, token Token) err
 	return nil
 }
 
+// Parses the X509 client certificate which is provided via the "x-forwarded-client-cert".
+// It supports DER encoded and PEM encoded certificates.
 func ParseCertHeader(certHeader string) (*x509.Certificate, error) {
 	if certHeader == "" {
 		return nil, fmt.Errorf("there is no certificate header provided")
