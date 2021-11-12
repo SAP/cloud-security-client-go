@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2021 SAP SE or an SAP affiliate company and Cloud Security Client Go contributors
+//
+// SPDX-License-Identifier: Apache-2.0
 package auth
 
 // parseAndValidateCertificate checks proof of possession in addition to audience validation
@@ -28,6 +31,7 @@ func parseAndValidateCertificate(clientCertificate string, token Token) error {
 	return ValidateX5tThumbprint(x509ClientCert, token)
 }
 
+// Checks whether
 func ValidateX5tThumbprint(clientCertificate *x509.Certificate, token Token) error {
 	if clientCertificate == nil {
 		return fmt.Errorf("there is no x509 client certificate provided")
