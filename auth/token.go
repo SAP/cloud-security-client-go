@@ -32,8 +32,8 @@ type Token interface {
 	Expiration() time.Time                                      // Expiration returns "exp" claim, if it doesn't exist empty string is returned
 	IsExpired() bool                                            // IsExpired returns true, if 'exp' claim + leeway time of 1 minute is before current time
 	IssuedAt() time.Time                                        // IssuedAt returns "iat" claim, if it doesn't exist empty string is returned
-	CustomIssuer() string                                       // CustomIssuer returns "iss" claim if it is a custom domain ("ias_iss" claim available), if it doesn't exist empty string is returned
-	Issuer() string                                             // Issuer returns "ias_iss" (SAP domain, only set if a custom non-SAP domain is used as "iss") claim, otherwise the standard "iss" claim is returned
+	CustomIssuer() string                                       // CustomIssuer returns "iss" claim if it is a custom domain (i.e. "ias_iss" claim available), otherwise empty string is returned
+	Issuer() string                                             // Issuer returns token issuer with SAP domain; by default "iss" claim is returned or in case it is a custom domain, "ias_iss" is returned
 	NotBefore() time.Time                                       // NotBefore returns "nbf" claim, if it doesn't exist empty string is returned
 	Subject() string                                            // Subject returns "sub" claim, if it doesn't exist empty string is returned
 	GivenName() string                                          // GivenName returns "given_name" claim, if it doesn't exist empty string is returned
@@ -42,10 +42,10 @@ type Token interface {
 	ZoneID() string                                             // ZoneID returns "zone_uuid" claim, if it doesn't exist empty string is returned
 	UserUUID() string                                           // UserUUID returns "user_uuid" claim, if it doesn't exist empty string is returned
 	HasClaim(claim string) bool                                 // HasClaim returns true if the provided claim exists in the token
-	GetClaimAsString(claim string) (string, error)              // GetClaimAsString returns a custom claim type asserted as string. Returns error if the claim is not available or not a string
+	GetClaimAsString(claim string) (string, error)              // GetClaimAsString returns a custom claim type asserted as string. Returns error if the claim is not available or not a string.
 	GetClaimAsStringSlice(claim string) ([]string, error)       // GetClaimAsStringSlice returns a custom claim type asserted as string slice. The claim name is case sensitive. Returns error if the claim is not available or not an array
 	GetClaimAsMap(claim string) (map[string]interface{}, error) // GetClaimAsMap returns a map of all members and its values of a custom claim in the token. The member name is case sensitive. Returns error if the claim is not available or not a map
-	GetAllClaimsAsMap() map[string]interface{}                  // GetAllClaimsAsMap returns a map of all claims contained in the token. The claim names are case sensitive. Includes also custom claims
+	GetAllClaimsAsMap() map[string]interface{}                  // GetAllClaimsAsMap returns a map of all claims contained in the token. The claim name is case sensitive. Includes also custom claims
 	getJwtToken() jwt.Token
 	getCnfClaimMember(memberName string) string // getCnfClaimMember returns "cnf" claim. The cnf member name is case sensitive. If it doesn't exist empty string is returned
 }

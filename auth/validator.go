@@ -94,22 +94,23 @@ func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error { 
 
 // getOIDCTenant returns an OIDC Tenant with discovered .well-known/openid-configuration.
 //
-// issuer is the iss (or ias_iss, if set) of the incoming token
+// issuer is the trusted ias issuer with SAP domain of the incoming token (token.Issuer())
 //
-// customIssuer is the iss claim of the incoming token
+// customIssuer represents the custom issuer of the incoming token if given (token.CustomIssuer())
 func (m *Middleware) getOIDCTenant(issuer, customIssuer string) (*oidcclient.OIDCTenant, error) {
 	issURI, err := m.verifyIssuer(issuer)
 	if err != nil {
 		return nil, err
 	}
 
+	tokenIssuer := customIssuer
 	if customIssuer == "" {
-		customIssuer = issuer
+		tokenIssuer = issuer
 	}
 
 	oidcTenant, exp, found := m.oidcTenants.GetWithExpiration(issuer)
 	// redo discovery if not found, cache expired, or tokenIssuer is not the same as Issuer on providerJSON (e.g. custom domain config just changed for that tenant)
-	if !found || time.Now().After(exp) || oidcTenant.(*oidcclient.OIDCTenant).ProviderJSON.Issuer != customIssuer {
+	if !found || time.Now().After(exp) || oidcTenant.(*oidcclient.OIDCTenant).ProviderJSON.Issuer != tokenIssuer {
 		newKeySet, err, _ := m.sf.Do(issuer, func() (i interface{}, err error) {
 			set, err := oidcclient.NewOIDCTenant(m.options.HTTPClient, issURI)
 			return set, err
