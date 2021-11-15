@@ -6,6 +6,7 @@ package auth
 
 import (
 	"context"
+	"crypto/x509"
 	"log"
 	"net/http"
 	"time"
@@ -19,11 +20,12 @@ import (
 type ContextKey int
 
 // TokenCtxKey is the key that holds the authorization value (*OIDCClaims) in the request context
+// ClientCertificateCtxKey is the key that holds the x509 client certificate in the request context
 const (
-	TokenCtxKey ContextKey = 0
-
-	cacheExpiration      = 12 * time.Hour
-	cacheCleanupInterval = 24 * time.Hour
+	TokenCtxKey             ContextKey = 0
+	ClientCertificateCtxKey ContextKey = 1
+	cacheExpiration                    = 12 * time.Hour
+	cacheCleanupInterval               = 24 * time.Hour
 )
 
 // ErrorHandler is the type for the Error Handler which is called on unsuccessful token validation and if the AuthenticationHandler middleware func is used
@@ -54,8 +56,14 @@ func TokenFromCtx(r *http.Request) Token {
 	return r.Context().Value(TokenCtxKey).(Token)
 }
 
+// ClientCertificateFromCtx retrieves the X.509 client certificate of a request which
+// have been injected before via the auth middleware
+func ClientCertificateFromCtx(r *http.Request) *x509.Certificate {
+	return r.Context().Value(ClientCertificateCtxKey).(*x509.Certificate)
+}
+
 // Middleware is the main entrypoint to the authn client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
-// Use either the ready to use AuthenticationHandler as a middleware or implement your own middleware with the help of Authenticate.
+// Use either the ready to use AuthenticationHandler as a middleware or implement your own middleware with the help of authenticate.
 type Middleware struct {
 	oAuthConfig OAuthConfig
 	options     Options
@@ -87,44 +95,52 @@ func NewMiddleware(oAuthConfig OAuthConfig, options Options) *Middleware {
 	return m
 }
 
-// Authenticate authenticates a request and returns the Token if validation was successful, otherwise error is returned
-func (m *Middleware) Authenticate(r *http.Request) (Token, error) {
+// authenticate authenticates a request and returns the Token if validation was successful, otherwise error is returned
+func (m *Middleware) authenticate(r *http.Request) (Token, *x509.Certificate, error) {
 	// get Token from Header
 	rawToken, err := extractRawToken(r)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	token, err := m.parseAndValidateJWT(rawToken)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if "1" == "" { // TODO integrate proof of possession into middleware
-		const forwardedClientCertHeader = "x-forwarded-client-cert"
-		err = parseAndValidateCertificate(r.Header.Get(forwardedClientCertHeader), token)
+	const forwardedClientCertHeader = "x-forwarded-client-cert"
+	var cert *x509.Certificate
+	cert, err = parseCertString(r.Header.Get(forwardedClientCertHeader))
+	if err != nil {
+		return nil, nil, err
+	}
+	if "1" == "" && cert != nil { // TODO integrate proof of possession into middleware
+		err = parseAndValidateCertificate(cert, token)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
-	return token, nil
+
+	return token, cert, nil
 }
 
 // AuthenticationHandler authenticates a request and injects the claims into
-// the request context. If the authentication (see Authenticate) does not succeed,
+// the request context. If the authentication (see authenticate) does not succeed,
 // the specified error handler (see Options.ErrorHandler) will be called and
 // the current request will stop.
+// In case of successful authentication the request context is enriched with the token,
+// as well as the client certificate (if given).
 func (m *Middleware) AuthenticationHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, err := m.Authenticate(r)
+		token, cert, err := m.authenticate(r)
 
 		if err != nil {
 			m.options.ErrorHandler(w, r, err)
 			return
 		}
 
-		reqWithContext := r.WithContext(context.WithValue(r.Context(), TokenCtxKey, token))
-		*r = *reqWithContext
+		ctx := context.WithValue(context.WithValue(r.Context(), TokenCtxKey, token), ClientCertificateCtxKey, cert)
+		*r = *r.WithContext(ctx)
 
 		// Continue serving http if jwt was valid
 		next.ServeHTTP(w, r)

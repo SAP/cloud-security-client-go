@@ -16,19 +16,14 @@ import (
 	"fmt"
 )
 
-func parseAndValidateCertificate(clientCertificate string, token Token) error {
-	if clientCertificate == "" {
-		return fmt.Errorf("there is no client certificate provided")
+func parseAndValidateCertificate(clientCertificate *x509.Certificate, token Token) error {
+	if clientCertificate == nil {
+		return fmt.Errorf("there is no x509 client certificate provided")
 	}
 	if token == nil {
 		return fmt.Errorf("there is no token provided")
 	}
-
-	x509ClientCert, err := ParseCertHeader(clientCertificate)
-	if err != nil {
-		return fmt.Errorf("cannot parse client certificate: %v", err)
-	}
-	return ValidateX5tThumbprint(x509ClientCert, token)
+	return ValidateX5tThumbprint(clientCertificate, token)
 }
 
 // In order to check whether the token was issued for the sender,
@@ -59,12 +54,13 @@ func ValidateX5tThumbprint(clientCertificate *x509.Certificate, token Token) err
 
 // Parses the X509 client certificate which is provided via the "x-forwarded-client-cert".
 // It supports DER encoded and PEM encoded certificates.
-func ParseCertHeader(certHeader string) (*x509.Certificate, error) {
-	if certHeader == "" {
-		return nil, fmt.Errorf("there is no certificate header provided")
+// Returns nil, if certString is empty string.
+func parseCertString(certString string) (*x509.Certificate, error) {
+	if certString == "" {
+		return nil, nil
 	}
 	const PEMIndicator string = "-----BEGIN"
-	decoded, err := base64.StdEncoding.DecodeString(certHeader)
+	decoded, err := base64.StdEncoding.DecodeString(certString)
 	if err != nil {
 		return nil, fmt.Errorf("cannot base64 decode certificate header: %w", err)
 	}

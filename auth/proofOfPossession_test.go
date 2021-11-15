@@ -20,18 +20,19 @@ import (
 )
 
 func TestProofOfPossession_ParseCertHeader_edgeCases(t *testing.T) {
-	t.Run("ParseCertHeader() fails when no certificate is given", func(t *testing.T) {
-		_, err := ParseCertHeader("")
-		assert.Equal(t, "there is no certificate header provided", err.Error())
+	t.Run("parseCertString() returns nil when no certificate is given", func(t *testing.T) {
+		cert, err := parseCertString("")
+		assert.Nil(t, cert)
+		assert.Nil(t, err)
 	})
 
-	t.Run("ParseCertHeader() fails when DER certificate is corrupt", func(t *testing.T) {
-		_, err := ParseCertHeader("abc123")
+	t.Run("parseCertString() fails when DER certificate is corrupt", func(t *testing.T) {
+		_, err := parseCertString("abc123")
 		assert.Contains(t, err.Error(), "cannot base64 decode certificate header:")
 	})
 
-	t.Run("ParseCertHeader() fails when PEM certificate is corrupt", func(t *testing.T) {
-		_, err := ParseCertHeader("LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUQxVENDQXIyZ0F3SUJBZ0lNSUxvRXNuTFFCdQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t")
+	t.Run("parseCertString() fails when PEM certificate is corrupt", func(t *testing.T) {
+		_, err := parseCertString("LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUQxVENDQXIyZ0F3SUJBZ0lNSUxvRXNuTFFCdQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t")
 		assert.Contains(t, err.Error(), "cannot decode PEM formatted certificate header:")
 	})
 }
@@ -43,14 +44,14 @@ func TestProofOfPossession_parseAndValidateCertificate_edgeCases(t *testing.T) {
 	})
 
 	t.Run("parseAndValidateCertificate() fails when no token is given", func(t *testing.T) {
-		x509Cert, err := ParseCertHeader(generateCert(t, false))
+		x509Cert, err := parseCertString(generateCert(t, false))
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
 		err = ValidateX5tThumbprint(x509Cert, nil)
 		assert.Equal(t, "there is no token provided", err.Error())
 	})
 
 	t.Run("parseAndValidateCertificate() fails when cert does not match x5t", func(t *testing.T) {
-		x509Cert, err := ParseCertHeader(generateCert(t, false))
+		x509Cert, err := parseCertString(generateCert(t, false))
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
 		err = ValidateX5tThumbprint(x509Cert, createToken(t, "abc"))
 		assert.Equal(t, "token thumbprint confirmation failed", err.Error())
@@ -64,7 +65,7 @@ func TestProofOfPossession_validateX5tThumbprint_edgeCases(t *testing.T) {
 	})
 
 	t.Run("ValidateX5tThumbprint() fails when no token is given", func(t *testing.T) {
-		x509Cert, err := ParseCertHeader(generateCert(t, false))
+		x509Cert, err := parseCertString(generateCert(t, false))
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
 		err = ValidateX5tThumbprint(x509Cert, nil)
 		assert.Equal(t, "there is no token provided", err.Error())
@@ -120,7 +121,7 @@ func TestProofOfPossession_validateX5tThumbprint(t *testing.T) {
 			} else {
 				cert = readCert(t, tt.certFile, tt.pemEncoded)
 			}
-			x509cert, err := ParseCertHeader(cert)
+			x509cert, err := parseCertString(cert)
 			require.NoError(t, err, "Failed to validate client cert with token cnf thumbprint: %v", err)
 
 			err = ValidateX5tThumbprint(x509cert, createToken(t, tt.claimCnfMemberX5t))
@@ -150,7 +151,7 @@ func readCert(t *testing.T, fileName string, pemEncoded bool) string {
 	certificate, err := os.ReadFile(certFilePath)
 	require.NoError(t, err, "Failed to read certificate from %v: %v", certFilePath, err)
 
-	x509Cert, err := ParseCertHeader(string(certificate))
+	x509Cert, err := parseCertString(string(certificate))
 	require.NoError(t, err, "failed to create certificate: %v", err)
 
 	return encodeDERBytes(x509Cert.Raw, pemEncoded)
