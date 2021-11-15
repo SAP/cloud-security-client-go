@@ -13,15 +13,19 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
 )
 
+var ErrNoClientCert = errors.New("there is no x509 client certificate provided")
+var ErrNoToken = errors.New("there is no token provided")
+
 func parseAndValidateCertificate(clientCertificate *x509.Certificate, token Token) error {
 	if clientCertificate == nil {
-		return fmt.Errorf("there is no x509 client certificate provided")
+		return ErrNoClientCert
 	}
 	if token == nil {
-		return fmt.Errorf("there is no token provided")
+		return ErrNoToken
 	}
 	return ValidateX5tThumbprint(clientCertificate, token)
 }
@@ -32,10 +36,10 @@ func parseAndValidateCertificate(clientCertificate *x509.Certificate, token Toke
 // See also RFC 8705
 func ValidateX5tThumbprint(clientCertificate *x509.Certificate, token Token) error {
 	if clientCertificate == nil {
-		return fmt.Errorf("there is no x509 client certificate provided")
+		return ErrNoClientCert
 	}
 	if token == nil {
-		return fmt.Errorf("there is no token provided")
+		return ErrNoToken
 	}
 
 	cnfThumbprint := token.getCnfClaimMember(claimCnfMemberX5t)

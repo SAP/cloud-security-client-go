@@ -95,7 +95,8 @@ func NewMiddleware(oAuthConfig OAuthConfig, options Options) *Middleware {
 	return m
 }
 
-// authenticate authenticates a request and returns the Token if validation was successful, otherwise error is returned
+// authenticate authenticates a request and returns the Token and the client certificate if validation was successful,
+// otherwise error is returned
 func (m *Middleware) authenticate(r *http.Request) (Token, *x509.Certificate, error) {
 	// get Token from Header
 	rawToken, err := extractRawToken(r)
