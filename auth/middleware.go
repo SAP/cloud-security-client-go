@@ -63,7 +63,7 @@ func ClientCertificateFromCtx(r *http.Request) *x509.Certificate {
 }
 
 // Middleware is the main entrypoint to the authn client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
-// Use either the ready to use AuthenticationHandler as a middleware or implement your own middleware with the help of authenticate.
+// Use either the ready to use AuthenticationHandler as a middleware or implement your own middleware with the help of Authenticate.
 type Middleware struct {
 	oAuthConfig OAuthConfig
 	options     Options
@@ -95,9 +95,9 @@ func NewMiddleware(oAuthConfig OAuthConfig, options Options) *Middleware {
 	return m
 }
 
-// authenticate authenticates a request and returns the Token and the client certificate if validation was successful,
+// Authenticate authenticates a request and returns the Token and the client certificate if validation was successful,
 // otherwise error is returned
-func (m *Middleware) authenticate(r *http.Request) (Token, *x509.Certificate, error) {
+func (m *Middleware) Authenticate(r *http.Request) (Token, *x509.Certificate, error) {
 	// get Token from Header
 	rawToken, err := extractRawToken(r)
 	if err != nil {
@@ -126,14 +126,14 @@ func (m *Middleware) authenticate(r *http.Request) (Token, *x509.Certificate, er
 }
 
 // AuthenticationHandler authenticates a request and injects the claims into
-// the request context. If the authentication (see authenticate) does not succeed,
+// the request context. If the authentication (see Authenticate) does not succeed,
 // the specified error handler (see Options.ErrorHandler) will be called and
 // the current request will stop.
 // In case of successful authentication the request context is enriched with the token,
 // as well as the client certificate (if given).
 func (m *Middleware) AuthenticationHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, cert, err := m.authenticate(r)
+		token, cert, err := m.Authenticate(r)
 
 		if err != nil {
 			m.options.ErrorHandler(w, r, err)
