@@ -39,5 +39,4 @@ func main() {
 func helloWorld(w http.ResponseWriter, r *http.Request) {
 	user := auth.TokenFromCtx(r)
 	_, _ = w.Write([]byte(fmt.Sprintf("Hello world!\nYou're logged in as %s", user.Email())))
-	fmt.Printf("Certificate from context %s", string(auth.ClientCertificateFromCtx(r).Raw))
 }
