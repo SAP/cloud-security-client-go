@@ -111,7 +111,7 @@ func (m *Middleware) authenticate(r *http.Request) (Token, *x509.Certificate, er
 
 	const forwardedClientCertHeader = "x-forwarded-client-cert"
 	var cert *x509.Certificate
-	cert, err = parseCertString(r.Header.Get(forwardedClientCertHeader))
+	cert, err = parseCertificate(r.Header.Get(forwardedClientCertHeader))
 	if err != nil {
 		return nil, nil, err
 	}
