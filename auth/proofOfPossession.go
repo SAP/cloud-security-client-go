@@ -67,7 +67,7 @@ func parseCertificate(certString string) (*x509.Certificate, error) {
 		return nil, fmt.Errorf("cannot base64 decode certificate header: %w", err)
 	}
 	if bytes.HasPrefix(decoded, []byte(PEMIndicator)) { // in case of apache proxy
-		pemBlock, _ := pem.Decode(decoded)
+		pemBlock, err := pem.Decode(decoded)
 		if pemBlock == nil {
 			return nil, fmt.Errorf("cannot decode PEM formatted certificate header: %v", err)
 		}

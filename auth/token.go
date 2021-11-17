@@ -193,17 +193,13 @@ func (t stdToken) getJwtToken() jwt.Token {
 }
 
 func (t stdToken) getCnfClaimMember(memberName string) string {
-	if t.HasClaim(claimCnf) {
-		cnfClaim, err := t.GetClaimAsMap(claimCnf)
-		if err != nil {
-			fmt.Printf("Error getting cnf claim as map: %v", err)
-		}
-		if cnfClaim != nil {
-			res, ok := cnfClaim[memberName]
-			if ok {
-				return res.(string)
-			}
-		}
+	cnfClaim, err := t.GetClaimAsMap(claimCnf)
+	if errors.Is(err, ErrClaimNotExists) || cnfClaim == nil {
+		return ""
+	}
+	res, ok := cnfClaim[memberName]
+	if ok {
+		return res.(string)
 	}
 	return ""
 }

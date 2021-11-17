@@ -95,9 +95,16 @@ func NewMiddleware(oAuthConfig OAuthConfig, options Options) *Middleware {
 	return m
 }
 
+// Authenticate authenticates a request and returns the Token if validation was successful, otherwise error is returned
+func (m *Middleware) Authenticate(r *http.Request) (Token, error) {
+	token, _, err := m.AuthenticateWithProofOfPossession(r)
+
+	return token, err
+}
+
 // Authenticate authenticates a request and returns the Token and the client certificate if validation was successful,
 // otherwise error is returned
-func (m *Middleware) Authenticate(r *http.Request) (Token, *x509.Certificate, error) {
+func (m *Middleware) AuthenticateWithProofOfPossession(r *http.Request) (Token, *x509.Certificate, error) {
 	// get Token from Header
 	rawToken, err := extractRawToken(r)
 	if err != nil {
@@ -133,7 +140,7 @@ func (m *Middleware) Authenticate(r *http.Request) (Token, *x509.Certificate, er
 // as well as the client certificate (if given).
 func (m *Middleware) AuthenticationHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, cert, err := m.Authenticate(r)
+		token, cert, err := m.AuthenticateWithProofOfPossession(r)
 
 		if err != nil {
 			m.options.ErrorHandler(w, r, err)
