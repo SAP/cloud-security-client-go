@@ -30,7 +30,7 @@ func parseAndValidateCertificate(clientCertificate *x509.Certificate, token Toke
 	return ValidateX5tThumbprint(clientCertificate, token)
 }
 
-// ValidateX5tThumbprint compares the thumbprint of the provided X509 client certificate against the cnf claim with the confirmation method "x5t#S256". 
+// ValidateX5tThumbprint compares the thumbprint of the provided X509 client certificate against the cnf claim with the confirmation method "x5t#S256".
 // This ensures that the token was issued for the sender.
 func ValidateX5tThumbprint(clientCertificate *x509.Certificate, token Token) error {
 	if clientCertificate == nil {
