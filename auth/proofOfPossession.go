@@ -30,10 +30,8 @@ func parseAndValidateCertificate(clientCertificate *x509.Certificate, token Toke
 	return ValidateX5tThumbprint(clientCertificate, token)
 }
 
-// In order to check whether the token was issued for the sender,
-// the cnf token claim with the confirmation method “x5t#S256” needs to be compared with the thumbprint of the
-// provided X509 client certificate.
-// See also RFC 8705
+// ValidateX5tThumbprint compares the thumbprint of the provided X509 client certificate against the cnf claim with the confirmation method "x5t#S256". 
+// This ensures that the token was issued for the sender.
 func ValidateX5tThumbprint(clientCertificate *x509.Certificate, token Token) error {
 	if clientCertificate == nil {
 		return ErrNoClientCert
