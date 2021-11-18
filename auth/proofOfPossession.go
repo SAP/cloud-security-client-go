@@ -54,7 +54,7 @@ func ValidateX5tThumbprint(clientCertificate *x509.Certificate, token Token) err
 	return nil
 }
 
-// Parses the X509 client certificate which is provided via the "x-forwarded-client-cert".
+// parseCertificate parses the X509 client certificate which is provided via the "x-forwarded-client-cert".
 // It supports DER encoded and PEM encoded certificates.
 // Returns nil, if certString is empty string.
 func parseCertificate(certString string) (*x509.Certificate, error) {
