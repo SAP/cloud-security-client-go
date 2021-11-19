@@ -123,7 +123,7 @@ func (m *Middleware) AuthenticateWithProofOfPossession(r *http.Request) (Token, 
 		return nil, nil, err
 	}
 	if "1" == "" && cert != nil { // TODO integrate proof of possession into middleware
-		err = parseAndValidateCertificate(cert, token)
+		err = validateCertificate(cert, token)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package auth
 
-// parseAndValidateCertificate checks proof of possession in addition to audience validation
+// validateCertificate checks proof of possession in addition to audience validation
 // to make sure that it was called by a trust-worthy consumer.
 // Trust between application and applications/services is established with certificates in principle.
 // Proof of possession uses certificates as proof token and therefore, x.509 based mTLS communication is demanded.
@@ -20,7 +20,9 @@ import (
 var ErrNoClientCert = errors.New("there is no x509 client certificate provided")
 var ErrNoToken = errors.New("there is no token provided")
 
-func parseAndValidateCertificate(clientCertificate *x509.Certificate, token Token) error {
+// validateCertificate runs all proof of possession checks.
+// This ensures that the token was issued for the sender.
+func validateCertificate(clientCertificate *x509.Certificate, token Token) error {
 	if clientCertificate == nil {
 		return ErrNoClientCert
 	}

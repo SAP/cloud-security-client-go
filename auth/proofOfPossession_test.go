@@ -38,19 +38,19 @@ func TestProofOfPossession_ParseCertHeader_edgeCases(t *testing.T) {
 }
 
 func TestProofOfPossession_parseAndValidateCertificate_edgeCases(t *testing.T) {
-	t.Run("parseAndValidateCertificate() fails when no cert is given", func(t *testing.T) {
+	t.Run("validateCertificate() fails when no cert is given", func(t *testing.T) {
 		err := ValidateX5tThumbprint(nil, createToken(t, "abc"))
 		assert.Equal(t, "there is no x509 client certificate provided", err.Error())
 	})
 
-	t.Run("parseAndValidateCertificate() fails when no token is given", func(t *testing.T) {
+	t.Run("validateCertificate() fails when no token is given", func(t *testing.T) {
 		x509Cert, err := parseCertificate(generateCert(t, false))
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
 		err = ValidateX5tThumbprint(x509Cert, nil)
 		assert.Equal(t, "there is no token provided", err.Error())
 	})
 
-	t.Run("parseAndValidateCertificate() fails when cert does not match x5t", func(t *testing.T) {
+	t.Run("validateCertificate() fails when cert does not match x5t", func(t *testing.T) {
 		x509Cert, err := parseCertificate(generateCert(t, false))
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
 		err = ValidateX5tThumbprint(x509Cert, createToken(t, "abc"))
