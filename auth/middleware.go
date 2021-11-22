@@ -6,7 +6,6 @@ package auth
 
 import (
 	"context"
-	"crypto/x509"
 	"log"
 	"net/http"
 	"time"
@@ -58,8 +57,8 @@ func TokenFromCtx(r *http.Request) Token {
 
 // ClientCertificateFromCtx retrieves the X.509 client certificate of a request which
 // have been injected before via the auth middleware
-func ClientCertificateFromCtx(r *http.Request) *x509.Certificate {
-	return r.Context().Value(ClientCertificateCtxKey).(*x509.Certificate)
+func ClientCertificateFromCtx(r *http.Request) *Certificate {
+	return r.Context().Value(ClientCertificateCtxKey).(*Certificate)
 }
 
 // Middleware is the main entrypoint to the authn client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
@@ -104,7 +103,7 @@ func (m *Middleware) Authenticate(r *http.Request) (Token, error) {
 
 // Authenticate authenticates a request and returns the Token and the client certificate if validation was successful,
 // otherwise error is returned
-func (m *Middleware) AuthenticateWithProofOfPossession(r *http.Request) (Token, *x509.Certificate, error) {
+func (m *Middleware) AuthenticateWithProofOfPossession(r *http.Request) (Token, *Certificate, error) {
 	// get Token from Header
 	rawToken, err := extractRawToken(r)
 	if err != nil {
@@ -117,8 +116,8 @@ func (m *Middleware) AuthenticateWithProofOfPossession(r *http.Request) (Token, 
 	}
 
 	const forwardedClientCertHeader = "x-forwarded-client-cert"
-	var cert *x509.Certificate
-	cert, err = parseCertificate(r.Header.Get(forwardedClientCertHeader))
+	var cert *Certificate
+	cert, err = newCertificate(r.Header.Get(forwardedClientCertHeader))
 	if err != nil {
 		return nil, nil, err
 	}
