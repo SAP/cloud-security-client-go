@@ -133,10 +133,10 @@ func readCert(t *testing.T, fileName string, pemEncoded bool) string {
 	certificate, err := os.ReadFile(certFilePath)
 	require.NoError(t, err, "Failed to read certificate from %v: %v", certFilePath, err)
 
-	x509Cert, err := parseCertificate(string(certificate))
+	x509Cert, err := newCertificate(string(certificate))
 	require.NoError(t, err, "failed to create certificate: %v", err)
 
-	return encodeDERBytes(x509Cert.Raw, pemEncoded)
+	return encodeDERBytes(x509Cert.x509Cert.Raw, pemEncoded)
 }
 
 func generateCert(t *testing.T, pemEncoded bool) string {

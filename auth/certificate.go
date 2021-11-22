@@ -12,6 +12,7 @@ import (
 	"fmt"
 )
 
+// Certificate is the public API to access claims of the X509 client certificate.
 type Certificate struct {
 	x509Cert *x509.Certificate
 }
@@ -30,7 +31,8 @@ func newCertificate(certString string) (*Certificate, error) {
 	return nil, err
 }
 
-func (c *Certificate) getThumbprint() string {
+// GetThumbprint returns the thumbprint without padding.
+func (c *Certificate) GetThumbprint() string {
 	thumbprintBytes := sha256.Sum256(c.x509Cert.Raw)
 	thumbprint := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(thumbprintBytes[:])
 

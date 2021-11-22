@@ -27,13 +27,13 @@ func TestCertificate(t *testing.T) {
 		assert.Contains(t, err.Error(), "cannot decode PEM formatted certificate header:")
 	})
 
-	t.Run("getThumbprint() for PEM formatted cert", func(t *testing.T) {
+	t.Run("GetThumbprint() for PEM formatted cert", func(t *testing.T) {
 		cert, _ := newCertificate(readCert(t, "x-forwarded-client-cert.txt", true))
-		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.getThumbprint())
+		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
 	})
 
-	t.Run("getThumbprint() for DER formatted cert", func(t *testing.T) {
+	t.Run("GetThumbprint() for DER formatted cert", func(t *testing.T) {
 		cert, _ := newCertificate(readCert(t, "x-forwarded-client-cert.txt", false))
-		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.getThumbprint())
+		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
 	})
 }
