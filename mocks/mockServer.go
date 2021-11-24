@@ -6,10 +6,12 @@ package mocks
 
 import (
 	"bytes"
-	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -27,7 +29,16 @@ import (
 	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
-const keyLength = 2048
+const dummyKey = `-----BEGIN RSA PRIVATE KEY-----
+MIIBOwIBAAJBAK6NtAzlUO1vwBq278cYXXQ4jgVqkE0hoHrfZ0oo4BMoZOoLc0Vx
+YONmJypYVHzR8sedHBlIkrOrx6Ea/Y+CgSMCAwEAAQJAN7rOTX+5gtU3BFB75ZkF
+3WFhFqGbSMT/s7s4Axlh0TuBX9l9iE4cPrP3Y07C9YC8x3yFazVzcss8KcaZ6t2E
+IQIhANGqXikWfc6vSWHmSeCVlFuFSADG52M5TGZ+Tdrjo5P1AiEA1SDofTRv3pZh
+HOAlR4+xQTi5eDYbUSUjDOZHY4vrqbcCIQCal2WqIf1NIg2Xc7dRMrka6iD3AbGm
+hZ8Bi2tYU7RO6QIhAIerGROKa6PvagYtkM2K5LS13SpultkCoNs3Qz5U9UDlAiBV
+Tng71Rpsh0wIADfO0lwYrZpjJXk5jYiYUpq72chIiw==
+-----END RSA PRIVATE KEY-----
+`
 
 // MockServer serves as a single tenant OIDC mock server for tests.
 // Requests to the MockServer must be done by the mockServers client: MockServer.Server.Client()
@@ -55,7 +66,11 @@ func NewOIDCMockServerWithCustomIssuer(customIssuer string) (*MockServer, error)
 
 func newOIDCMockServer(customIssuer string) (*MockServer, error) {
 	r := mux.NewRouter()
-	rsaKey, err := rsa.GenerateKey(rand.Reader, keyLength)
+	block, _ := pem.Decode([]byte(dummyKey))
+	if block == nil {
+		return nil, errors.New("failed to parse PEM block containing dummyKey")
+	}
+	rsaKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create mock server: error generating rsa key: %v", err)
 	}
