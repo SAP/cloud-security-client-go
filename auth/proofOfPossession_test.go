@@ -21,35 +21,35 @@ var derCertGenerated = generateDERCert()
 
 func TestProofOfPossession_parseAndValidateCertificate_edgeCases(t *testing.T) {
 	t.Run("validateCertificate() fails when no cert is given", func(t *testing.T) {
-		err := ValidateX5tThumbprint(nil, generateToken(t, "abc"))
+		err := validateX5tThumbprint(nil, generateToken(t, "abc"))
 		assert.Equal(t, "there is no x509 client certificate provided", err.Error())
 	})
 
 	t.Run("validateCertificate() fails when no token is given", func(t *testing.T) {
 		x509Cert, err := newCertificate(derCertGenerated)
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
-		err = ValidateX5tThumbprint(x509Cert, nil)
+		err = validateX5tThumbprint(x509Cert, nil)
 		assert.Equal(t, "there is no token provided", err.Error())
 	})
 
 	t.Run("validateCertificate() fails when cert does not match x5t", func(t *testing.T) {
 		x509Cert, err := newCertificate(derCertGenerated)
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
-		err = ValidateX5tThumbprint(x509Cert, generateToken(t, "abc"))
+		err = validateX5tThumbprint(x509Cert, generateToken(t, "abc"))
 		assert.Equal(t, "token thumbprint confirmation failed", err.Error())
 	})
 }
 
 func TestProofOfPossession_validateX5tThumbprint_edgeCases(t *testing.T) {
-	t.Run("ValidateX5tThumbprint() fails when no cert is given", func(t *testing.T) {
-		err := ValidateX5tThumbprint(nil, generateToken(t, "abc"))
+	t.Run("validateX5tThumbprint() fails when no cert is given", func(t *testing.T) {
+		err := validateX5tThumbprint(nil, generateToken(t, "abc"))
 		assert.Equal(t, "there is no x509 client certificate provided", err.Error())
 	})
 
-	t.Run("ValidateX5tThumbprint() fails when no token is given", func(t *testing.T) {
+	t.Run("validateX5tThumbprint() fails when no token is given", func(t *testing.T) {
 		x509Cert, err := newCertificate(derCertGenerated)
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
-		err = ValidateX5tThumbprint(x509Cert, nil)
+		err = validateX5tThumbprint(x509Cert, nil)
 		assert.Equal(t, "there is no token provided", err.Error())
 	})
 }
@@ -104,7 +104,7 @@ func TestProofOfPossession_validateX5tThumbprint(t *testing.T) {
 			x509cert, err := newCertificate(cert)
 			require.NoError(t, err, "Failed to validate client cert with token cnf thumbprint: %v", err)
 
-			err = ValidateX5tThumbprint(x509cert, generateToken(t, tt.claimCnfMemberX5t))
+			err = validateX5tThumbprint(x509cert, generateToken(t, tt.claimCnfMemberX5t))
 			if tt.expectedErrMsg != "" {
 				assert.Equal(t, tt.expectedErrMsg, err.Error())
 			} else {

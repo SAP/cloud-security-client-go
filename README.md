@@ -52,20 +52,6 @@ if err != nil {
 ```
 Full example: [samples/middleware.go](samples/middleware.go)
 
-### Proof of Possession
-Additionally, you may want to make sure, whether you have been called by a trust-worthy consumer. Trust between applications/services is established with certificates in principle. So, in case of mTls based communication, you can check, whether the token was issued for the consumer. This can be done by
- performing the JWT Certificate Thumbprint X5t confirmation method's validation. See specification [RFC 8705](https://tools.ietf.org/html/rfc8705#section-3.1). It can be done in the following manner:
- 
-```go
-func myEndpoint(w http.ResponseWriter, r *http.Request) {
-    err := auth.ValidateX5tThumbprint(auth.ClientCertificateFromCtx(r), auth.TokenFromCtx(r))
-    if err != nil {
-        panic(err)
-    }
-    ...
-}
-```
-
 ### Testing
 The client library offers an OIDC Mock Server with means to create arbitrary tokens for testing purposes. Examples for the usage of the Mock Server in combination with the OIDC Token Builder can be found in [auth/middleware_test.go](auth/middleware_test.go) 
 
