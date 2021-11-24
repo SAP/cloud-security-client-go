@@ -101,7 +101,7 @@ func (m *Middleware) Authenticate(r *http.Request) (Token, error) {
 	return token, err
 }
 
-// Authenticate authenticates a request and returns the Token and the client certificate if validation was successful,
+// AuthenticateWithProofOfPossession authenticates a request and returns the Token and the client certificate if validation was successful,
 // otherwise error is returned
 func (m *Middleware) AuthenticateWithProofOfPossession(r *http.Request) (Token, *Certificate, error) {
 	// get Token from Header
