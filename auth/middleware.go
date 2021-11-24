@@ -19,11 +19,12 @@ import (
 type ContextKey int
 
 // TokenCtxKey is the key that holds the authorization value (*OIDCClaims) in the request context
+// ClientCertificateCtxKey is the key that holds the x509 client certificate in the request context
 const (
-	TokenCtxKey ContextKey = 0
-
-	cacheExpiration      = 12 * time.Hour
-	cacheCleanupInterval = 24 * time.Hour
+	TokenCtxKey             ContextKey = 0
+	ClientCertificateCtxKey ContextKey = 1
+	cacheExpiration                    = 12 * time.Hour
+	cacheCleanupInterval               = 24 * time.Hour
 )
 
 // ErrorHandler is the type for the Error Handler which is called on unsuccessful token validation and if the AuthenticationHandler middleware func is used
@@ -54,7 +55,13 @@ func TokenFromCtx(r *http.Request) Token {
 	return r.Context().Value(TokenCtxKey).(Token)
 }
 
-// Middleware is the main entrypoint to the client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
+// ClientCertificateFromCtx retrieves the X.509 client certificate of a request which
+// have been injected before via the auth middleware
+func ClientCertificateFromCtx(r *http.Request) *Certificate {
+	return r.Context().Value(ClientCertificateCtxKey).(*Certificate)
+}
+
+// Middleware is the main entrypoint to the authn client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
 // Use either the ready to use AuthenticationHandler as a middleware or implement your own middleware with the help of Authenticate.
 type Middleware struct {
 	oAuthConfig OAuthConfig
@@ -89,35 +96,58 @@ func NewMiddleware(oAuthConfig OAuthConfig, options Options) *Middleware {
 
 // Authenticate authenticates a request and returns the Token if validation was successful, otherwise error is returned
 func (m *Middleware) Authenticate(r *http.Request) (Token, error) {
+	token, _, err := m.AuthenticateWithProofOfPossession(r)
+
+	return token, err
+}
+
+// Authenticate authenticates a request and returns the Token and the client certificate if validation was successful,
+// otherwise error is returned
+func (m *Middleware) AuthenticateWithProofOfPossession(r *http.Request) (Token, *Certificate, error) {
 	// get Token from Header
 	rawToken, err := extractRawToken(r)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	token, err := m.parseAndValidateJWT(rawToken)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return token, nil
+	const forwardedClientCertHeader = "x-forwarded-client-cert"
+	var cert *Certificate
+	cert, err = newCertificate(r.Header.Get(forwardedClientCertHeader))
+	if err != nil {
+		return nil, nil, err
+	}
+	if "1" == "" && cert != nil { // TODO integrate proof of possession into middleware
+		err = validateCertificate(cert, token)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return token, cert, nil
 }
 
 // AuthenticationHandler authenticates a request and injects the claims into
 // the request context. If the authentication (see Authenticate) does not succeed,
 // the specified error handler (see Options.ErrorHandler) will be called and
 // the current request will stop.
+// In case of successful authentication the request context is enriched with the token,
+// as well as the client certificate (if given).
 func (m *Middleware) AuthenticationHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, err := m.Authenticate(r)
+		token, cert, err := m.AuthenticateWithProofOfPossession(r)
 
 		if err != nil {
 			m.options.ErrorHandler(w, r, err)
 			return
 		}
 
-		reqWithContext := r.WithContext(context.WithValue(r.Context(), TokenCtxKey, token))
-		*r = *reqWithContext
+		ctx := context.WithValue(context.WithValue(r.Context(), TokenCtxKey, token), ClientCertificateCtxKey, cert)
+		*r = *r.WithContext(ctx)
 
 		// Continue serving http if jwt was valid
 		next.ServeHTTP(w, r)
