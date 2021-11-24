@@ -14,40 +14,40 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"math/big"
-	"os"
-	"path"
 	"testing"
 )
 
+var derCertGenerated = generateDERCert()
+
 func TestProofOfPossession_parseAndValidateCertificate_edgeCases(t *testing.T) {
 	t.Run("validateCertificate() fails when no cert is given", func(t *testing.T) {
-		err := ValidateX5tThumbprint(nil, createToken(t, "abc"))
+		err := ValidateX5tThumbprint(nil, generateToken(t, "abc"))
 		assert.Equal(t, "there is no x509 client certificate provided", err.Error())
 	})
 
 	t.Run("validateCertificate() fails when no token is given", func(t *testing.T) {
-		x509Cert, err := newCertificate(generateCert(t, false))
+		x509Cert, err := newCertificate(derCertGenerated)
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
 		err = ValidateX5tThumbprint(x509Cert, nil)
 		assert.Equal(t, "there is no token provided", err.Error())
 	})
 
 	t.Run("validateCertificate() fails when cert does not match x5t", func(t *testing.T) {
-		x509Cert, err := newCertificate(generateCert(t, false))
+		x509Cert, err := newCertificate(derCertGenerated)
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
-		err = ValidateX5tThumbprint(x509Cert, createToken(t, "abc"))
+		err = ValidateX5tThumbprint(x509Cert, generateToken(t, "abc"))
 		assert.Equal(t, "token thumbprint confirmation failed", err.Error())
 	})
 }
 
 func TestProofOfPossession_validateX5tThumbprint_edgeCases(t *testing.T) {
 	t.Run("ValidateX5tThumbprint() fails when no cert is given", func(t *testing.T) {
-		err := ValidateX5tThumbprint(nil, createToken(t, "abc"))
+		err := ValidateX5tThumbprint(nil, generateToken(t, "abc"))
 		assert.Equal(t, "there is no x509 client certificate provided", err.Error())
 	})
 
 	t.Run("ValidateX5tThumbprint() fails when no token is given", func(t *testing.T) {
-		x509Cert, err := newCertificate(generateCert(t, false))
+		x509Cert, err := newCertificate(derCertGenerated)
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
 		err = ValidateX5tThumbprint(x509Cert, nil)
 		assert.Equal(t, "there is no token provided", err.Error())
@@ -58,38 +58,38 @@ func TestProofOfPossession_validateX5tThumbprint(t *testing.T) {
 	tests := []struct {
 		name              string
 		claimCnfMemberX5t string
-		certFile          string // in case of empty string it gets generated
+		cert              string
 		pemEncoded        bool
 		expectedErrMsg    string // in case of empty string no error is expected
 	}{
 		{
-			name:              "x5t should match with DER certificate (go router)",
+			name:              "x5t should match with DER certificate (HAProxy)",
 			claimCnfMemberX5t: "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM",
-			certFile:          "x-forwarded-client-cert.txt",
+			cert:              derCertFromFile,
 			pemEncoded:        false,
 			expectedErrMsg:    "",
 		}, {
 			name:              "x5t should match with PEM certificate (apache proxy)",
 			claimCnfMemberX5t: "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM",
-			certFile:          "x-forwarded-client-cert.txt",
+			cert:              derCertFromFile,
 			pemEncoded:        true,
 			expectedErrMsg:    "",
 		}, {
-			name:              "expect error when x5t does not match with generated DER certificate (go router)",
+			name:              "expect error when x5t does not match with generated DER certificate (HAProxy)",
 			claimCnfMemberX5t: "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM",
-			certFile:          "",
+			cert:              derCertGenerated,
 			pemEncoded:        false,
 			expectedErrMsg:    "token thumbprint confirmation failed",
 		}, {
 			name:              "expect error when x5t does not match with generated PEM certificate (apache proxy)",
 			claimCnfMemberX5t: "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM",
-			certFile:          "",
+			cert:              derCertGenerated,
 			pemEncoded:        true,
 			expectedErrMsg:    "token thumbprint confirmation failed",
 		}, {
 			name:              "expect error when x5t is empty",
 			claimCnfMemberX5t: "",
-			certFile:          "",
+			cert:              derCertGenerated,
 			pemEncoded:        false,
 			expectedErrMsg:    "token provides no cnf member for thumbprint confirmation",
 		},
@@ -97,16 +97,14 @@ func TestProofOfPossession_validateX5tThumbprint(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			var cert string
-			if tt.certFile == "" {
-				cert = generateCert(t, tt.pemEncoded)
-			} else {
-				cert = readCert(t, tt.certFile, tt.pemEncoded)
+			cert := tt.cert
+			if tt.pemEncoded == true {
+				cert = convertToPEM(t, tt.cert)
 			}
 			x509cert, err := newCertificate(cert)
 			require.NoError(t, err, "Failed to validate client cert with token cnf thumbprint: %v", err)
 
-			err = ValidateX5tThumbprint(x509cert, createToken(t, tt.claimCnfMemberX5t))
+			err = ValidateX5tThumbprint(x509cert, generateToken(t, tt.claimCnfMemberX5t))
 			if tt.expectedErrMsg != "" {
 				assert.Equal(t, tt.expectedErrMsg, err.Error())
 			} else {
@@ -116,7 +114,7 @@ func TestProofOfPossession_validateX5tThumbprint(t *testing.T) {
 	}
 }
 
-func createToken(t *testing.T, claimCnfMemberX5tValue string) Token {
+func generateToken(t *testing.T, claimCnfMemberX5tValue string) Token {
 	token := jwt.New()
 	cnfClaim := map[string]interface{}{
 		claimCnfMemberX5t: claimCnfMemberX5tValue,
@@ -127,21 +125,16 @@ func createToken(t *testing.T, claimCnfMemberX5tValue string) Token {
 	return stdToken{jwtToken: token}
 }
 
-func readCert(t *testing.T, fileName string, pemEncoded bool) string {
-	pwd, _ := os.Getwd()
-	certFilePath := path.Join(pwd, "testdata", fileName)
-	certificate, err := os.ReadFile(certFilePath)
-	require.NoError(t, err, "Failed to read certificate from %v: %v", certFilePath, err)
-
-	x509Cert, err := newCertificate(string(certificate))
+func convertToPEM(t *testing.T, derCert string) string {
+	x509Cert, err := newCertificate(derCert)
 	require.NoError(t, err, "failed to create certificate: %v", err)
 
-	return encodeDERBytes(x509Cert.x509Cert.Raw, pemEncoded)
+	bytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: x509Cert.x509Cert.Raw})
+	return base64.StdEncoding.EncodeToString(bytes)
 }
 
-func generateCert(t *testing.T, pemEncoded bool) string {
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(t, err, "")
+func generateDERCert() string {
+	key, _ := rsa.GenerateKey(rand.Reader, 512) //nolint:gosec
 
 	issuerName := pkix.Name{
 		Organization: []string{"my-issuer-org"},
@@ -158,15 +151,7 @@ func generateCert(t *testing.T, pemEncoded bool) string {
 		Subject:      issuerName,
 		Issuer:       issuerName,
 	}
-	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &issTemplate, &key.PublicKey, key)
-	require.NoError(t, err, "failed to generate certificate: %v", err)
+	derBytes, _ := x509.CreateCertificate(rand.Reader, &template, &issTemplate, &key.PublicKey, key)
 
-	return encodeDERBytes(derBytes, pemEncoded)
-}
-
-func encodeDERBytes(derBytes []byte, pemEncoded bool) string {
-	if pemEncoded {
-		derBytes = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
-	}
 	return base64.StdEncoding.EncodeToString(derBytes)
 }

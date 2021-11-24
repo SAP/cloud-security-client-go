@@ -4,9 +4,13 @@
 package auth
 
 import (
+	_ "embed"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
+
+//go:embed testdata/x-forwarded-client-cert.txt
+var derCertFromFile string
 
 func TestCertificate(t *testing.T) {
 	t.Run("newCertificate() returns nil when no certificate is given", func(t *testing.T) {
@@ -28,12 +32,12 @@ func TestCertificate(t *testing.T) {
 	})
 
 	t.Run("GetThumbprint() for PEM formatted cert", func(t *testing.T) {
-		cert, _ := newCertificate(readCert(t, "x-forwarded-client-cert.txt", true))
+		cert, _ := newCertificate(convertToPEM(t, derCertFromFile))
 		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
 	})
 
 	t.Run("GetThumbprint() for DER formatted cert", func(t *testing.T) {
-		cert, _ := newCertificate(readCert(t, "x-forwarded-client-cert.txt", false))
+		cert, _ := newCertificate(derCertFromFile)
 		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
 	})
 }
