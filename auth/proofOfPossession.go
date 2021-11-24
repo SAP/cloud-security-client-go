@@ -8,8 +8,6 @@ package auth
 // Trust between application and applications/services is established with certificates in principle.
 // Proof of possession uses certificates as proof token and therefore, x.509 based mTLS communication is demanded.
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"fmt"
 )
@@ -44,10 +42,7 @@ func ValidateX5tThumbprint(clientCertificate *Certificate, token Token) error {
 		return fmt.Errorf("token provides no cnf member for thumbprint confirmation")
 	}
 
-	certThumbprintBytes := sha256.Sum256(clientCertificate.x509Cert.Raw)
-	certThumbprint := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(certThumbprintBytes[:])
-
-	if cnfThumbprint != certThumbprint {
+	if cnfThumbprint != clientCertificate.GetThumbprint() {
 		return fmt.Errorf("token thumbprint confirmation failed")
 	}
 	return nil
