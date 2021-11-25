@@ -7,6 +7,7 @@ package env
 import (
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"path"
 	"reflect"
@@ -95,12 +96,25 @@ func TestGetIASConfig(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetIASConfig() got = %v, want %v", got, tt.want)
 			}
+			if tt.want != nil {
+				assert.False(t, tt.want.IsCertificateBased())
+			}
 			err = clearTestEnv()
 			if err != nil {
 				t.Error(err)
 			}
 		})
 	}
+}
+
+func TestX509BasedCredentials(t *testing.T) {
+	setTestEnv("{\"identity\":[{\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"certificate\":\"theCertificate\",\"key\":\"thekey\"}}]}")
+	got, err := GetIASConfig()
+	assert.NoError(t, err, "no error expected")
+	assert.Equal(t, got.GetClientID(), "cef76757-de57-480f-be92-1d8c1c7abf16")
+	assert.Equal(t, got.GetCertificate(), "theCertificate")
+	assert.Equal(t, got.GetKey(), "thekey")
+	assert.True(t, got.IsCertificateBased())
 }
 
 // TODO go 1.17 supports T.SetEnv https://pkg.go.dev/testing#T.Setenv
