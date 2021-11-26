@@ -188,6 +188,11 @@ func (c Identity) GetCertificate() string {
 	return c.Certificate
 }
 
+// IsCertificateBased implements the auth.OAuthConfig interface.
+func (c Identity) IsCertificateBased() bool {
+	return c.Certificate != "" && c.Key != ""
+}
+
 // GetKey implements the auth.OAuthConfig interface.
 func (c Identity) GetKey() string {
 	return c.Key
