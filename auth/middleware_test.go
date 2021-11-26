@@ -272,6 +272,10 @@ func TestEnd2End(t *testing.T) {
 
 func GetTestHandler() http.HandlerFunc {
 	return func(rw http.ResponseWriter, req *http.Request) {
+		cert := ClientCertificateFromCtx(req)
+		if cert != nil {
+			_, _ = rw.Write([]byte("entered test handler using cert: " + string(cert.x509Cert.Raw)))
+		}
 		_, _ = rw.Write([]byte("entered test handler"))
 	}
 }
