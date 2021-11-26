@@ -109,9 +109,9 @@ func TestGetIASConfig(t *testing.T) {
 
 func TestX509BasedCredentials(t *testing.T) {
 	err := setTestEnv("{\"identity\":[{\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"certificate\":\"theCertificate\",\"key\":\"thekey\"}}]}")
-	assert.NoError(t, err, "no error expected")
+	assert.NoError(t, err)
 	got, err := GetIASConfig()
-	assert.NoError(t, err, "no error expected")
+	assert.NoError(t, err)
 	assert.Equal(t, got.GetClientID(), "cef76757-de57-480f-be92-1d8c1c7abf16")
 	assert.Equal(t, got.GetCertificate(), "theCertificate")
 	assert.Equal(t, got.GetKey(), "thekey")
