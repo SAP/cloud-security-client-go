@@ -77,7 +77,6 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 // options allows to provide a request context and optionally additional request parameters
 func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL string, options RequestOptions) (string, error) {
 	data := url.Values{}
-	data.Set(grantTypeParameter, grantTypeClientCredentials)
 	data.Set(clientIDParameter, t.identity.GetClientID())
 	if t.identity.GetClientSecret() != "" {
 		data.Set(clientSecretParameter, t.identity.GetClientSecret())
@@ -85,6 +84,7 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	for name, value := range options.Params {
 		data.Set(name, value) // potentially overwrites data which was set before
 	}
+	data.Set(grantTypeParameter, grantTypeClientCredentials)
 	targetURL, err := t.getURL(customerTenantURL)
 	if err != nil {
 		return "", err
@@ -107,15 +107,12 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	return response.Token, nil
 }
 
-func (t *TokenFlows) getURL(customerTenantHost string) (string, error) {
-	if customerTenantHost == "" {
-		return t.tokenURI, nil
-	}
-	customHost, err := url.Parse(customerTenantHost)
+func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
+	customHost, err := url.Parse(customerTenantURL)
 	if err == nil && customHost.Host != "" {
 		return "https://" + customHost.Host + tokenEndpoint, nil
 	}
-	return "", fmt.Errorf("customer tenant host '%v' can't be accepted: %v", customerTenantHost, err)
+	return "", fmt.Errorf("customer tenant host '%v' can't be accepted: %v", customerTenantURL, err)
 }
 
 func (t *TokenFlows) performRequest(r *http.Request) ([]byte, error) {

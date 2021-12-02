@@ -44,12 +44,12 @@ func DefaultTLSConfig(identity env.Identity) (*tls.Config, error) {
 // tlsConfig required in case of cert-based identity config
 func DefaultHTTPClient(tlsConfig *tls.Config) *http.Client {
 	client := &http.Client{
-		Timeout: time.Second * 10, // TODO check
+		Timeout: time.Second * 10,
 	}
 	if tlsConfig != nil {
 		client.Transport = &http.Transport{
-			TLSClientConfig:     tlsConfig,
-			MaxIdleConnsPerHost: 50, // TODO check
+			TLSClientConfig: tlsConfig,
+			MaxIdleConns:    50,
 		}
 	}
 	return client
