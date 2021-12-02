@@ -42,7 +42,7 @@ var clientSecretConfig = env.Identity{
 
 func TestNewTokenFlows_setupDefaultHttpClient(t *testing.T) {
 	tokenFlows, err := NewTokenFlows(clientSecretConfig, Options{})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, tokenFlows)
 	assert.NotNil(t, tokenFlows.options.HTTPClient)
 	assert.Nil(t, tokenFlows.options.TLSConfig)
@@ -53,7 +53,7 @@ func TestNewTokenFlows_setupDefaultHttpsClient(t *testing.T) {
 		t.Skip("skip test on windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)")
 	}
 	tokenFlows, err := NewTokenFlows(mTLSConfig, Options{})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, tokenFlows)
 	assert.NotNil(t, tokenFlows.options.HTTPClient)
 	assert.NotNil(t, tokenFlows.options.TLSConfig)
