@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"github.com/sap/cloud-security-client-go/auth"
 	"github.com/sap/cloud-security-client-go/env"
 	"io/ioutil"
 	"net/http"
@@ -80,7 +79,7 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 // ctx carries the request context like the deadline or other values that should be shared across API boundaries. Default: context.TODO is used
 // customerTenantURL like "https://custom.accounts400.ondemand.com" gives the host of the customers ias tenant
 // options allows to provide a request context and optionally additional request parameters
-func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL string, options RequestOptions) (auth.Token, error) {
+func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL string, options RequestOptions) (string, error) {
 	data := url.Values{}
 	data.Set(grantTypeParameter, grantTypeClientCredentials)
 	data.Set(clientIDParameter, t.identity.GetClientID())
@@ -92,25 +91,24 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	}
 	targetURL, err := t.getURL(customerTenantURL)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	r, e := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
 	if e != nil {
-		return nil, fmt.Errorf("error performing client credentials flow: %w", e)
+		return "", fmt.Errorf("error performing client credentials flow: %w", e)
 	}
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	tokenJSON, err := t.performRequest(r)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	var response tokenResponse
 	_ = json.Unmarshal(tokenJSON, &response)
-	token, e := auth.NewToken(response.Token)
-	if e != nil {
-		return nil, fmt.Errorf("error parsing requested client credential token: %w", e)
+	if response.Token == "" {
+		return "", fmt.Errorf("error parsing requested client credential token: %v", string(tokenJSON))
 	}
-	return token, nil
+	return response.Token, nil
 }
 
 func (t *TokenFlows) getURL(customerTenantHost string) (string, error) {

@@ -9,7 +9,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"github.com/sap/cloud-security-client-go/auth"
 	"github.com/sap/cloud-security-client-go/env"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -93,16 +92,7 @@ func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
 	tokenFlows, _ := NewTokenFlows(env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{})
-	assertError(t, "error parsing requested client credential token", err)
-}
-
-func TestClientCredentialsTokenFlow_FailsUnexpectedToken(t *testing.T) {
-	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("{\"access_token\":\"abc\"}")) }) //nolint:errcheck
-	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
-
-	_, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{})
-	assertError(t, "error parsing requested client credential token", err)
+	assertError(t, "error parsing requested client credential token: {\"a\":\"b\"}", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
@@ -176,10 +166,10 @@ func tokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func assertToken(t assert.TestingT, expectedToken string, actualToken auth.Token, actualError error) {
+func assertToken(t assert.TestingT, expectedToken, actualToken string, actualError error) {
 	assert.NoError(t, actualError)
-	assert.NotNil(t, actualToken)
-	assert.Equal(t, expectedToken, actualToken.TokenValue())
+	assert.NotEmpty(t, actualToken)
+	assert.Equal(t, expectedToken, actualToken)
 }
 
 func assertError(t assert.TestingT, expectedErrorMsg string, actualError error) {
