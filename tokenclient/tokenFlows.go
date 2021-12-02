@@ -72,7 +72,7 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 // It is used for non interactive applications (a CLI, a batch job, or for service-2-service communication) where the token is issued to the application itself,
 // instead of an end user for accessing resources without principal propagation.
 //
-// ctx carries the request context like the deadline or other values that should be shared across API boundaries. Default: context.TODO is used
+// ctx carries the request context like the deadline or other values that should be shared across API boundaries.
 // customerTenantURL like "https://custom.accounts400.ondemand.com" gives the host of the customers ias tenant
 // options allows to provide a request context and optionally additional request parameters
 func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL string, options RequestOptions) (string, error) {
