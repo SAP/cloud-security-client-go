@@ -74,7 +74,7 @@ func TestClientCredentialsTokenFlow_FailsWithTimeout(t *testing.T) {
 
 	timeout, cancelFunc := context.WithTimeout(context.Background(), 0*time.Second)
 	defer cancelFunc()
-	_, err := tokenFlows.ClientCredentials("", RequestOptions{Context: timeout})
+	_, err := tokenFlows.ClientCredentials(timeout, "", RequestOptions{})
 	assertError(t, context.DeadlineExceeded.Error(), err)
 }
 
@@ -83,7 +83,7 @@ func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
-	_, err := tokenFlows.ClientCredentials("", RequestOptions{})
+	_, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{})
 	assertError(t, "provides no valid json content", err)
 }
 
@@ -92,7 +92,7 @@ func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
-	_, err := tokenFlows.ClientCredentials("", RequestOptions{})
+	_, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{})
 	assertError(t, "error parsing requested client credential token", err)
 }
 
@@ -101,7 +101,7 @@ func TestClientCredentialsTokenFlow_FailsUnexpectedToken(t *testing.T) {
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
-	_, err := tokenFlows.ClientCredentials("", RequestOptions{})
+	_, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{})
 	assertError(t, "error parsing requested client credential token", err)
 }
 
@@ -113,7 +113,7 @@ func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
-	_, err := tokenFlows.ClientCredentials("", RequestOptions{})
+	_, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{})
 	assertError(t, "failed with status code '401' and payload: 'unauthenticated client'", err)
 }
 
@@ -122,7 +122,7 @@ func TestClientCredentialsTokenFlow_FailsWithInvalidCustomHost(t *testing.T) {
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
-	_, err := tokenFlows.ClientCredentials("invalidhost", RequestOptions{})
+	_, err := tokenFlows.ClientCredentials(context.TODO(), "invalidhost", RequestOptions{})
 	assertError(t, "customer tenant host 'invalidhost' can't be accepted", err)
 }
 
@@ -132,7 +132,7 @@ func TestClientCredentialsTokenFlow_FailsWithInvalidUrls(t *testing.T) {
 	clientSecretConfig.URL = "invalidhost"
 	tokenFlows, _ := NewTokenFlows(clientSecretConfig, Options{HTTPClient: server.Client()})
 
-	_, err := tokenFlows.ClientCredentials("", RequestOptions{})
+	_, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{})
 	assertError(t, "unsupported protocol scheme", err)
 }
 
@@ -141,7 +141,7 @@ func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
-	token, err := tokenFlows.ClientCredentials("", RequestOptions{Params: map[string]string{
+	token, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{Params: map[string]string{
 		"client_id": "09932670-9440-445d-be3e-432a97d7e2ef",
 	}})
 	assertToken(t, "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo", token, err)
@@ -152,7 +152,7 @@ func TestClientCredentialsTokenFlow_SucceedsWithCustomHost(t *testing.T) {
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
-	token, err := tokenFlows.ClientCredentials(server.URL, RequestOptions{})
+	token, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
 	assertToken(t, "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo", token, err)
 }
 

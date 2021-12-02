@@ -12,7 +12,6 @@ import (
 	"github.com/sap/cloud-security-client-go/auth"
 	"github.com/sap/cloud-security-client-go/env"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -27,8 +26,6 @@ type Options struct {
 
 // RequestOptions allows to configure the token request
 type RequestOptions struct {
-	// Context carries the request context like the deadline or other values that should be shared across API boundaries. Default: context.TODO is used
-	Context context.Context
 	// Request parameters that shall be overwritten or added to the payload
 	Params map[string]string
 }
@@ -80,8 +77,10 @@ func NewTokenFlows(identity *env.Identity, options Options) (*TokenFlows, error)
 // It is used for non interactive applications (a CLI, a batch job, or for service-2-service communication) where the token is issued to the application itself,
 // instead of an end user for accessing resources without principal propagation.
 //
+// ctx carries the request context like the deadline or other values that should be shared across API boundaries. Default: context.TODO is used
+// customerTenantURL like "https://custom.accounts400.ondemand.com" gives the host of the customers ias tenant
 // options allows to provide a request context and optionally additional request parameters
-func (t *TokenFlows) ClientCredentials(customerTenantHost string, options RequestOptions) (auth.Token, error) {
+func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL string, options RequestOptions) (auth.Token, error) {
 	data := url.Values{}
 	data.Set(grantTypeParameter, grantTypeClientCredentials)
 	data.Set(clientIDParameter, t.identity.GetClientID())
@@ -91,14 +90,9 @@ func (t *TokenFlows) ClientCredentials(customerTenantHost string, options Reques
 	for name, value := range options.Params {
 		data.Set(name, value) // potentially overwrites data which was set before
 	}
-	targetURL, err := t.getURL(customerTenantHost)
+	targetURL, err := t.getURL(customerTenantURL)
 	if err != nil {
 		return nil, err
-	}
-	ctx := options.Context
-	if ctx == nil {
-		log.Printf("uses context.TODO as fallback, as no context is provided with RequestOptions")
-		ctx = context.TODO()
 	}
 	r, e := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
 	if e != nil {

@@ -36,5 +36,6 @@ Files:
     env/testdata/**
     auth/testdata/**
     tokenclient/testdata/**
+    tokenclient/README.md
 Copyright: 2020-2021 SAP SE or an SAP affiliate company and Cloud Security Client Go contributors
 License: Apache-2.0

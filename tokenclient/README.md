@@ -29,8 +29,8 @@ Obtain a client credentials token:
 params := map[string]string{
 	"resource": "resource=urn:sap:identity:consumer:clientid:<<consumer identifier>>",
 }
-
-ccToken, err := tokenFlows.ClientCredentials(<<customer tenant host>>, RequestOptions{Params: params})
+customerTenantUrl := oidcToken.Issuer()
+ccToken, err := tokenFlows.ClientCredentials(context.TODO(), customerTenantUrl, RequestOptions{Params: params})
 if err != nil {
     log.Fatal(err)
 }
