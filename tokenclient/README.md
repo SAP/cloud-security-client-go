@@ -30,8 +30,14 @@ params := map[string]string{
 	"resource": "resource=urn:sap:identity:consumer:clientid:<<consumer identifier>>",
 }
 customerTenantUrl := oidcToken.Issuer()
-ccToken, err := tokenFlows.ClientCredentials(context.TODO(), customerTenantUrl, RequestOptions{Params: params})
+encodedToken, err := tokenFlows.ClientCredentials(context.TODO(), customerTenantUrl, RequestOptions{Params: params})
 if err != nil {
+    log.Fatal(err)
+}
+
+// optionally you can parse the token to access its claims
+token, e := auth.NewToken(encodedToken)
+if e != nil {
     log.Fatal(err)
 }
 ````
