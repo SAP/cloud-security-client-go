@@ -6,6 +6,9 @@ package auth
 
 import (
 	"context"
+	"github.com/sap/cloud-security-client-go/env"
+	"github.com/sap/cloud-security-client-go/httpclient"
+	"github.com/sap/cloud-security-client-go/tokenclient"
 	"log"
 	"net/http"
 	"time"
@@ -68,6 +71,7 @@ type Middleware struct {
 	options     Options
 	oidcTenants *cache.Cache // contains *oidcclient.OIDCTenant
 	sf          singleflight.Group
+	tokenFlows  *tokenclient.TokenFlows
 }
 
 // NewMiddleware instantiates a new Middleware with defaults for not provided Options.
@@ -83,15 +87,36 @@ func NewMiddleware(oAuthConfig OAuthConfig, options Options) *Middleware {
 		options.ErrorHandler = DefaultErrorHandler
 	}
 	if options.HTTPClient == nil {
-		options.HTTPClient = &http.Client{
-			Timeout: 15 * time.Second,
-		}
+		// TODO
+		//tlsConfig, err := httpclient.DefaultTLSConfig(*oAuthConfig)
+		//if err != nil {
+		//	log.Fatal("OAuthConfig provides invalid certificate/key: %w", err)
+		//}
+		options.HTTPClient = httpclient.DefaultHTTPClient(nil)
 	}
 	m.options = options
 
 	m.oidcTenants = cache.New(cacheExpiration, cacheCleanupInterval)
 
 	return m
+}
+
+// GetTokenFlows creates or returns TokenFlows, otherwise error is returned
+func (m *Middleware) GetTokenFlows() (*tokenclient.TokenFlows, error) {
+	if m.tokenFlows == nil {
+		tokenFlows, err := tokenclient.NewTokenFlows(env.Identity{
+			ClientID:     m.oAuthConfig.GetClientID(),
+			ClientSecret: m.oAuthConfig.GetClientSecret(),
+			URL:          m.oAuthConfig.GetURL(),
+			Certificate:  m.oAuthConfig.GetCertificate(),
+			Key:          m.oAuthConfig.GetKey(),
+		}, tokenclient.Options{HTTPClient: m.options.HTTPClient})
+		if err != nil {
+			return nil, err
+		}
+		m.tokenFlows = tokenFlows
+	}
+	return m.tokenFlows, nil
 }
 
 // Authenticate authenticates a request and returns the Token if validation was successful, otherwise error is returned
