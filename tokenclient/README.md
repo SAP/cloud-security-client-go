@@ -13,8 +13,8 @@ if err != nil {
     panic(err)
 }
 
-tokenFlows, cErr := NewTokenFlows(config, Options{HTTPClient: <your http.Client>})
-if cErr != nil {
+tokenFlows, err := NewTokenFlows(config, Options{HTTPClient: <your http.Client>})
+if err != nil {
     panic(err)
 }
 ```

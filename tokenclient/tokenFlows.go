@@ -40,20 +40,6 @@ type TokenFlows struct {
 	tokenURI string
 }
 
-// ClientError represents an error occurred during setup of default http client or token request.
-type ClientError struct {
-	msg string
-	err error
-}
-
-// Error gives error message, including the message of causing error if given
-func (e *ClientError) Error() string {
-	if e.err == nil {
-		return e.msg
-	}
-	return fmt.Sprintf("%s: %s", e.msg, e.err.Error())
-}
-
 type tokenResponse struct {
 	Token string `json:"access_token"`
 }
@@ -71,8 +57,9 @@ const (
 // identity provides credentials and url to authenticate client with identity service
 // options specifies rest client and its tls config, both can be overwritten.
 // Note: Setup of default tls config is not supported for windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)
-func NewTokenFlows(identity *env.Identity, options Options) (*TokenFlows, *ClientError) {
-	t := TokenFlows{Identity: identity}
+func NewTokenFlows(identity *env.Identity, options Options) (*TokenFlows, error) {
+	t := new(TokenFlows)
+	t.identity = identity
 	if options.HTTPClient == nil {
 		if options.TLSConfig == nil && identity.IsCertificateBased() {
 			defaultConfig, err := defaultTLSConfig(identity)
@@ -94,7 +81,7 @@ func NewTokenFlows(identity *env.Identity, options Options) (*TokenFlows, *Clien
 // instead of an end user for accessing resources without principal propagation.
 //
 // options allows to provide a request context and optionally additional request parameters
-func (t *TokenFlows) ClientCredentials(customerTenantHost string, options RequestOptions) (auth.Token, *ClientError) {
+func (t *TokenFlows) ClientCredentials(customerTenantHost string, options RequestOptions) (auth.Token, error) {
 	data := url.Values{}
 	data.Set(grantTypeParameter, grantTypeClientCredentials)
 	data.Set(clientIDParameter, t.identity.GetClientID())
@@ -115,7 +102,7 @@ func (t *TokenFlows) ClientCredentials(customerTenantHost string, options Reques
 	}
 	r, e := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
 	if e != nil {
-		return nil, &ClientError{"error performing client credentials flow", e}
+		return nil, fmt.Errorf("error performing client credentials flow: %w", e)
 	}
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -127,12 +114,12 @@ func (t *TokenFlows) ClientCredentials(customerTenantHost string, options Reques
 	_ = json.Unmarshal(tokenJSON, &response)
 	token, e := auth.NewToken(response.Token)
 	if e != nil {
-		return nil, &ClientError{"error parsing requested client credential token", e}
+		return nil, fmt.Errorf("error parsing requested client credential token: %w", e)
 	}
 	return token, nil
 }
 
-func (t *TokenFlows) getURL(customerTenantHost string) (string, *ClientError) {
+func (t *TokenFlows) getURL(customerTenantHost string) (string, error) {
 	if customerTenantHost == "" {
 		return t.tokenURI, nil
 	}
@@ -140,40 +127,40 @@ func (t *TokenFlows) getURL(customerTenantHost string) (string, *ClientError) {
 	if err == nil && customHost.Host != "" {
 		return "https://" + customHost.Host + tokenEndpoint, nil
 	}
-	return "", &ClientError{"customer tenant host '" + customerTenantHost + "' can't be accepted", err}
+	return "", fmt.Errorf("customer tenant host '%v' can't be accepted: %v", customerTenantHost, err)
 }
 
-func (t *TokenFlows) performRequest(r *http.Request) ([]byte, *ClientError) {
+func (t *TokenFlows) performRequest(r *http.Request) ([]byte, error) {
 	res, err := t.options.HTTPClient.Do(r)
 	if err != nil {
-		return nil, &ClientError{"request to " + r.URL.String() + " failed", err}
-	}
-	if res.StatusCode != http.StatusOK {
-		return nil, &ClientError{"request to " + r.URL.String() + " failed with status code " + res.Status, err}
+		return nil, fmt.Errorf("request to '%v' failed: %w", r.URL, err)
 	}
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
-	if err == nil && body != nil && json.Valid(body) {
-		return body, nil
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request to '%v' failed with status code '%v' and payload: '%v'", r.URL, res.StatusCode, string(body))
 	}
-	return nil, &ClientError{"request to " + r.URL.String() + " provides no valid json content", err}
+	if err != nil || body == nil || !json.Valid(body) {
+		return nil, fmt.Errorf("request to '%v ' provides no valid json content: %w", r.URL, err)
+	}
+	return body, nil
 }
 
-func defaultTLSConfig(identity *env.Identity) (*tls.Config, *ClientError) {
+func defaultTLSConfig(identity *env.Identity) (*tls.Config, error) {
 	certPEMBlock := []byte(identity.GetCertificate())
 	keyPEMBlock := []byte(identity.GetKey())
 
 	tlsCert, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
 	if err != nil {
-		return nil, &ClientError{"error creating x509 key pair for defaultTLSConfig", err}
+		return nil, fmt.Errorf("error creating x509 key pair for defaultTLSConfig: %w", err)
 	}
 	tlsCertPool, err := x509.SystemCertPool()
 	if err != nil {
-		return nil, &ClientError{"error setting up cert pool for defaultTLSConfig", err}
+		return nil, fmt.Errorf("error setting up cert pool for defaultTLSConfig: %w", err)
 	}
 	ok := tlsCertPool.AppendCertsFromPEM(certPEMBlock)
 	if !ok {
-		return nil, &ClientError{"error adding certs to pool for defaultTLSConfig", err}
+		return nil, fmt.Errorf("error adding certs to pool for defaultTLSConfig: %w", err)
 	}
 	tlsConfig := &tls.Config{
 		MinVersion:   tls.VersionTLS12,

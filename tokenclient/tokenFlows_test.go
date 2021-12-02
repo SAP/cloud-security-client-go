@@ -75,7 +75,7 @@ func TestClientCredentialsTokenFlow_FailsWithTimeout(t *testing.T) {
 	timeout, cancelFunc := context.WithTimeout(context.Background(), 0*time.Second)
 	defer cancelFunc()
 	_, err := tokenFlows.ClientCredentials("", RequestOptions{Context: timeout})
-	assertClientError(t, context.DeadlineExceeded.Error(), err)
+	assertError(t, context.DeadlineExceeded.Error(), err)
 }
 
 func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
@@ -84,7 +84,7 @@ func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials("", RequestOptions{})
-	assertClientError(t, "provides no valid json content", err)
+	assertError(t, "provides no valid json content", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
@@ -93,7 +93,7 @@ func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials("", RequestOptions{})
-	assertClientError(t, "error parsing requested client credential token", err)
+	assertError(t, "error parsing requested client credential token", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsUnexpectedToken(t *testing.T) {
@@ -102,18 +102,19 @@ func TestClientCredentialsTokenFlow_FailsUnexpectedToken(t *testing.T) {
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials("", RequestOptions{})
-	assertClientError(t, "error parsing requested client credential token", err)
+	assertError(t, "error parsing requested client credential token", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
 	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
+		w.Write([]byte("unauthenticated client")) //nolint:errcheck
 	})
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials("", RequestOptions{})
-	assertClientError(t, "failed with status code 401 Unauthorized", err)
+	assertError(t, "failed with status code '401' and payload: 'unauthenticated client'", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsWithInvalidCustomHost(t *testing.T) {
@@ -122,7 +123,7 @@ func TestClientCredentialsTokenFlow_FailsWithInvalidCustomHost(t *testing.T) {
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials("invalidhost", RequestOptions{})
-	assertClientError(t, "customer tenant host 'invalidhost' can't be accepted", err)
+	assertError(t, "customer tenant host 'invalidhost' can't be accepted", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsWithInvalidUrls(t *testing.T) {
@@ -132,7 +133,7 @@ func TestClientCredentialsTokenFlow_FailsWithInvalidUrls(t *testing.T) {
 	tokenFlows, _ := NewTokenFlows(clientSecretConfig, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials("", RequestOptions{})
-	assertClientError(t, "unsupported protocol scheme", err)
+	assertError(t, "unsupported protocol scheme", err)
 }
 
 func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
@@ -175,13 +176,13 @@ func tokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func assertToken(t assert.TestingT, expectedToken string, actualToken auth.Token, actualError *ClientError) {
-	assert.Nil(t, actualError)
+func assertToken(t assert.TestingT, expectedToken string, actualToken auth.Token, actualError error) {
+	assert.NoError(t, actualError)
 	assert.NotNil(t, actualToken)
 	assert.Equal(t, expectedToken, actualToken.TokenValue())
 }
 
-func assertClientError(t assert.TestingT, expectedErrorMsg string, actualError *ClientError) {
+func assertError(t assert.TestingT, expectedErrorMsg string, actualError error) {
+	assert.Error(t, actualError)
 	assert.Contains(t, actualError.Error(), expectedErrorMsg)
-	assert.IsType(t, actualError, (*ClientError)(nil))
 }
