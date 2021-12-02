@@ -32,7 +32,7 @@ var mTLSConfig = &env.Identity{
 	ClientID:    "09932670-9440-445d-be3e-432a97d7e2ef",
 	Certificate: certificate,
 	Key:         key,
-	URL:         "https://aoxk2addh.accounts400.ondemand.com", // TODO fake it
+	URL:         "https://mySaaS.accounts400.ondemand.com",
 }
 
 var clientSecretConfig = &env.Identity{
@@ -79,7 +79,7 @@ func TestClientCredentialsTokenFlow_FailsWithTimeout(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
-	server := setupNewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) {})
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
@@ -88,7 +88,7 @@ func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
-	server := setupNewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("{\"a\":\"b\"}")) })) //nolint:errcheck
+	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("{\"a\":\"b\"}")) }) //nolint:errcheck
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
@@ -97,7 +97,7 @@ func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_FailsUnexpectedToken(t *testing.T) {
-	server := setupNewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("{\"access_token\":\"abc\"}")) })) //nolint:errcheck
+	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("{\"access_token\":\"abc\"}")) }) //nolint:errcheck
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
@@ -106,9 +106,9 @@ func TestClientCredentialsTokenFlow_FailsUnexpectedToken(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
-	server := setupNewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
-	}))
+	})
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 

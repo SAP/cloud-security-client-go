@@ -19,30 +19,34 @@ import (
 	"time"
 )
 
+// Options allows configuration http(s) client
 type Options struct {
-	HTTPClient *http.Client // TODO Default: basic http.Client with a timeout of 15 seconds
-	TLSConfig  *tls.Config  // TODO Default:
+	HTTPClient *http.Client // Default: basic http.Client with a timeout of 10 seconds and allowing 50 idle connections. It uses given TLSConfig.
+	TLSConfig  *tls.Config  // In case of cert-based identity config. Default: SystemCertPool with cert/key from identity config.
 }
 
 // RequestOptions allows to configure the token request
 type RequestOptions struct {
-	// Context carries the request context like the deadline or other values that should be shared across API boundaries.
+	// Context carries the request context like the deadline or other values that should be shared across API boundaries. Default: context.TODO is used
 	Context context.Context
 	// Request parameters that shall be overwritten or added to the payload
 	Params map[string]string
 }
 
+// TokenFlows setup once per application.
 type TokenFlows struct {
 	identity *env.Identity
 	options  Options
 	tokenURI string
 }
 
+// ClientError represents an error occurred during setup of default http client or token request.
 type ClientError struct {
 	msg string
 	err error
 }
 
+// Error gives error message, including the message of causing error if given
 func (e *ClientError) Error() string {
 	if e.err == nil {
 		return e.msg
@@ -155,7 +159,6 @@ func (t *TokenFlows) performRequest(r *http.Request) ([]byte, *ClientError) {
 	return nil, &ClientError{"request to " + r.URL.String() + " provides no valid json content", err}
 }
 
-// TODO avoid duplication
 func defaultTLSConfig(identity *env.Identity) (*tls.Config, *ClientError) {
 	certPEMBlock := []byte(identity.GetCertificate())
 	keyPEMBlock := []byte(identity.GetKey())
