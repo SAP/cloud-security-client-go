@@ -27,6 +27,12 @@ var mTLSConfig = env.Identity{
 	URL:         "https://mySaaS.accounts400.ondemand.com",
 }
 
+func TestDefaultTLSConfig_ReturnsNil(t *testing.T) {
+	tlsConfig, err := DefaultTLSConfig(env.Identity{})
+	assert.NoError(t, err)
+	assert.Nil(t, tlsConfig)
+}
+
 func TestDefaultHTTPClient_ClientCertificate(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skip test on windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)")

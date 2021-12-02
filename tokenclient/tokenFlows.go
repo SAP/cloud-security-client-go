@@ -61,9 +61,8 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 		if err != nil {
 			return nil, err
 		}
-		options.HTTPClient = httpclient.DefaultHTTPClient(tlsConfig)
+		t.options.HTTPClient = httpclient.DefaultHTTPClient(tlsConfig)
 	}
-	t.options = options
 	t.tokenURI = identity.GetURL() + tokenEndpoint
 	return &t, nil
 }

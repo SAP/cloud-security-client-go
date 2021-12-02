@@ -12,10 +12,11 @@ import (
 	"time"
 )
 
+// DefaultTLSConfig creates default tls.Config
 // Default: SystemCertPool with cert/key from identity config.
 func DefaultTLSConfig(identity env.Identity) (*tls.Config, error) {
 	if !identity.IsCertificateBased() {
-		return nil, fmt.Errorf("error creating DefaultTLSConfig, identity does not provide certificate/key")
+		return nil, nil
 	}
 	certPEMBlock := []byte(identity.GetCertificate())
 	keyPEMBlock := []byte(identity.GetKey())
