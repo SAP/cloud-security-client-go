@@ -5,22 +5,19 @@ package tokenclient
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"github.com/sap/cloud-security-client-go/env"
+	"github.com/sap/cloud-security-client-go/httpclient"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 )
 
 // Options allows configuration http(s) client
 type Options struct {
-	HTTPClient *http.Client // Default: basic http.Client with a timeout of 10 seconds and allowing 50 idle connections. It uses given TLSConfig.
-	TLSConfig  *tls.Config  // In case of cert-based identity config. Default: SystemCertPool with cert/key from identity config.
+	HTTPClient *http.Client // Default: basic http.Client with a timeout of 10 seconds and allowing 50 idle connections
 }
 
 // RequestOptions allows to configure the token request
@@ -51,24 +48,24 @@ const (
 // NewTokenFlows initializes token flows
 //
 // identity provides credentials and url to authenticate client with identity service
-// options specifies rest client and its tls config, both can be overwritten.
+// options specifies rest client including tls config.
 // Note: Setup of default tls config is not supported for windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)
 func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) {
-	t := new(TokenFlows)
-	t.identity = identity
+	t := TokenFlows{
+		identity: identity,
+		tokenURI: identity.GetURL() + tokenEndpoint,
+		options:  options,
+	}
 	if options.HTTPClient == nil {
-		if options.TLSConfig == nil && identity.IsCertificateBased() {
-			defaultConfig, err := defaultTLSConfig(identity)
-			if err != nil {
-				return nil, err
-			}
-			options.TLSConfig = defaultConfig
+		tlsConfig, err := httpclient.DefaultTLSConfig(identity)
+		if err != nil {
+			return nil, err
 		}
-		options.HTTPClient = defaultHTTPClient(options.TLSConfig)
+		options.HTTPClient = httpclient.DefaultHTTPClient(tlsConfig)
 	}
 	t.options = options
 	t.tokenURI = identity.GetURL() + tokenEndpoint
-	return t, nil
+	return &t, nil
 }
 
 // ClientCredentials implements the client credentials flow (RFC 6749, section 4.4).
@@ -136,42 +133,4 @@ func (t *TokenFlows) performRequest(r *http.Request) ([]byte, error) {
 		return nil, fmt.Errorf("request to '%v ' provides no valid json content: %w", r.URL, err)
 	}
 	return body, nil
-}
-
-func defaultTLSConfig(identity env.Identity) (*tls.Config, error) {
-	certPEMBlock := []byte(identity.GetCertificate())
-	keyPEMBlock := []byte(identity.GetKey())
-
-	tlsCert, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
-	if err != nil {
-		return nil, fmt.Errorf("error creating x509 key pair for defaultTLSConfig: %w", err)
-	}
-	tlsCertPool, err := x509.SystemCertPool()
-	if err != nil {
-		return nil, fmt.Errorf("error setting up cert pool for defaultTLSConfig: %w", err)
-	}
-	ok := tlsCertPool.AppendCertsFromPEM(certPEMBlock)
-	if !ok {
-		return nil, fmt.Errorf("error adding certs to pool for defaultTLSConfig: %w", err)
-	}
-	tlsConfig := &tls.Config{
-		MinVersion:   tls.VersionTLS12,
-		RootCAs:      tlsCertPool,
-		Certificates: []tls.Certificate{tlsCert},
-	}
-	return tlsConfig, nil
-}
-
-// TODO avoid duplication
-func defaultHTTPClient(tlsConfig *tls.Config) *http.Client {
-	client := &http.Client{
-		Timeout: time.Second * 10, // TODO check
-	}
-	if tlsConfig != nil {
-		client.Transport = &http.Transport{
-			TLSClientConfig:     tlsConfig,
-			MaxIdleConnsPerHost: 50, // TODO check
-		}
-	}
-	return client
 }

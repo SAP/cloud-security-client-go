@@ -6,33 +6,15 @@ package tokenclient
 import (
 	"bytes"
 	"context"
-	_ "embed"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/sap/cloud-security-client-go/env"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"testing"
 	"time"
 )
-
-//go:embed testdata/certificate.pem
-var certificate string
-
-//go:embed testdata/privateKey.pem
-var key string
-
-//go:embed testdata/privateRSAKey.pem
-var otherKey string
-
-var mTLSConfig = env.Identity{
-	ClientID:    "09932670-9440-445d-be3e-432a97d7e2ef",
-	Certificate: certificate,
-	Key:         key,
-	URL:         "https://mySaaS.accounts400.ondemand.com",
-}
 
 var clientSecretConfig = env.Identity{
 	ClientID:     "09932670-9440-445d-be3e-432a97d7e2ef",
@@ -40,30 +22,15 @@ var clientSecretConfig = env.Identity{
 	URL:          "https://mySaaS.accounts400.ondemand.com",
 }
 
-func TestNewTokenFlows_setupDefaultHttpClient(t *testing.T) {
-	tokenFlows, err := NewTokenFlows(clientSecretConfig, Options{})
-	assert.NoError(t, err)
-	assert.NotNil(t, tokenFlows)
-	assert.NotNil(t, tokenFlows.options.HTTPClient)
-	assert.Nil(t, tokenFlows.options.TLSConfig)
+var mTLSConfig = env.Identity{
+	Certificate: "theCertificate",
+	Key:         "theCertificateKey",
 }
 
-func TestNewTokenFlows_setupDefaultHttpsClient(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("skip test on windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)")
-	}
+func TestNewTokenFlows_setupDefaultHttpsClientFails(t *testing.T) {
 	tokenFlows, err := NewTokenFlows(mTLSConfig, Options{})
-	assert.NoError(t, err)
-	assert.NotNil(t, tokenFlows)
-	assert.NotNil(t, tokenFlows.options.HTTPClient)
-	assert.NotNil(t, tokenFlows.options.TLSConfig)
-}
-
-func TestDefaultTLSConfig_shouldFailIfKeyDoesNotMatch(t *testing.T) {
-	mTLSConfig.Certificate = otherKey
-	tLSConfig, err := defaultTLSConfig(mTLSConfig)
-	assert.Nil(t, tLSConfig)
-	assert.Error(t, err)
+	assert.Nil(t, tokenFlows)
+	assertError(t, "error creating x509 key pair for DefaultTLSConfig", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsWithTimeout(t *testing.T) {
@@ -110,7 +77,7 @@ func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
 func TestClientCredentialsTokenFlow_FailsWithInvalidCustomHost(t *testing.T) {
 	server := setupNewTLSServer(tokenHandler)
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(clientSecretConfig, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), "invalidhost", RequestOptions{})
 	assertError(t, "customer tenant host 'invalidhost' can't be accepted", err)
@@ -140,14 +107,14 @@ func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 func TestClientCredentialsTokenFlow_SucceedsWithCustomHost(t *testing.T) {
 	server := setupNewTLSServer(tokenHandler)
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(env.Identity{
+		ClientID: "09932670-9440-445d-be3e-432a97d7e2ef", URL: "invalidhost"}, Options{HTTPClient: server.Client()})
 
 	token, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
 	assertToken(t, "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo", token, err)
 }
 
-func setupNewTLSServer(f func(http.ResponseWriter,
-	*http.Request)) *httptest.Server {
+func setupNewTLSServer(f func(http.ResponseWriter, *http.Request)) *httptest.Server {
 	r := mux.NewRouter()
 	r.HandleFunc("/oauth2/token", f).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
 	return httptest.NewTLSServer(r)
