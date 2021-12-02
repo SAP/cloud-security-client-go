@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -49,6 +50,9 @@ func TestNewTokenFlows_setupDefaultHttpClient(t *testing.T) {
 }
 
 func TestNewTokenFlows_setupDefaultHttpsClient(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skip test on windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)")
+	}
 	tokenFlows, err := NewTokenFlows(mTLSConfig, Options{})
 	assert.Nil(t, err)
 	assert.NotNil(t, tokenFlows)
@@ -58,7 +62,7 @@ func TestNewTokenFlows_setupDefaultHttpsClient(t *testing.T) {
 
 func TestDefaultTLSConfig_shouldFailIfKeyDoesNotMatch(t *testing.T) {
 	mTLSConfig.Certificate = otherKey
-	tLSConfig, err := DefaultTLSConfig(mTLSConfig)
+	tLSConfig, err := defaultTLSConfig(mTLSConfig)
 	assert.Nil(t, tLSConfig)
 	assert.Error(t, err)
 }

@@ -65,19 +65,20 @@ const (
 // NewTokenFlows initializes token flows
 //
 // identity provides credentials and url to authenticate client with identity service
-// options specifies rest client and its tls config, both can be overwritten
+// options specifies rest client and its tls config, both can be overwritten.
+// Note: Setup of default tls config is not supported for windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)
 func NewTokenFlows(identity *env.Identity, options Options) (*TokenFlows, *ClientError) {
 	t := new(TokenFlows)
 	t.identity = identity
 	if options.HTTPClient == nil {
 		if options.TLSConfig == nil && identity.IsCertificateBased() {
-			defaultConfig, err := DefaultTLSConfig(identity)
+			defaultConfig, err := defaultTLSConfig(identity)
 			if err != nil {
 				return nil, err
 			}
 			options.TLSConfig = defaultConfig
 		}
-		options.HTTPClient = DefaultHTTPClient(options.TLSConfig)
+		options.HTTPClient = defaultHTTPClient(options.TLSConfig)
 	}
 	t.options = options
 	t.tokenURI = identity.GetURL() + tokenEndpoint
@@ -155,22 +156,22 @@ func (t *TokenFlows) performRequest(r *http.Request) ([]byte, *ClientError) {
 	return nil, &ClientError{"request to " + r.URL.String() + " provides no valid json content", err}
 }
 
-// TODO does it need to be public - how to avoid duplication
-func DefaultTLSConfig(identity *env.Identity) (*tls.Config, *ClientError) {
+// TODO avoid duplication
+func defaultTLSConfig(identity *env.Identity) (*tls.Config, *ClientError) {
 	certPEMBlock := []byte(identity.GetCertificate())
 	keyPEMBlock := []byte(identity.GetKey())
 
 	tlsCert, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
 	if err != nil {
-		return nil, &ClientError{"error creating x509 key pair for DefaultTLSConfig", err}
+		return nil, &ClientError{"error creating x509 key pair for defaultTLSConfig", err}
 	}
 	tlsCertPool, err := x509.SystemCertPool()
 	if err != nil {
-		return nil, &ClientError{"error setting up cert pool for DefaultTLSConfig", err}
+		return nil, &ClientError{"error setting up cert pool for defaultTLSConfig", err}
 	}
 	ok := tlsCertPool.AppendCertsFromPEM(certPEMBlock)
 	if !ok {
-		return nil, &ClientError{"error adding certs to pool for DefaultTLSConfig", err}
+		return nil, &ClientError{"error adding certs to pool for defaultTLSConfig", err}
 	}
 	tlsConfig := &tls.Config{
 		MinVersion:   tls.VersionTLS12,
@@ -180,8 +181,8 @@ func DefaultTLSConfig(identity *env.Identity) (*tls.Config, *ClientError) {
 	return tlsConfig, nil
 }
 
-// TODO does it need to be public - how to avoid duplication
-func DefaultHTTPClient(tlsConfig *tls.Config) *http.Client {
+// TODO avoid duplication
+func defaultHTTPClient(tlsConfig *tls.Config) *http.Client {
 	client := &http.Client{
 		Timeout: time.Second * 10, // TODO check
 	}
