@@ -68,8 +68,7 @@ const (
 // options specifies rest client and its tls config, both can be overwritten.
 // Note: Setup of default tls config is not supported for windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)
 func NewTokenFlows(identity *env.Identity, options Options) (*TokenFlows, *ClientError) {
-	t := new(TokenFlows)
-	t.identity = identity
+	t := TokenFlows{Identity: identity}
 	if options.HTTPClient == nil {
 		if options.TLSConfig == nil && identity.IsCertificateBased() {
 			defaultConfig, err := defaultTLSConfig(identity)
