@@ -28,14 +28,14 @@ var key string
 //go:embed testdata/privateRSAKey.pem
 var otherKey string
 
-var mTLSConfig = &env.Identity{
+var mTLSConfig = env.Identity{
 	ClientID:    "09932670-9440-445d-be3e-432a97d7e2ef",
 	Certificate: certificate,
 	Key:         key,
 	URL:         "https://mySaaS.accounts400.ondemand.com",
 }
 
-var clientSecretConfig = &env.Identity{
+var clientSecretConfig = env.Identity{
 	ClientID:     "09932670-9440-445d-be3e-432a97d7e2ef",
 	ClientSecret: "[the_CLIENT.secret:3[/abc",
 	URL:          "https://mySaaS.accounts400.ondemand.com",
@@ -70,7 +70,7 @@ func TestDefaultTLSConfig_shouldFailIfKeyDoesNotMatch(t *testing.T) {
 func TestClientCredentialsTokenFlow_FailsWithTimeout(t *testing.T) {
 	server := setupNewTLSServer(tokenHandler)
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
 	timeout, cancelFunc := context.WithTimeout(context.Background(), 0*time.Second)
 	defer cancelFunc()
@@ -81,7 +81,7 @@ func TestClientCredentialsTokenFlow_FailsWithTimeout(t *testing.T) {
 func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
 	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) {})
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{})
 	assertError(t, "provides no valid json content", err)
@@ -90,7 +90,7 @@ func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
 func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
 	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("{\"a\":\"b\"}")) }) //nolint:errcheck
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{})
 	assertError(t, "error parsing requested client credential token", err)
@@ -99,7 +99,7 @@ func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
 func TestClientCredentialsTokenFlow_FailsUnexpectedToken(t *testing.T) {
 	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("{\"access_token\":\"abc\"}")) }) //nolint:errcheck
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{})
 	assertError(t, "error parsing requested client credential token", err)
@@ -111,7 +111,7 @@ func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
 		w.Write([]byte("unauthenticated client")) //nolint:errcheck
 	})
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{})
 	assertError(t, "failed with status code '401' and payload: 'unauthenticated client'", err)
@@ -139,7 +139,7 @@ func TestClientCredentialsTokenFlow_FailsWithInvalidUrls(t *testing.T) {
 func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 	server := setupNewTLSServer(tokenHandler)
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(&env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(env.Identity{URL: server.URL}, Options{HTTPClient: server.Client()})
 
 	token, err := tokenFlows.ClientCredentials(context.TODO(), "", RequestOptions{Params: map[string]string{
 		"client_id": "09932670-9440-445d-be3e-432a97d7e2ef",

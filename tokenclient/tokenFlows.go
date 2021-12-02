@@ -32,7 +32,7 @@ type RequestOptions struct {
 
 // TokenFlows setup once per application.
 type TokenFlows struct {
-	identity *env.Identity
+	identity env.Identity
 	options  Options
 	tokenURI string
 }
@@ -54,7 +54,7 @@ const (
 // identity provides credentials and url to authenticate client with identity service
 // options specifies rest client and its tls config, both can be overwritten.
 // Note: Setup of default tls config is not supported for windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)
-func NewTokenFlows(identity *env.Identity, options Options) (*TokenFlows, error) {
+func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) {
 	t := new(TokenFlows)
 	t.identity = identity
 	if options.HTTPClient == nil {
@@ -140,7 +140,7 @@ func (t *TokenFlows) performRequest(r *http.Request) ([]byte, error) {
 	return body, nil
 }
 
-func defaultTLSConfig(identity *env.Identity) (*tls.Config, error) {
+func defaultTLSConfig(identity env.Identity) (*tls.Config, error) {
 	certPEMBlock := []byte(identity.GetCertificate())
 	keyPEMBlock := []byte(identity.GetKey())
 
