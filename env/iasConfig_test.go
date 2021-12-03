@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-var testConfig = &Identity{
+var testConfig = &DefaultIdentity{
 	ClientID:     "cef76757-de57-480f-be92-1d8c1c7abf16",
 	ClientSecret: "[the_CLIENT.secret:3[/abc",
 	Domains:      []string{"accounts400.ondemand.com", "my.arbitrary.domain"},
@@ -27,7 +27,7 @@ func TestGetIASConfig(t *testing.T) {
 		name          string
 		k8sSecretPath string
 		env           string
-		want          *Identity
+		want          *DefaultIdentity
 		wantErr       bool
 	}{
 		{
