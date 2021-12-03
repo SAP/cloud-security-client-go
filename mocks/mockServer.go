@@ -288,57 +288,57 @@ type MockConfig struct {
 	CertificateExpiresAt string
 }
 
-// GetClientID implements the auth.OAuthConfig interface.
+// GetClientID implements the env.Identity interface.
 func (c MockConfig) GetClientID() string {
 	return c.ClientID
 }
 
-// GetClientSecret implements the auth.OAuthConfig interface.
+// GetClientSecret implements the env.Identity interface.
 func (c MockConfig) GetClientSecret() string {
 	return c.ClientSecret
 }
 
-// GetURL implements the auth.OAuthConfig interface.
+// GetURL implements the env.Identity interface.
 func (c MockConfig) GetURL() string {
 	return c.URL
 }
 
-// GetDomains implements the auth.OAuthConfig interface.
+// GetDomains implements the env.Identity interface.
 func (c MockConfig) GetDomains() []string {
 	return c.Domains
 }
 
-// GetZoneUUID implements the auth.OAuthConfig interface.
+// GetZoneUUID implements the env.Identity interface.
 func (c MockConfig) GetZoneUUID() uuid.UUID {
 	return c.ZoneUUID
 }
 
-// GetProofTokenURL implements the auth.OAuthConfig interface.
+// GetProofTokenURL implements the env.Identity interface.
 func (c MockConfig) GetProofTokenURL() string {
 	return c.ProofTokenURL
 }
 
-// GetOsbURL implements the auth.OAuthConfig interface.
+// GetOsbURL implements the env.Identity interface.
 func (c MockConfig) GetOsbURL() string {
 	return c.OsbURL
 }
 
-// GetCertificate implements the auth.OAuthConfig interface.
+// GetCertificate implements the env.Identity interface.
 func (c MockConfig) GetCertificate() string {
 	return c.Certificate
 }
 
-// GetKey implements the auth.OAuthConfig interface.
+// GetKey implements the env.Identity interface.
 func (c MockConfig) GetKey() string {
 	return c.Key
 }
 
-// GetCertificateExpiresAt implements the auth.OAuthConfig interface.
+// GetCertificateExpiresAt implements the env.Identity interface.
 func (c MockConfig) GetCertificateExpiresAt() string {
 	return c.CertificateExpiresAt
 }
 
-// IsCertificateBased implements the auth.OAuthConfig interface.
+// IsCertificateBased implements the env.Identity interface.
 func (c MockConfig) IsCertificateBased() bool {
 	return c.Certificate != "" && c.Key != ""
 }
