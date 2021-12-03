@@ -22,26 +22,12 @@ const iasConfigPathDefault = "/etc/secrets/sapbtp/identity"
 // VCAPServices is the Cloud Foundry environment variable that stores information about services bound to the application
 type VCAPServices struct {
 	Identity []struct {
-		Credentials DefaultIdentity `json:"credentials"`
+		Credentials Identity `json:"credentials"`
 	} `json:"identity"`
 }
 
-// OAuthConfig interface has to be implemented to instantiate NewMiddleware. For IAS the standard implementation IASConfig from ../env/iasConfig.go package can be used.
-type OAuthConfig interface {
-	GetClientID() string             // Returns the client id of the oAuth client.
-	GetClientSecret() string         // Returns the client secret. Optional
-	GetURL() string                  // Returns the url to the DefaultIdentity tenant. E.g. https://abcdefgh.accounts.ondemand.com
-	GetDomains() []string            // Returns the domains of the DefaultIdentity service. E.g. ["accounts.ondemand.com"]
-	GetZoneUUID() uuid.UUID          // Returns the zone uuid. Optional
-	GetProofTokenURL() string        // Returns the proof token url. Optional
-	GetCertificate() string          // Returns the client certificate. Optional
-	GetKey() string                  // Returns the client certificate key. Optional
-	GetCertificateExpiresAt() string // Returns the client certificate expiration time. Optional
-	IsCertificateBased() bool        // Returns true, in case GetCertificate() and GetKey returns non empty values
-}
-
-// DefaultIdentity represents the parsed credentials from the ias binding
-type DefaultIdentity struct {
+// Identity represents the parsed credentials from the ias binding
+type Identity struct {
 	ClientID             string    `json:"clientid"`
 	ClientSecret         string    `json:"clientsecret"`
 	Domains              []string  `json:"domains"`
@@ -55,7 +41,7 @@ type DefaultIdentity struct {
 }
 
 // GetIASConfig parses the IAS config from the applications environment
-func GetIASConfig() (*DefaultIdentity, error) {
+func GetIASConfig() (*Identity, error) {
 	switch getPlatform() { //nolint:exhaustive // Unknown case is handled by default
 	case cloudFoundry:
 		var vcapServices VCAPServices
@@ -88,12 +74,12 @@ func GetIASConfig() (*DefaultIdentity, error) {
 	}
 }
 
-func readServiceBindings(secretPath string) ([]DefaultIdentity, error) {
+func readServiceBindings(secretPath string) ([]Identity, error) {
 	instancesBound, err := os.ReadDir(secretPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read service directory '%s' for identity service: %w", secretPath, err)
 	}
-	identities := []DefaultIdentity{}
+	identities := []Identity{}
 	for _, instanceBound := range instancesBound {
 		if !instanceBound.IsDir() {
 			continue
@@ -110,7 +96,7 @@ func readServiceBindings(secretPath string) ([]DefaultIdentity, error) {
 				return nil, err
 			}
 		}
-		identity := DefaultIdentity{}
+		identity := Identity{}
 		if err := json.Unmarshal(instanceSecretsJSON, &identity); err != nil {
 			return nil, fmt.Errorf("cannot unmarshal json content in directory '%s' for '%s' service instance: %w", serviceInstancePath, iasServiceName, err)
 		}
@@ -163,56 +149,56 @@ func readSecretFilesToJSON(serviceInstancePath string, instanceSecretFiles []os.
 }
 
 // GetClientID implements the auth.OAuthConfig interface.
-func (c DefaultIdentity) GetClientID() string {
+func (c Identity) GetClientID() string {
 	return c.ClientID
 }
 
 // GetClientSecret implements the auth.OAuthConfig interface.
-func (c DefaultIdentity) GetClientSecret() string {
+func (c Identity) GetClientSecret() string {
 	return c.ClientSecret
 }
 
 // GetURL implements the auth.OAuthConfig interface.
-func (c DefaultIdentity) GetURL() string {
+func (c Identity) GetURL() string {
 	return c.URL
 }
 
 // GetDomains implements the auth.OAuthConfig interface.
-func (c DefaultIdentity) GetDomains() []string {
+func (c Identity) GetDomains() []string {
 	return c.Domains
 }
 
 // GetZoneUUID implements the auth.OAuthConfig interface.
-func (c DefaultIdentity) GetZoneUUID() uuid.UUID {
+func (c Identity) GetZoneUUID() uuid.UUID {
 	return c.ZoneUUID
 }
 
 // GetProofTokenURL implements the auth.OAuthConfig interface.
-func (c DefaultIdentity) GetProofTokenURL() string {
+func (c Identity) GetProofTokenURL() string {
 	return c.ProofTokenURL
 }
 
 // GetOsbURL implements the auth.OAuthConfig interface.
-func (c DefaultIdentity) GetOsbURL() string {
+func (c Identity) GetOsbURL() string {
 	return c.OsbURL
 }
 
 // GetCertificate implements the auth.OAuthConfig interface.
-func (c DefaultIdentity) GetCertificate() string {
+func (c Identity) GetCertificate() string {
 	return c.Certificate
 }
 
 // IsCertificateBased implements the auth.OAuthConfig interface.
-func (c DefaultIdentity) IsCertificateBased() bool {
+func (c Identity) IsCertificateBased() bool {
 	return c.Certificate != "" && c.Key != ""
 }
 
 // GetKey implements the auth.OAuthConfig interface.
-func (c DefaultIdentity) GetKey() string {
+func (c Identity) GetKey() string {
 	return c.Key
 }
 
 // GetCertificateExpiresAt implements the auth.OAuthConfig interface.
-func (c DefaultIdentity) GetCertificateExpiresAt() string {
+func (c Identity) GetCertificateExpiresAt() string {
 	return c.CertificateExpiresAt
 }

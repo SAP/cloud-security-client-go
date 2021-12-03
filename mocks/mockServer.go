@@ -338,11 +338,6 @@ func (c MockConfig) GetCertificateExpiresAt() string {
 	return c.CertificateExpiresAt
 }
 
-// IsCertificateBased implements the auth.OAuthConfig interface.
-func (c MockConfig) IsCertificateBased() bool {
-	return c.Certificate != "" && c.Key != ""
-}
-
 // JSONWebKeySet represents the data which is returned by the tenants /oauth2/certs endpoint
 type JSONWebKeySet struct {
 	Keys []*JSONWebKey `json:"keys"`
