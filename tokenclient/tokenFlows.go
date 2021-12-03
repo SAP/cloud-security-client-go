@@ -33,6 +33,19 @@ type TokenFlows struct {
 	tokenURI string
 }
 
+// RequestFailedError represents a HTTP server error
+type RequestFailedError struct {
+	// StatusCode of failed request
+	StatusCode int
+	url        url.URL
+	errTxt     string
+}
+
+// Error initializes RequestFailedError
+func (e *RequestFailedError) Error() string {
+	return fmt.Sprintf("request to '%v' failed with status code '%v' and payload: '%v'", e.url.String(), e.StatusCode, e.errTxt)
+}
+
 type tokenResponse struct {
 	Token string `json:"access_token"`
 }
@@ -123,7 +136,7 @@ func (t *TokenFlows) performRequest(r *http.Request) ([]byte, error) {
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("request to '%v' failed with status code '%v' and payload: '%v'", r.URL, res.StatusCode, string(body))
+		return nil, &RequestFailedError{res.StatusCode, *r.URL, string(body)}
 	}
 	if err != nil || body == nil || !json.Valid(body) {
 		return nil, fmt.Errorf("request to '%v ' provides no valid json content: %w", r.URL, err)

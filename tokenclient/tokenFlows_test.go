@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/gorilla/mux"
 	"github.com/sap/cloud-security-client-go/env"
 	"github.com/stretchr/testify/assert"
@@ -71,6 +72,10 @@ func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
 	assertError(t, "failed with status code '401' and payload: 'unauthenticated client'", err)
+	var requestFailed *RequestFailedError
+	if !errors.As(err, &requestFailed) || requestFailed.StatusCode != 401 {
+		assert.Fail(t, "error not of type ClientError")
+	}
 }
 
 func TestClientCredentialsTokenFlow_FailsWithInvalidCustomHost(t *testing.T) {
