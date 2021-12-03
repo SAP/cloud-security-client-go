@@ -45,21 +45,30 @@ func TestClientCredentialsTokenFlow_FailsWithTimeout(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
+	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("no json")) })
+	defer server.Close()
+	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
+
+	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
+	assertError(t, "error parsing requested token: no 'access_token' property provided", err)
+}
+
+func TestClientCredentialsTokenFlow_FailsNoJson(t *testing.T) {
 	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) {})
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
-	assertError(t, "provides no valid json content", err)
+	assertError(t, "error parsing requested token: no 'access_token' property provided", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
-	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("{\"a\":\"b\"}")) }) //nolint:errcheck
+	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("{\"a\":\"b\"}")) })
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
-	assertError(t, "error parsing requested client credential token: no 'access_token' property provided", err)
+	assertError(t, "error parsing requested token: no 'access_token' property provided", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
@@ -100,7 +109,6 @@ func TestClientCredentialsTokenFlow_FailsWithInvalidCustomerUrl(t *testing.T) {
 
 func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 	server := setupNewTLSServer(tokenHandler)
-	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(env.Identity{
 		ClientID: "09932670-9440-445d-be3e-432a97d7e2ef"}, Options{HTTPClient: server.Client()})
 

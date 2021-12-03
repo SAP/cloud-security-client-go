@@ -102,22 +102,17 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	if err != nil {
 		return "", err
 	}
-	r, e := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
-	if e != nil {
-		return "", fmt.Errorf("error performing client credentials flow: %w", e)
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
+	if err != nil {
+		return "", fmt.Errorf("error performing client credentials flow: %w", err)
 	}
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	tokenJSON, err := t.performRequest(r)
+	tokenRes, err := t.performTokenRequest(r)
 	if err != nil {
 		return "", err
 	}
-	var response tokenResponse
-	_ = json.Unmarshal(tokenJSON, &response)
-	if response.Token == "" {
-		return "", fmt.Errorf("error parsing requested client credential token: no 'access_token' property provided")
-	}
-	return response.Token, nil
+	return tokenRes.Token, nil
 }
 
 func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
@@ -130,18 +125,19 @@ func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
 	return "", fmt.Errorf("customer tenant url '%v' can't be parsed: %w", customerTenantURL, err)
 }
 
-func (t *TokenFlows) performRequest(r *http.Request) ([]byte, error) {
+func (t *TokenFlows) performTokenRequest(r *http.Request) (tokenResponse, error) {
+	var tokenRes tokenResponse
 	res, err := t.options.HTTPClient.Do(r)
 	if err != nil {
-		return nil, fmt.Errorf("request to '%v' failed: %w", r.URL, err)
+		return tokenRes, fmt.Errorf("request to '%v' failed: %w", r.URL, err)
 	}
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
-		return nil, &RequestFailedError{res.StatusCode, *r.URL, string(body)}
+		body, _ := ioutil.ReadAll(res.Body)
+		return tokenRes, &RequestFailedError{res.StatusCode, *r.URL, string(body)}
 	}
-	if err != nil || body == nil || !json.Valid(body) {
-		return nil, fmt.Errorf("request to '%v ' provides no valid json content: %w", r.URL, err)
+	if err = json.NewDecoder(res.Body).Decode(&tokenRes); err != nil || tokenRes.Token == "" {
+		return tokenRes, fmt.Errorf("error parsing requested token: no 'access_token' property provided") // ignore error as this is not helpful
 	}
-	return body, nil
+	return tokenRes, nil
 }
