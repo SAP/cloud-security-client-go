@@ -12,8 +12,9 @@ import (
 	"time"
 )
 
-// DefaultTLSConfig creates default tls.Config
-// Default: SystemCertPool with cert/key from identity config.
+// DefaultTLSConfig creates default tls.Config. Initializes SystemCertPool with cert/key from identity config.
+//
+// identity provides certificate and key
 func DefaultTLSConfig(identity env.Identity) (*tls.Config, error) {
 	if !identity.IsCertificateBased() {
 		return nil, nil
@@ -41,6 +42,8 @@ func DefaultTLSConfig(identity env.Identity) (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
+// DefaultHTTPClient
+//
 // tlsConfig required in case of cert-based identity config
 func DefaultHTTPClient(tlsConfig *tls.Config) *http.Client {
 	client := &http.Client{
