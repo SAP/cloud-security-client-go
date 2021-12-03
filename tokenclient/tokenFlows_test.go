@@ -17,12 +17,12 @@ import (
 	"time"
 )
 
-var clientSecretConfig = env.Identity{
+var clientSecretConfig = &env.DefaultIdentity{
 	ClientID:     "09932670-9440-445d-be3e-432a97d7e2ef",
 	ClientSecret: "[the_CLIENT.secret:3[/abc",
 }
 
-var mTLSConfig = env.Identity{
+var mTLSConfig = &env.DefaultIdentity{
 	Certificate: "theCertificate",
 	Key:         "theCertificateKey",
 }
@@ -109,7 +109,7 @@ func TestClientCredentialsTokenFlow_FailsWithInvalidCustomerUrl(t *testing.T) {
 
 func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 	server := setupNewTLSServer(tokenHandler)
-	tokenFlows, _ := NewTokenFlows(env.Identity{
+	tokenFlows, _ := NewTokenFlows(&env.DefaultIdentity{
 		ClientID: "09932670-9440-445d-be3e-432a97d7e2ef"}, Options{HTTPClient: server.Client()})
 
 	token, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})

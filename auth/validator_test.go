@@ -18,7 +18,7 @@ func TestAdditionalDomain(t *testing.T) {
 	if err != nil {
 		t.Errorf("error creating test setup: %v", err)
 	}
-	m := NewMiddleware(env.Identity{
+	m := NewMiddleware(env.DefaultIdentity{
 		ClientID:     oidcMockServer.Config.ClientID,
 		ClientSecret: oidcMockServer.Config.ClientSecret,
 		URL:          oidcMockServer.Config.URL,
@@ -43,7 +43,7 @@ func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 	if err != nil {
 		t.Errorf("error creating test setup: %v", err)
 	}
-	m := NewMiddleware(env.Identity{
+	m := NewMiddleware(env.DefaultIdentity{
 		ClientID:     oidcMockServer.Config.ClientID,
 		ClientSecret: oidcMockServer.Config.ClientSecret,
 		URL:          oidcMockServer.Config.URL,
