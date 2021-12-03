@@ -115,7 +115,7 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	var response tokenResponse
 	_ = json.Unmarshal(tokenJSON, &response)
 	if response.Token == "" {
-		return "", fmt.Errorf("error parsing requested client credential token: %v", string(tokenJSON))
+		return "", fmt.Errorf("error parsing requested client credential token: no 'access_token' property provided")
 	}
 	return response.Token, nil
 }
@@ -124,8 +124,10 @@ func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
 	customHost, err := url.Parse(customerTenantURL)
 	if err == nil && customHost.Host != "" {
 		return "https://" + customHost.Host + tokenEndpoint, nil
+	} else if !strings.HasPrefix(customerTenantURL, "http") {
+		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: Trying to parse a hostname without a scheme is invalid", customerTenantURL)
 	}
-	return "", fmt.Errorf("customer tenant host '%v' can't be accepted: %v", customerTenantURL, err)
+	return "", fmt.Errorf("customer tenant url '%v' can't be parsed: %w", customerTenantURL, err)
 }
 
 func (t *TokenFlows) performRequest(r *http.Request) ([]byte, error) {

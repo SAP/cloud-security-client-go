@@ -59,7 +59,7 @@ func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
-	assertError(t, "error parsing requested client credential token: {\"a\":\"b\"}", err)
+	assertError(t, "error parsing requested client credential token: no 'access_token' property provided", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
@@ -78,13 +78,24 @@ func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
 	}
 }
 
-func TestClientCredentialsTokenFlow_FailsWithInvalidCustomHost(t *testing.T) {
+func TestClientCredentialsTokenFlow_FailsWithCustomerUrlWithoutScheme(t *testing.T) {
 	server := setupNewTLSServer(tokenHandler)
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(clientSecretConfig, Options{HTTPClient: server.Client()})
 
-	_, err := tokenFlows.ClientCredentials(context.TODO(), "invalidhost", RequestOptions{})
-	assertError(t, "customer tenant host 'invalidhost' can't be accepted", err)
+	_, err := tokenFlows.ClientCredentials(context.TODO(), "some-domain.de/with/a/path", RequestOptions{})
+	assertError(t, "customer tenant url 'some-domain.de/with/a/path' is not a valid url", err)
+	assertError(t, "Trying to parse a hostname without a scheme is invalid", err)
+}
+
+func TestClientCredentialsTokenFlow_FailsWithInvalidCustomerUrl(t *testing.T) {
+	server := setupNewTLSServer(tokenHandler)
+	defer server.Close()
+	tokenFlows, _ := NewTokenFlows(clientSecretConfig, Options{HTTPClient: server.Client()})
+
+	_, err := tokenFlows.ClientCredentials(context.TODO(), "https://some-domain.de\abc", RequestOptions{})
+	assertError(t, "customer tenant url 'https://some-domain.de\abc' can't be parsed", err)
+	assertError(t, "parse \"https://some-domain.de\\abc\"", err)
 }
 
 func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
