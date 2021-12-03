@@ -162,57 +162,57 @@ func readSecretFilesToJSON(serviceInstancePath string, instanceSecretFiles []os.
 	return instanceCredentialsJSON, nil
 }
 
-// GetClientID implements the auth.Identity interface.
+// GetClientID implements the env.Identity interface.
 func (c DefaultIdentity) GetClientID() string {
 	return c.ClientID
 }
 
-// GetClientSecret implements the auth.Identity interface.
+// GetClientSecret implements the env.Identity interface.
 func (c DefaultIdentity) GetClientSecret() string {
 	return c.ClientSecret
 }
 
-// GetURL implements the auth.Identity interface.
+// GetURL implements the env.Identity interface.
 func (c DefaultIdentity) GetURL() string {
 	return c.URL
 }
 
-// GetDomains implements the auth.Identity interface.
+// GetDomains implements the env.Identity interface.
 func (c DefaultIdentity) GetDomains() []string {
 	return c.Domains
 }
 
-// GetZoneUUID implements the auth.Identity interface.
+// GetZoneUUID implements the env.Identity interface.
 func (c DefaultIdentity) GetZoneUUID() uuid.UUID {
 	return c.ZoneUUID
 }
 
-// GetProofTokenURL implements the auth.Identity interface.
+// GetProofTokenURL implements the env.Identity interface.
 func (c DefaultIdentity) GetProofTokenURL() string {
 	return c.ProofTokenURL
 }
 
-// GetOsbURL implements the auth.Identity interface.
+// GetOsbURL implements the env.Identity interface.
 func (c DefaultIdentity) GetOsbURL() string {
 	return c.OsbURL
 }
 
-// GetCertificate implements the auth.Identity interface.
+// GetCertificate implements the env.Identity interface.
 func (c DefaultIdentity) GetCertificate() string {
 	return c.Certificate
 }
 
-// IsCertificateBased implements the auth.Identity interface.
+// IsCertificateBased implements the env.Identity interface.
 func (c DefaultIdentity) IsCertificateBased() bool {
 	return c.Certificate != "" && c.Key != ""
 }
 
-// GetKey implements the auth.Identity interface.
+// GetKey implements the env.Identity interface.
 func (c DefaultIdentity) GetKey() string {
 	return c.Key
 }
 
-// GetCertificateExpiresAt implements the auth.Identity interface.
+// GetCertificateExpiresAt implements the env.Identity interface.
 func (c DefaultIdentity) GetCertificateExpiresAt() string {
 	return c.CertificateExpiresAt
 }
