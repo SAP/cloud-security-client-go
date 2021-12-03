@@ -32,7 +32,7 @@ func DefaultTLSConfig(identity env.Identity) (*tls.Config, error) {
 	}
 	ok := tlsCertPool.AppendCertsFromPEM(certPEMBlock)
 	if !ok {
-		return nil, fmt.Errorf("error adding certs to pool for DefaultTLSConfig: %w", err)
+		return nil, errors.New("error adding certs to pool for DefaultTLSConfig")
 	}
 	tlsConfig := &tls.Config{
 		MinVersion:   tls.VersionTLS12,
