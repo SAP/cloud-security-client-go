@@ -19,7 +19,7 @@ import (
 func main() {
 	r := mux.NewRouter()
 
-	config, err := env.GetIASConfig()
+	config, err := env.ParseIdentityConfig()
 	if err != nil {
 		panic(err)
 	}
