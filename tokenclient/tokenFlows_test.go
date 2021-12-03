@@ -50,7 +50,7 @@ func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
-	assertError(t, "error parsing requested token: no 'access_token' property provided", err)
+	assertError(t, "error parsing response from https://127.0.0.1", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsNoJson(t *testing.T) {
@@ -59,7 +59,7 @@ func TestClientCredentialsTokenFlow_FailsNoJson(t *testing.T) {
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
-	assertError(t, "error parsing requested token: no 'access_token' property provided", err)
+	assertError(t, "error parsing response from https://127.0.0.1", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
@@ -68,7 +68,7 @@ func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
-	assertError(t, "error parsing requested token: no 'access_token' property provided", err)
+	assertError(t, "error parsing requested client credentials token: no 'access_token' property provided", err)
 }
 
 func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {

@@ -108,9 +108,12 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	}
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	tokenRes, err := t.performTokenRequest(r)
+	var tokenRes tokenResponse
+	err = t.performRequest(r, &tokenRes)
 	if err != nil {
 		return "", err
+	} else if tokenRes.Token == "" {
+		return "", fmt.Errorf("error parsing requested client credentials token: no 'access_token' property provided")
 	}
 	return tokenRes.Token, nil
 }
@@ -125,19 +128,18 @@ func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
 	return "", fmt.Errorf("customer tenant url '%v' can't be parsed: %w", customerTenantURL, err)
 }
 
-func (t *TokenFlows) performTokenRequest(r *http.Request) (tokenResponse, error) {
-	var tokenRes tokenResponse
+func (t *TokenFlows) performRequest(r *http.Request, v interface{}) error {
 	res, err := t.options.HTTPClient.Do(r)
 	if err != nil {
-		return tokenRes, fmt.Errorf("request to '%v' failed: %w", r.URL, err)
+		return fmt.Errorf("request to '%v' failed: %w", r.URL, err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		body, _ := ioutil.ReadAll(res.Body)
-		return tokenRes, &RequestFailedError{res.StatusCode, *r.URL, string(body)}
+		return &RequestFailedError{res.StatusCode, *r.URL, string(body)}
 	}
-	if err = json.NewDecoder(res.Body).Decode(&tokenRes); err != nil || tokenRes.Token == "" {
-		return tokenRes, fmt.Errorf("error parsing requested token: no 'access_token' property provided") // ignore error as this is not helpful
+	if err = json.NewDecoder(res.Body).Decode(v); err != nil {
+		return fmt.Errorf("error parsing response from %v: %w", r.URL, err)
 	}
-	return tokenRes, nil
+	return nil
 }
