@@ -261,7 +261,7 @@ func TestEnd2End(t *testing.T) {
 				}
 			} else {
 				if response.StatusCode != 401 {
-					t.Errorf("req to test server succeeded unexpectedly: expected: 401, got: %d", response.StatusCode)
+					t.Errorf("req to test server succeeded unexpectatly: expected: 401, got: %d", response.StatusCode)
 				}
 			}
 			body, _ := io.ReadAll(response.Body)

@@ -51,20 +51,20 @@ func ClientCertificateFromCtx(r *http.Request) *Certificate {
 // Middleware is the main entrypoint to the authn client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
 // Use either the ready to use AuthenticationHandler as a middleware or implement your own middleware with the help of Authenticate.
 type Middleware struct {
-	identity    env.Identity
+	oAuthConfig env.OAuthConfig
 	options     Options
 	oidcTenants *cache.Cache // contains *oidcclient.OIDCTenant
 	sf          singleflight.Group
 }
 
 // NewMiddleware instantiates a new Middleware with defaults for not provided Options.
-func NewMiddleware(identity env.Identity, options Options) *Middleware {
+func NewMiddleware(oAuthConfig env.OAuthConfig, options Options) *Middleware {
 	m := new(Middleware)
 
-	if identity != nil {
-		m.identity = identity
+	if oAuthConfig != nil {
+		m.oAuthConfig = oAuthConfig
 	} else {
-		log.Fatal("identity must not be nil, please refer to package env for default implementations")
+		log.Fatal("oAuthConfig must not be nil, please refer to package env for default implementations")
 	}
 	if options.ErrorHandler == nil {
 		options.ErrorHandler = DefaultErrorHandler

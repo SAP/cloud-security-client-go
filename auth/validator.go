@@ -82,7 +82,7 @@ func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error { 
 		return fmt.Errorf("token is expired, exp: %v", t.Expiration())
 	}
 	err := jwt.Validate(t.getJwtToken(),
-		jwt.WithAudience(m.identity.GetClientID()),
+		jwt.WithAudience(m.oAuthConfig.GetClientID()),
 		jwt.WithIssuer(ks.ProviderJSON.Issuer),
 		jwt.WithAcceptableSkew(1*time.Minute)) // to keep leeway in sync with Token.IsExpired
 
@@ -131,7 +131,7 @@ func (m *Middleware) verifyIssuer(issuer string) (issURI *url.URL, err error) {
 		return nil, fmt.Errorf("unable to parse issuer URI: %s", issuer)
 	}
 
-	if !matchesDomain(issURI.Host, m.identity.GetDomains()) {
+	if !matchesDomain(issURI.Host, m.oAuthConfig.GetDomains()) {
 		return nil, fmt.Errorf("token is unverifiable: unknown server (domain doesn't match)")
 	}
 	return issURI, nil

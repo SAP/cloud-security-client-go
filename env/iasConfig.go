@@ -26,8 +26,8 @@ type VCAPServices struct {
 	} `json:"identity"`
 }
 
-// Identity interface has to be implemented to instantiate NewMiddleware. For IAS the standard implementation IASConfig from ../env/iasConfig.go package can be used.
-type Identity interface {
+// OAuthConfig interface has to be implemented to instantiate NewMiddleware. For IAS the standard implementation IASConfig from ../env/iasConfig.go package can be used.
+type OAuthConfig interface {
 	GetClientID() string             // Returns the client id of the oAuth client.
 	GetClientSecret() string         // Returns the client secret. Optional
 	GetURL() string                  // Returns the url to the DefaultIdentity tenant. E.g. https://abcdefgh.accounts.ondemand.com
@@ -162,57 +162,57 @@ func readSecretFilesToJSON(serviceInstancePath string, instanceSecretFiles []os.
 	return instanceCredentialsJSON, nil
 }
 
-// GetClientID implements the auth.Identity interface.
+// GetClientID implements the auth.OAuthConfig interface.
 func (c DefaultIdentity) GetClientID() string {
 	return c.ClientID
 }
 
-// GetClientSecret implements the auth.Identity interface.
+// GetClientSecret implements the auth.OAuthConfig interface.
 func (c DefaultIdentity) GetClientSecret() string {
 	return c.ClientSecret
 }
 
-// GetURL implements the auth.Identity interface.
+// GetURL implements the auth.OAuthConfig interface.
 func (c DefaultIdentity) GetURL() string {
 	return c.URL
 }
 
-// GetDomains implements the auth.Identity interface.
+// GetDomains implements the auth.OAuthConfig interface.
 func (c DefaultIdentity) GetDomains() []string {
 	return c.Domains
 }
 
-// GetZoneUUID implements the auth.Identity interface.
+// GetZoneUUID implements the auth.OAuthConfig interface.
 func (c DefaultIdentity) GetZoneUUID() uuid.UUID {
 	return c.ZoneUUID
 }
 
-// GetProofTokenURL implements the auth.Identity interface.
+// GetProofTokenURL implements the auth.OAuthConfig interface.
 func (c DefaultIdentity) GetProofTokenURL() string {
 	return c.ProofTokenURL
 }
 
-// GetOsbURL implements the auth.Identity interface.
+// GetOsbURL implements the auth.OAuthConfig interface.
 func (c DefaultIdentity) GetOsbURL() string {
 	return c.OsbURL
 }
 
-// GetCertificate implements the auth.Identity interface.
+// GetCertificate implements the auth.OAuthConfig interface.
 func (c DefaultIdentity) GetCertificate() string {
 	return c.Certificate
 }
 
-// IsCertificateBased implements the auth.Identity interface.
+// IsCertificateBased implements the auth.OAuthConfig interface.
 func (c DefaultIdentity) IsCertificateBased() bool {
 	return c.Certificate != "" && c.Key != ""
 }
 
-// GetKey implements the auth.Identity interface.
+// GetKey implements the auth.OAuthConfig interface.
 func (c DefaultIdentity) GetKey() string {
 	return c.Key
 }
 
-// GetCertificateExpiresAt implements the auth.Identity interface.
+// GetCertificateExpiresAt implements the auth.OAuthConfig interface.
 func (c DefaultIdentity) GetCertificateExpiresAt() string {
 	return c.CertificateExpiresAt
 }
