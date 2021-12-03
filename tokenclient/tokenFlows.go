@@ -76,7 +76,6 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 		}
 		t.options.HTTPClient = httpclient.DefaultHTTPClient(tlsConfig)
 	}
-	t.tokenURI = identity.GetURL() + tokenEndpoint
 	return &t, nil
 }
 
