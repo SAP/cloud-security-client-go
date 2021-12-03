@@ -20,7 +20,7 @@ var key string
 //go:embed testdata/privateRSAKey.pem
 var otherKey string
 
-var mTLSConfig = env.Identity{
+var mTLSConfig = &env.DefaultIdentity{
 	ClientID:    "09932670-9440-445d-be3e-432a97d7e2ef",
 	Certificate: certificate,
 	Key:         key,
@@ -28,7 +28,7 @@ var mTLSConfig = env.Identity{
 }
 
 func TestDefaultTLSConfig_ReturnsNil(t *testing.T) {
-	tlsConfig, err := DefaultTLSConfig(env.Identity{})
+	tlsConfig, err := DefaultTLSConfig(&env.DefaultIdentity{})
 	assert.NoError(t, err)
 	assert.Nil(t, tlsConfig)
 }

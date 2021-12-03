@@ -6,14 +6,16 @@ package httpclient
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"github.com/sap/cloud-security-client-go/env"
 	"net/http"
 	"time"
 )
 
-// DefaultTLSConfig creates default tls.Config
-// Default: SystemCertPool with cert/key from identity config.
+// DefaultTLSConfig creates default tls.Config. Initializes SystemCertPool with cert/key from identity config.
+//
+// identity provides certificate and key
 func DefaultTLSConfig(identity env.Identity) (*tls.Config, error) {
 	if !identity.IsCertificateBased() {
 		return nil, nil
@@ -31,7 +33,7 @@ func DefaultTLSConfig(identity env.Identity) (*tls.Config, error) {
 	}
 	ok := tlsCertPool.AppendCertsFromPEM(certPEMBlock)
 	if !ok {
-		return nil, fmt.Errorf("error adding certs to pool for DefaultTLSConfig: %w", err)
+		return nil, errors.New("error adding certs to pool for DefaultTLSConfig")
 	}
 	tlsConfig := &tls.Config{
 		MinVersion:   tls.VersionTLS12,
@@ -41,15 +43,17 @@ func DefaultTLSConfig(identity env.Identity) (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
+// DefaultHTTPClient
+//
 // tlsConfig required in case of cert-based identity config
 func DefaultHTTPClient(tlsConfig *tls.Config) *http.Client {
 	client := &http.Client{
-		Timeout: time.Second * 10, // TODO check
+		Timeout: time.Second * 10,
 	}
 	if tlsConfig != nil {
 		client.Transport = &http.Transport{
-			TLSClientConfig:     tlsConfig,
-			MaxIdleConnsPerHost: 50, // TODO check
+			TLSClientConfig: tlsConfig,
+			MaxIdleConns:    50,
 		}
 	}
 	return client

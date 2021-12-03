@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-var testConfig = &Identity{
+var testConfig = &DefaultIdentity{
 	ClientID:     "cef76757-de57-480f-be92-1d8c1c7abf16",
 	ClientSecret: "[the_CLIENT.secret:3[/abc",
 	Domains:      []string{"accounts400.ondemand.com", "my.arbitrary.domain"},
@@ -22,12 +22,12 @@ var testConfig = &Identity{
 	ZoneUUID:     uuid.MustParse("bef12345-de57-480f-be92-1d8c1c7abf16"),
 }
 
-func TestGetIASConfig(t *testing.T) {
+func TestParseIdentityConfig(t *testing.T) {
 	tests := []struct {
 		name          string
 		k8sSecretPath string
 		env           string
-		want          *Identity
+		want          Identity
 		wantErr       bool
 	}{
 		{
@@ -85,16 +85,16 @@ func TestGetIASConfig(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			got, err := GetIASConfig()
+			got, err := ParseIdentityConfig()
 			if err != nil {
 				if !tt.wantErr {
-					t.Errorf("GetIASConfig() error = %v, wantErr:%v", err, tt.wantErr)
+					t.Errorf("ParseIdentityConfig() error = %v, wantErr:%v", err, tt.wantErr)
 					return
 				}
-				t.Logf("GetIASConfig() error = %v, wantErr:%v", err, tt.wantErr)
+				t.Logf("ParseIdentityConfig() error = %v, wantErr:%v", err, tt.wantErr)
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetIASConfig() got = %v, want %v", got, tt.want)
+				t.Errorf("ParseIdentityConfig() got = %v, want %v", got, tt.want)
 			}
 			if tt.want != nil {
 				assert.False(t, tt.want.IsCertificateBased())
@@ -110,7 +110,7 @@ func TestGetIASConfig(t *testing.T) {
 func TestX509BasedCredentials(t *testing.T) {
 	err := setTestEnv("{\"identity\":[{\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"certificate\":\"theCertificate\",\"key\":\"thekey\"}}]}")
 	assert.NoError(t, err)
-	got, err := GetIASConfig()
+	got, err := ParseIdentityConfig()
 	assert.NoError(t, err)
 	assert.Equal(t, got.GetClientID(), "cef76757-de57-480f-be92-1d8c1c7abf16")
 	assert.Equal(t, got.GetCertificate(), "theCertificate")

@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
 )
@@ -39,19 +38,6 @@ type Options struct {
 	HTTPClient   *http.Client // HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: basic http.Client with a timeout of 15 seconds
 }
 
-// OAuthConfig interface has to be implemented to instantiate NewMiddleware. For IAS the standard implementation IASConfig from ../env/iasConfig.go package can be used.
-type OAuthConfig interface {
-	GetClientID() string             // Returns the client id of the oAuth client.
-	GetClientSecret() string         // Returns the client secret. Optional
-	GetURL() string                  // Returns the url to the Identity tenant. E.g. https://abcdefgh.accounts.ondemand.com
-	GetDomains() []string            // Returns the domains of the Identity service. E.g. ["accounts.ondemand.com"]
-	GetZoneUUID() uuid.UUID          // Returns the zone uuid. Optional
-	GetProofTokenURL() string        // Returns the proof token url. Optional
-	GetCertificate() string          // Returns the client certificate. Optional
-	GetKey() string                  // Returns the client certificate key. Optional
-	GetCertificateExpiresAt() string // Returns the client certificate expiration time. Optional
-}
-
 // TokenFromCtx retrieves the claims of a request which
 // have been injected before via the auth middleware
 func TokenFromCtx(r *http.Request) Token {
@@ -67,7 +53,7 @@ func ClientCertificateFromCtx(r *http.Request) *Certificate {
 // Middleware is the main entrypoint to the authn client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.
 // Use either the ready to use AuthenticationHandler as a middleware or implement your own middleware with the help of Authenticate.
 type Middleware struct {
-	oAuthConfig OAuthConfig
+	identity    env.Identity
 	options     Options
 	oidcTenants *cache.Cache // contains *oidcclient.OIDCTenant
 	sf          singleflight.Group
@@ -75,13 +61,13 @@ type Middleware struct {
 }
 
 // NewMiddleware instantiates a new Middleware with defaults for not provided Options.
-func NewMiddleware(oAuthConfig OAuthConfig, options Options) *Middleware {
+func NewMiddleware(identity env.Identity, options Options) *Middleware {
 	m := new(Middleware)
 
-	if oAuthConfig != nil {
-		m.oAuthConfig = oAuthConfig
+	if identity != nil {
+		m.identity = identity
 	} else {
-		log.Fatal("OAuthConfig must not be nil, please refer to package env for default implementations")
+		log.Fatal("identity must not be nil, please refer to package env for default implementations")
 	}
 	if options.ErrorHandler == nil {
 		options.ErrorHandler = DefaultErrorHandler

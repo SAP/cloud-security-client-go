@@ -33,6 +33,19 @@ type TokenFlows struct {
 	tokenURI string
 }
 
+// RequestFailedError represents a HTTP server error
+type RequestFailedError struct {
+	// StatusCode of failed request
+	StatusCode int
+	url        url.URL
+	errTxt     string
+}
+
+// Error initializes RequestFailedError
+func (e *RequestFailedError) Error() string {
+	return fmt.Sprintf("request to '%v' failed with status code '%v' and payload: '%v'", e.url.String(), e.StatusCode, e.errTxt)
+}
+
 type tokenResponse struct {
 	Token string `json:"access_token"`
 }
@@ -63,7 +76,6 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 		}
 		t.options.HTTPClient = httpclient.DefaultHTTPClient(tlsConfig)
 	}
-	t.tokenURI = identity.GetURL() + tokenEndpoint
 	return &t, nil
 }
 
@@ -72,12 +84,11 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 // It is used for non interactive applications (a CLI, a batch job, or for service-2-service communication) where the token is issued to the application itself,
 // instead of an end user for accessing resources without principal propagation.
 //
-// ctx carries the request context like the deadline or other values that should be shared across API boundaries. Default: context.TODO is used
+// ctx carries the request context like the deadline or other values that should be shared across API boundaries.
 // customerTenantURL like "https://custom.accounts400.ondemand.com" gives the host of the customers ias tenant
 // options allows to provide a request context and optionally additional request parameters
 func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL string, options RequestOptions) (string, error) {
 	data := url.Values{}
-	data.Set(grantTypeParameter, grantTypeClientCredentials)
 	data.Set(clientIDParameter, t.identity.GetClientID())
 	if t.identity.GetClientSecret() != "" {
 		data.Set(clientSecretParameter, t.identity.GetClientSecret())
@@ -85,51 +96,50 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	for name, value := range options.Params {
 		data.Set(name, value) // potentially overwrites data which was set before
 	}
+	data.Set(grantTypeParameter, grantTypeClientCredentials)
 	targetURL, err := t.getURL(customerTenantURL)
 	if err != nil {
 		return "", err
 	}
-	r, e := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
-	if e != nil {
-		return "", fmt.Errorf("error performing client credentials flow: %w", e)
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
+	if err != nil {
+		return "", fmt.Errorf("error performing client credentials flow: %w", err)
 	}
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	tokenJSON, err := t.performRequest(r)
+	var tokenRes tokenResponse
+	err = t.performRequest(r, &tokenRes)
 	if err != nil {
 		return "", err
+	} else if tokenRes.Token == "" {
+		return "", fmt.Errorf("error parsing requested client credentials token: no 'access_token' property provided")
 	}
-	var response tokenResponse
-	_ = json.Unmarshal(tokenJSON, &response)
-	if response.Token == "" {
-		return "", fmt.Errorf("error parsing requested client credential token: %v", string(tokenJSON))
-	}
-	return response.Token, nil
+	return tokenRes.Token, nil
 }
 
-func (t *TokenFlows) getURL(customerTenantHost string) (string, error) {
-	if customerTenantHost == "" {
-		return t.tokenURI, nil
+func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
+	customURL, err := url.Parse(customerTenantURL)
+	if err == nil && customURL.Host != "" {
+		return "https://" + customURL.Host + tokenEndpoint, nil
 	}
-	customHost, err := url.Parse(customerTenantHost)
-	if err == nil && customHost.Host != "" {
-		return "https://" + customHost.Host + tokenEndpoint, nil
+	if !strings.HasPrefix(customerTenantURL, "http") {
+		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: Trying to parse a hostname without a scheme is invalid", customerTenantURL)
 	}
-	return "", fmt.Errorf("customer tenant host '%v' can't be accepted: %v", customerTenantHost, err)
+	return "", fmt.Errorf("customer tenant url '%v' can't be parsed: %w", customerTenantURL, err)
 }
 
-func (t *TokenFlows) performRequest(r *http.Request) ([]byte, error) {
+func (t *TokenFlows) performRequest(r *http.Request, v interface{}) error {
 	res, err := t.options.HTTPClient.Do(r)
 	if err != nil {
-		return nil, fmt.Errorf("request to '%v' failed: %w", r.URL, err)
+		return fmt.Errorf("request to '%v' failed: %w", r.URL, err)
 	}
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("request to '%v' failed with status code '%v' and payload: '%v'", r.URL, res.StatusCode, string(body))
+		body, _ := ioutil.ReadAll(res.Body)
+		return &RequestFailedError{res.StatusCode, *r.URL, string(body)}
 	}
-	if err != nil || body == nil || !json.Valid(body) {
-		return nil, fmt.Errorf("request to '%v ' provides no valid json content: %w", r.URL, err)
+	if err = json.NewDecoder(res.Body).Decode(v); err != nil {
+		return fmt.Errorf("error parsing response from %v: %w", r.URL, err)
 	}
-	return body, nil
+	return nil
 }
