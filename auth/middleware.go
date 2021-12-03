@@ -73,12 +73,11 @@ func NewMiddleware(identity env.Identity, options Options) *Middleware {
 		options.ErrorHandler = DefaultErrorHandler
 	}
 	if options.HTTPClient == nil {
-		// TODO
-		//tlsConfig, err := httpclient.DefaultTLSConfig(*oAuthConfig)
-		//if err != nil {
-		//	log.Fatal("OAuthConfig provides invalid certificate/key: %w", err)
-		//}
-		options.HTTPClient = httpclient.DefaultHTTPClient(nil)
+		tlsConfig, err := httpclient.DefaultTLSConfig(identity)
+		if err != nil {
+			log.Fatal("OAuthConfig provides invalid certificate/key: %w", err)
+		}
+		options.HTTPClient = httpclient.DefaultHTTPClient(tlsConfig)
 	}
 	m.options = options
 
@@ -90,13 +89,7 @@ func NewMiddleware(identity env.Identity, options Options) *Middleware {
 // GetTokenFlows creates or returns TokenFlows, otherwise error is returned
 func (m *Middleware) GetTokenFlows() (*tokenclient.TokenFlows, error) {
 	if m.tokenFlows == nil {
-		tokenFlows, err := tokenclient.NewTokenFlows(env.Identity{
-			ClientID:     m.oAuthConfig.GetClientID(),
-			ClientSecret: m.oAuthConfig.GetClientSecret(),
-			URL:          m.oAuthConfig.GetURL(),
-			Certificate:  m.oAuthConfig.GetCertificate(),
-			Key:          m.oAuthConfig.GetKey(),
-		}, tokenclient.Options{HTTPClient: m.options.HTTPClient})
+		tokenFlows, err := tokenclient.NewTokenFlows(m.identity, tokenclient.Options{HTTPClient: m.options.HTTPClient})
 		if err != nil {
 			return nil, err
 		}

@@ -295,7 +295,7 @@ func GetTestServer(customIssuer string) (clientServer *httptest.Server, oidcServ
 }
 
 func TestGetTokenFlows_sameInstance(t *testing.T) {
-	middleware := NewMiddleware(env.Identity{
+	middleware := NewMiddleware(&env.DefaultIdentity{
 		ClientID:     "09932670-9440-445d-be3e-432a97d7e2ef",
 		ClientSecret: "[the_CLIENT.secret:3[/abc",
 		URL:          "https://mySaaS.accounts400.ondemand.com",
