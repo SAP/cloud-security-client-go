@@ -34,7 +34,7 @@ To access service instance configurations from the application, Kubernetes secre
 ```go
 r := mux.NewRouter()
 
-config, err := env.GetIASConfig()
+config, err := env.ReadIdentityConfig()
 if err != nil {
     panic(err)
 }

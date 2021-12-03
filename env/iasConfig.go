@@ -54,8 +54,8 @@ type DefaultIdentity struct {
 	CertificateExpiresAt string    `json:"certificate_expires_at"`
 }
 
-// GetIASConfig parses the IAS config from the applications environment
-func GetIASConfig() (*DefaultIdentity, error) {
+// ParseIdentityConfig parses the IAS config from the applications environment
+func ParseIdentityConfig() (Identity, error) {
 	switch getPlatform() { //nolint:exhaustive // Unknown case is handled by default
 	case cloudFoundry:
 		var vcapServices VCAPServices
