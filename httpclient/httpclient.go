@@ -6,6 +6,7 @@ package httpclient
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"github.com/sap/cloud-security-client-go/env"
 	"net/http"
