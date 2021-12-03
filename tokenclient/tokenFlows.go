@@ -121,7 +121,8 @@ func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
 	customHost, err := url.Parse(customerTenantURL)
 	if err == nil && customHost.Host != "" {
 		return "https://" + customHost.Host + tokenEndpoint, nil
-	} else if !strings.HasPrefix(customerTenantURL, "http") {
+	} 
+	if !strings.HasPrefix(customerTenantURL, "http") {
 		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: Trying to parse a hostname without a scheme is invalid", customerTenantURL)
 	}
 	return "", fmt.Errorf("customer tenant url '%v' can't be parsed: %w", customerTenantURL, err)
