@@ -75,7 +75,7 @@ func NewMiddleware(identity env.Identity, options Options) *Middleware {
 	if options.HTTPClient == nil {
 		tlsConfig, err := httpclient.DefaultTLSConfig(identity)
 		if err != nil {
-			log.Fatal("OAuthConfig provides invalid certificate/key: %w", err)
+			log.Fatal("identity config provides invalid certificate/key: %w", err)
 		}
 		options.HTTPClient = httpclient.DefaultHTTPClient(tlsConfig)
 	}
