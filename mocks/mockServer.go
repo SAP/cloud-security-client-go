@@ -17,7 +17,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -96,7 +95,7 @@ func newOIDCMockServer(customIssuer string) (*MockServer, error) {
 	r.HandleFunc("/.well-known/openid-configuration", mockServer.WellKnownHandler).Methods(http.MethodGet)
 	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandlerInvalidZone).Methods(http.MethodGet).Headers("x-zone_uuid", InvalidZoneID)
 	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandler).Methods(http.MethodGet)
-	r.HandleFunc("/oauth2/token", mockServer.ClientCredentialsTokenHandler).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
+	r.HandleFunc("/oauth2/token", mockServer.tokenHandler).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
 
 	return mockServer, nil
 }
@@ -122,17 +121,18 @@ func (m *MockServer) WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write(payload)
 }
 
-// ClientCredentialsTokenHandler is the http handler which serves the /oauth2/token endpoint. It returns a token without claims.
-func (m *MockServer) ClientCredentialsTokenHandler(w http.ResponseWriter, r *http.Request) {
-	buf := new(bytes.Buffer)
-	_, _ = buf.ReadFrom(r.Body)
-	newStr := buf.String()
-	if strings.Contains(newStr, "grant_type=client_credentials") && strings.Contains(newStr, "client_id="+m.Config.ClientID) {
-		payload, _ := json.Marshal(tokenResponse{
+// tokenHandler is the http handler which serves the /oauth2/token endpoint. It returns a token without claims.
+func (m *MockServer) tokenHandler(w http.ResponseWriter, r *http.Request) {
+	grantType := r.PostFormValue("grant_type")
+	clientID := r.PostFormValue("client_id")
+	if grantType == "client_credentials" && clientID == m.Config.ClientID {
+		_ = json.NewEncoder(w).Encode(tokenResponse{
 			Token: "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo",
 		})
-		_, _ = w.Write(payload)
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
 	}
+
 }
 
 // JWKsHandler is the http handler which answers requests to the JWKS endpoint.
