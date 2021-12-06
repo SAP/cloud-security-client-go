@@ -125,18 +125,6 @@ func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 	assertToken(t, dummyToken, token, err)
 }
 
-<<<<<<< HEAD
-=======
-func TestClientCredentialsTokenFlow_UsingMockServer_Succeeds(t *testing.T) {
-	mockServer, err := mocks.NewOIDCMockServer()
-	assert.NoError(t, err)
-	tokenFlows, _ := NewTokenFlows(&env.DefaultIdentity{
-		ClientID: mockServer.Config.ClientID}, Options{HTTPClient: mockServer.Server.Client()})
-
-	token, err := tokenFlows.ClientCredentials(context.TODO(), mockServer.Server.URL, RequestOptions{})
-	assertToken(t, dummyToken, token, err)
-}
-
 func TestClientCredentialsTokenFlow_ReadFromCache(t *testing.T) {
 	tokenRequestHandlerHitCounter = 0
 	server := setupNewTLSServer(tokenHandler)
@@ -160,7 +148,6 @@ func TestClientCredentialsTokenFlow_ReadFromCache(t *testing.T) {
 	assert.Equal(t, dummyToken, cachedToken)
 }
 
->>>>>>> 3b06e3e (introduce cache for token requests)
 func setupNewTLSServer(f func(http.ResponseWriter, *http.Request)) *httptest.Server {
 	r := mux.NewRouter()
 	r.HandleFunc("/oauth2/token", f).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
