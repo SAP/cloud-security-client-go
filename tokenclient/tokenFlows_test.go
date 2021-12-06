@@ -17,6 +17,9 @@ import (
 	"time"
 )
 
+var tokenRequestHandlerHitCounter int
+var dummyToken = "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo" //nolint:gosec
+
 var clientSecretConfig = &env.DefaultIdentity{
 	ClientID:     "09932670-9440-445d-be3e-432a97d7e2ef",
 	ClientSecret: "[the_CLIENT.secret:3[/abc",
@@ -75,6 +78,7 @@ func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
 	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 		w.Write([]byte("unauthenticated client")) //nolint:errcheck
+		tokenRequestHandlerHitCounter++
 	})
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
@@ -85,6 +89,11 @@ func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
 	if !errors.As(err, &requestFailed) || requestFailed.StatusCode != 401 {
 		assert.Fail(t, "error not of type ClientError")
 	}
+	assert.Equal(t, 1, tokenRequestHandlerHitCounter)
+	assert.Equal(t, 0, tokenFlows.cache.ItemCount())
+
+	_, _ = tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
+	assert.Equal(t, 2, tokenRequestHandlerHitCounter)
 }
 
 func TestClientCredentialsTokenFlow_FailsWithCustomerUrlWithoutScheme(t *testing.T) {
@@ -113,9 +122,45 @@ func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 		ClientID: "09932670-9440-445d-be3e-432a97d7e2ef"}, Options{HTTPClient: server.Client()})
 
 	token, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
-	assertToken(t, "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo", token, err)
+	assertToken(t, dummyToken, token, err)
 }
 
+<<<<<<< HEAD
+=======
+func TestClientCredentialsTokenFlow_UsingMockServer_Succeeds(t *testing.T) {
+	mockServer, err := mocks.NewOIDCMockServer()
+	assert.NoError(t, err)
+	tokenFlows, _ := NewTokenFlows(&env.DefaultIdentity{
+		ClientID: mockServer.Config.ClientID}, Options{HTTPClient: mockServer.Server.Client()})
+
+	token, err := tokenFlows.ClientCredentials(context.TODO(), mockServer.Server.URL, RequestOptions{})
+	assertToken(t, dummyToken, token, err)
+}
+
+func TestClientCredentialsTokenFlow_ReadFromCache(t *testing.T) {
+	tokenRequestHandlerHitCounter = 0
+	server := setupNewTLSServer(tokenHandler)
+	tokenFlows, _ := NewTokenFlows(&env.DefaultIdentity{
+		ClientID: "09932670-9440-445d-be3e-432a97d7e2ef"}, Options{HTTPClient: server.Client()})
+
+	assert.Equal(t, 0, tokenRequestHandlerHitCounter)
+	assert.Equal(t, 0, tokenFlows.cache.ItemCount())
+
+	token, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
+	assert.Equal(t, 1, tokenRequestHandlerHitCounter)
+	assert.Equal(t, 1, tokenFlows.cache.ItemCount())
+	assertToken(t, dummyToken, token, err)
+
+	token, err = tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
+	assert.Equal(t, 1, tokenRequestHandlerHitCounter)
+	assert.Equal(t, 1, tokenFlows.cache.ItemCount())
+	assertToken(t, dummyToken, token, err)
+	cachedToken, ok := tokenFlows.cache.Get(server.URL + "/oauth2/token?client_id=09932670-9440-445d-be3e-432a97d7e2ef&grant_type=client_credentials")
+	assert.True(t, ok)
+	assert.Equal(t, dummyToken, cachedToken)
+}
+
+>>>>>>> 3b06e3e (introduce cache for token requests)
 func setupNewTLSServer(f func(http.ResponseWriter, *http.Request)) *httptest.Server {
 	r := mux.NewRouter()
 	r.HandleFunc("/oauth2/token", f).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
@@ -129,10 +174,11 @@ func tokenHandler(w http.ResponseWriter, r *http.Request) {
 	newStr := buf.String()
 	if newStr == "client_id=09932670-9440-445d-be3e-432a97d7e2ef&grant_type=client_credentials" {
 		payload, _ := json.Marshal(tokenResponse{
-			Token: "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo",
+			Token: dummyToken,
 		})
 		_, _ = w.Write(payload)
 	}
+	tokenRequestHandlerHitCounter++
 }
 
 func assertToken(t assert.TestingT, expectedToken, actualToken string, actualError error) {
