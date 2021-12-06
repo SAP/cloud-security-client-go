@@ -7,12 +7,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/patrickmn/go-cache"
 	"github.com/sap/cloud-security-client-go/env"
 	"github.com/sap/cloud-security-client-go/httpclient"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // Options allows configuration http(s) client
@@ -31,6 +33,21 @@ type TokenFlows struct {
 	identity env.Identity
 	options  Options
 	tokenURI string
+	cache    *cache.Cache
+}
+
+type request struct {
+	targetURL   string
+	parameters  string
+	httpRequest *http.Request
+	key         string
+}
+
+func (r *request) cacheKey() string {
+	if r.key == "" {
+		r.key = fmt.Sprintf("%v?%v", r.targetURL, r.parameters)
+	}
+	return r.key
 }
 
 // RequestFailedError represents a HTTP server error
@@ -68,6 +85,7 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 		identity: identity,
 		tokenURI: identity.GetURL() + tokenEndpoint,
 		options:  options,
+		cache:    cache.New(15*time.Minute, 0), //nolint:gomnd
 	}
 	if options.HTTPClient == nil {
 		tlsConfig, err := httpclient.DefaultTLSConfig(identity)
@@ -101,20 +119,25 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	if err != nil {
 		return "", err
 	}
-	r, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
+	r, err := t.createRequestWithContext(ctx, targetURL, data) // URL-encoded payload
 	if err != nil {
 		return "", fmt.Errorf("error performing client credentials flow: %w", err)
 	}
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.httpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	var tokenRes tokenResponse
-	err = t.performRequest(r, &tokenRes)
+	return t.getOrRequestToken(r)
+}
+
+func (t *TokenFlows) createRequestWithContext(ctx context.Context, targetURL string, data url.Values) (request, error) {
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
 	if err != nil {
-		return "", err
-	} else if tokenRes.Token == "" {
-		return "", fmt.Errorf("error parsing requested client credentials token: no 'access_token' property provided")
+		return request{}, err
 	}
-	return tokenRes.Token, nil
+	return request{
+		targetURL:   targetURL,
+		parameters:  data.Encode(),
+		httpRequest: r,
+	}, nil
 }
 
 func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
@@ -128,18 +151,51 @@ func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
 	return "", fmt.Errorf("customer tenant url '%v' can't be parsed: %w", customerTenantURL, err)
 }
 
-func (t *TokenFlows) performRequest(r *http.Request, v interface{}) error {
-	res, err := t.options.HTTPClient.Do(r)
+func (t *TokenFlows) getOrRequestToken(r request) (string, error) {
+	// token cached?
+	cachedToken := t.readFromCache(&r)
+	if cachedToken != "" {
+		return cachedToken, nil
+	}
+
+	// request token
+	var tokenRes tokenResponse
+	err := t.performRequest(r, &tokenRes)
 	if err != nil {
-		return fmt.Errorf("request to '%v' failed: %w", r.URL, err)
+		return "", err
+	} else if tokenRes.Token == "" {
+		return "", fmt.Errorf("error parsing requested client credentials token: no 'access_token' property provided")
+	}
+
+	// cache and return retrieved token
+	t.writeToCache(r, tokenRes.Token)
+	return t.readFromCache(&r), nil
+}
+
+func (t *TokenFlows) readFromCache(r *request) string {
+	cachedEncodedToken, found := t.cache.Get(r.cacheKey())
+	if !found {
+		return ""
+	}
+	return fmt.Sprintf("%v", cachedEncodedToken)
+}
+
+func (t *TokenFlows) writeToCache(r request, token string) {
+	t.cache.SetDefault(r.cacheKey(), token)
+}
+
+func (t *TokenFlows) performRequest(r request, v interface{}) error {
+	res, err := t.options.HTTPClient.Do(r.httpRequest)
+	if err != nil {
+		return fmt.Errorf("request to '%v' failed: %w", r.targetURL, err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		body, _ := ioutil.ReadAll(res.Body)
-		return &RequestFailedError{res.StatusCode, *r.URL, string(body)}
+		return &RequestFailedError{res.StatusCode, *r.httpRequest.URL, string(body)}
 	}
 	if err = json.NewDecoder(res.Body).Decode(v); err != nil {
-		return fmt.Errorf("error parsing response from %v: %w", r.URL, err)
+		return fmt.Errorf("error parsing response from %v: %w", r.targetURL, err)
 	}
 	return nil
 }

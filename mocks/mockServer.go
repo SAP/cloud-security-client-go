@@ -132,7 +132,6 @@ func (m *MockServer) tokenHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusUnauthorized)
 	}
-
 }
 
 // JWKsHandler is the http handler which answers requests to the JWKS endpoint.
