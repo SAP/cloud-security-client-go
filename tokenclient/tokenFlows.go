@@ -61,7 +61,7 @@ const (
 // NewTokenFlows initializes token flows
 //
 // identity provides credentials and url to authenticate client with identity service
-// Options specifies rest client including tls config.
+// options specifies rest client including tls config.
 // Note: Setup of default tls config is not supported for windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)
 func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) {
 	t := TokenFlows{
