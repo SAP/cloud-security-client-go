@@ -6,6 +6,8 @@ package auth
 
 import (
 	"context"
+	"github.com/sap/cloud-security-client-go/env"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -290,4 +292,19 @@ func GetTestServer(customIssuer string) (clientServer *httptest.Server, oidcServ
 	server := httptest.NewTLSServer(middleware.AuthenticationHandler(GetTestHandler()))
 
 	return server, mockServer
+}
+
+func TestGetTokenFlows_sameInstance(t *testing.T) {
+	middleware := NewMiddleware(&env.DefaultIdentity{
+		ClientID:     "09932670-9440-445d-be3e-432a97d7e2ef",
+		ClientSecret: "[the_CLIENT.secret:3[/abc",
+		URL:          "https://mySaaS.accounts400.ondemand.com",
+	}, Options{})
+	tokenFlows, err := middleware.GetTokenFlows()
+	assert.NoError(t, err)
+	assert.NotNil(t, tokenFlows)
+
+	sameTokenFlows, err := middleware.GetTokenFlows()
+	assert.NoError(t, err)
+	assert.Same(t, tokenFlows, sameTokenFlows)
 }

@@ -5,15 +5,25 @@ This ``tokenclient`` module provides slim client to call ``/oauth2/token`` ident
 The Client Credentials ([RFC 6749, section 4.4](https://tools.ietf.org/html/rfc6749#section-4.4)) is used by clients to obtain an access token outside of the context of a user. It is used for non interactive applications (a CLI, a batch job, or for service-2-service communication) where the token is issued to the client application itself, instead of an end user for accessing resources without principal propagation. 
 
 ## Initialization
-Instantiate TokenFlows which makes by default use of a http.Client, which should NOT be used in production.
+Instantiate TokenFlows which makes by default use of a simple `http.Client`, which should NOT be used in production.
 
 ```go
-config, err := env.GetIASConfig()
+config, err := env.ParseIdentityConfig()
 if err != nil {
     panic(err)
 }
 
-tokenFlows, err := NewTokenFlows(*config, Options{HTTPClient: <your http.Client>})
+tokenFlows, err := tokenclient.NewTokenFlows(config, tokenclient.Options{HTTPClient: <your http.Client>})
+if err != nil {
+    panic(err)
+}
+```
+
+## Get TokenFlows from middleware
+In case you leverage `auth.NewMiddleware`, you can also get an initialized TokenFlows from there:
+
+```go
+tokenFlows, err := authMiddleware.GetTokenFlows()
 if err != nil {
     panic(err)
 }
@@ -30,7 +40,7 @@ params := map[string]string{
 	"resource": "resource=urn:sap:identity:consumer:clientid:<<consumer identifier>>",
 }
 customerTenantUrl := oidcToken.Issuer()
-encodedToken, err := tokenFlows.ClientCredentials(context.TODO(), customerTenantUrl, RequestOptions{Params: params})
+encodedToken, err := tokenFlows.ClientCredentials(context.TODO(), customerTenantUrl, tokenclient.RequestOptions{Params: params})
 if err != nil {
     log.Fatal(err)
 }

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"github.com/gorilla/mux"
 	"github.com/sap/cloud-security-client-go/env"
+	"github.com/sap/cloud-security-client-go/mocks"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -113,6 +114,16 @@ func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 		ClientID: "09932670-9440-445d-be3e-432a97d7e2ef"}, Options{HTTPClient: server.Client()})
 
 	token, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
+	assertToken(t, "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo", token, err)
+}
+
+func TestClientCredentialsTokenFlow_UsingMockServer_Succeeds(t *testing.T) {
+	mockServer, err := mocks.NewOIDCMockServer()
+	assert.NoError(t, err)
+	tokenFlows, _ := NewTokenFlows(&env.DefaultIdentity{
+		ClientID: mockServer.Config.ClientID}, Options{HTTPClient: mockServer.Server.Client()})
+
+	token, err := tokenFlows.ClientCredentials(context.TODO(), mockServer.Server.URL, RequestOptions{})
 	assertToken(t, "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo", token, err)
 }
 
