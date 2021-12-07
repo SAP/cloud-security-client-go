@@ -162,7 +162,7 @@ func setupNewTLSServer(t *testing.T, f func(http.ResponseWriter, *http.Request))
 	r := mux.NewRouter()
 	r.HandleFunc("/oauth2/token", f).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
 
-	t.Cleanup(func(){
+	t.Cleanup(func() {
 		tokenRequestHandlerHitCounter = 0
 	})
 	return httptest.NewTLSServer(r)
