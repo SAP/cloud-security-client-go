@@ -29,7 +29,7 @@ type RequestOptions struct {
 // TokenFlows setup once per application.
 type TokenFlows struct {
 	identity env.Identity
-	options  Options
+	Options  Options
 	tokenURI string
 }
 
@@ -61,20 +61,20 @@ const (
 // NewTokenFlows initializes token flows
 //
 // identity provides credentials and url to authenticate client with identity service
-// options specifies rest client including tls config.
+// Options specifies rest client including tls config.
 // Note: Setup of default tls config is not supported for windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)
 func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) {
 	t := TokenFlows{
 		identity: identity,
 		tokenURI: identity.GetURL() + tokenEndpoint,
-		options:  options,
+		Options:  options,
 	}
 	if options.HTTPClient == nil {
 		tlsConfig, err := httpclient.DefaultTLSConfig(identity)
 		if err != nil {
 			return nil, err
 		}
-		t.options.HTTPClient = httpclient.DefaultHTTPClient(tlsConfig)
+		t.Options.HTTPClient = httpclient.DefaultHTTPClient(tlsConfig)
 	}
 	return &t, nil
 }
@@ -86,7 +86,7 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 //
 // ctx carries the request context like the deadline or other values that should be shared across API boundaries.
 // customerTenantURL like "https://custom.accounts400.ondemand.com" gives the host of the customers ias tenant
-// options allows to provide a request context and optionally additional request parameters
+// Options allows to provide a request context and optionally additional request parameters
 func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL string, options RequestOptions) (string, error) {
 	data := url.Values{}
 	data.Set(clientIDParameter, t.identity.GetClientID())
@@ -129,7 +129,7 @@ func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
 }
 
 func (t *TokenFlows) performRequest(r *http.Request, v interface{}) error {
-	res, err := t.options.HTTPClient.Do(r)
+	res, err := t.Options.HTTPClient.Do(r)
 	if err != nil {
 		return fmt.Errorf("request to '%v' failed: %w", r.URL, err)
 	}
