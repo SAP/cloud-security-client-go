@@ -38,7 +38,7 @@ func TestNewTokenFlows_setupDefaultHttpsClientFails(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_FailsWithTimeout(t *testing.T) {
-	server := setupNewTLSServer(tokenHandler)
+	server := setupNewTLSServer(t, tokenHandler)
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
@@ -49,7 +49,7 @@ func TestClientCredentialsTokenFlow_FailsWithTimeout(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
-	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("no json")) })
+	server := setupNewTLSServer(t, func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("no json")) })
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
@@ -58,7 +58,7 @@ func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_FailsNoJson(t *testing.T) {
-	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) {})
+	server := setupNewTLSServer(t, func(w http.ResponseWriter, r *http.Request) {})
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
@@ -67,7 +67,7 @@ func TestClientCredentialsTokenFlow_FailsNoJson(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
-	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("{\"a\":\"b\"}")) })
+	server := setupNewTLSServer(t, func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("{\"a\":\"b\"}")) })
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(mTLSConfig, Options{HTTPClient: server.Client()})
 
@@ -76,7 +76,7 @@ func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
-	server := setupNewTLSServer(func(w http.ResponseWriter, r *http.Request) {
+	server := setupNewTLSServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 		w.Write([]byte("unauthenticated client")) //nolint:errcheck
 		tokenRequestHandlerHitCounter++
@@ -98,7 +98,7 @@ func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_FailsWithCustomerUrlWithoutScheme(t *testing.T) {
-	server := setupNewTLSServer(tokenHandler)
+	server := setupNewTLSServer(t, tokenHandler)
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(clientSecretConfig, Options{HTTPClient: server.Client()})
 
@@ -108,7 +108,7 @@ func TestClientCredentialsTokenFlow_FailsWithCustomerUrlWithoutScheme(t *testing
 }
 
 func TestClientCredentialsTokenFlow_FailsWithInvalidCustomerUrl(t *testing.T) {
-	server := setupNewTLSServer(tokenHandler)
+	server := setupNewTLSServer(t, tokenHandler)
 	defer server.Close()
 	tokenFlows, _ := NewTokenFlows(clientSecretConfig, Options{HTTPClient: server.Client()})
 
@@ -118,7 +118,7 @@ func TestClientCredentialsTokenFlow_FailsWithInvalidCustomerUrl(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
-	server := setupNewTLSServer(tokenHandler)
+	server := setupNewTLSServer(t, tokenHandler)
 	tokenFlows, _ := NewTokenFlows(&env.DefaultIdentity{
 		ClientID: "09932670-9440-445d-be3e-432a97d7e2ef"}, Options{HTTPClient: server.Client()})
 
@@ -127,8 +127,7 @@ func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 }
 
 func TestClientCredentialsTokenFlow_ReadFromCache(t *testing.T) {
-	tokenRequestHandlerHitCounter = 0
-	server := setupNewTLSServer(tokenHandler)
+	server := setupNewTLSServer(t, tokenHandler)
 	tokenFlows, _ := NewTokenFlows(&env.DefaultIdentity{
 		ClientID: "09932670-9440-445d-be3e-432a97d7e2ef"}, Options{HTTPClient: server.Client()})
 
@@ -159,9 +158,13 @@ func TestClientCredentialsTokenFlow_UsingMockServer_Succeeds(t *testing.T) {
 	assertToken(t, "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo", token, err)
 }
 
-func setupNewTLSServer(f func(http.ResponseWriter, *http.Request)) *httptest.Server {
+func setupNewTLSServer(t *testing.T, f func(http.ResponseWriter, *http.Request)) *httptest.Server {
 	r := mux.NewRouter()
 	r.HandleFunc("/oauth2/token", f).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
+
+	t.Cleanup(func(){
+		tokenRequestHandlerHitCounter = 0
+	})
 	return httptest.NewTLSServer(r)
 }
 
