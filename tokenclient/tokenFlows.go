@@ -10,7 +10,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/sap/cloud-security-client-go/env"
 	"github.com/sap/cloud-security-client-go/httpclient"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -192,7 +192,7 @@ func (t *TokenFlows) performRequest(r request, v interface{}) error {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(res.Body)
+		body, _ := io.ReadAll(res.Body)
 		return &RequestFailedError{res.StatusCode, *r.httpRequest.URL, string(body)}
 	}
 	if err = json.NewDecoder(res.Body).Decode(v); err != nil {
