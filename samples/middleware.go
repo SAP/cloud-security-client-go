@@ -26,7 +26,7 @@ func main() {
 	authMiddleware := auth.NewMiddleware(config, auth.Options{})
 	r.Use(authMiddleware.AuthenticationHandler)
 
-	r.HandleFunc("/helloWorld", helloWorld).Methods("GET")
+	r.HandleFunc("/helloWorld", helloWorld).Methods(http.MethodGet)
 
 	address := ":8080"
 	log.Println("Starting server on address", address)
@@ -38,5 +38,5 @@ func main() {
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
 	user := auth.TokenFromCtx(r)
-	_, _ = w.Write([]byte(fmt.Sprintf("Hello world!\nYou're logged in as %s", user.Email())))
+	_, _ = fmt.Fprintf(w, "Hello world!\nYou're logged in as %s", user.Email())
 }

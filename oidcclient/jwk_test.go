@@ -173,10 +173,10 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 
 func NewRouter() (r *mux.Router) {
 	r = mux.NewRouter()
-	r.HandleFunc("/oauth2/certs", ReturnJWKS).Methods("GET").Headers("x-zone_uuid", "zone-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods("GET").Headers("x-zone_uuid", "unknown-zone-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods("GET").Headers("x-zone_uuid", "deleted-zone-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidJWKS).Methods("GET").Headers("x-zone_uuid", "provide-invalidJWKS")
+	r.HandleFunc("/oauth2/certs", ReturnJWKS).Methods(http.MethodGet).Headers("x-zone_uuid", "zone-id")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods(http.MethodGet).Headers("x-zone_uuid", "unknown-zone-id")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods(http.MethodGet).Headers("x-zone_uuid", "deleted-zone-id")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidJWKS).Methods(http.MethodGet).Headers("x-zone_uuid", "provide-invalidJWKS")
 	return r
 }
 

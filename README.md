@@ -41,7 +41,7 @@ if err != nil {
 authMiddleware := auth.NewMiddleware(config, auth.Options{})
 r.Use(authMiddleware.AuthenticationHandler)
 
-r.HandleFunc("/helloWorld", helloWorld).Methods("GET")
+r.HandleFunc("/helloWorld", helloWorld).Methods(http.MethodGet)
 
 address := ":8080"
 log.Println("Starting server on address", address)
