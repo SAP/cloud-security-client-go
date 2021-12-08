@@ -85,7 +85,7 @@ func TestEnd2End(t *testing.T) {
 			name:   "before validity",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
-				NotBefore(time.Now().Add(1 * time.Minute)).
+				NotBefore(time.Now().Add(2 * time.Minute)).
 				Build(),
 			wantErr: true,
 		}, {
