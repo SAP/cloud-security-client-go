@@ -98,7 +98,7 @@ func (ks *OIDCTenant) updateJWKsMemory(zoneID string) (jwk.Set, error) {
 
 func (ks *OIDCTenant) getJWKsFromServer(zoneID string) (r interface{}, err error) {
 	result := updateKeysResult{}
-	req, err := http.NewRequestWithContext(context.TODO(), "GET", ks.ProviderJSON.JWKsURL, nil)
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, ks.ProviderJSON.JWKsURL, http.NoBody)
 	if err != nil {
 		return result, fmt.Errorf("can't create request to fetch jwk: %v", err)
 	}
@@ -132,7 +132,7 @@ func (ks *OIDCTenant) getJWKsFromServer(zoneID string) (r interface{}, err error
 
 func (ks *OIDCTenant) performDiscovery(baseURL string) error {
 	wellKnown := fmt.Sprintf("https://%s/.well-known/openid-configuration", strings.TrimSuffix(baseURL, "/"))
-	req, err := http.NewRequestWithContext(context.TODO(), "GET", wellKnown, nil)
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, wellKnown, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("unable to construct discovery request: %v", err)
 	}

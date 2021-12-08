@@ -245,7 +245,7 @@ func TestEnd2End(t *testing.T) {
 
 			timeout, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancelFunc()
-			req, _ := http.NewRequestWithContext(timeout, "GET", ts.URL+"/helloWorld", nil)
+			req, _ := http.NewRequestWithContext(timeout, http.MethodGet, ts.URL+"/helloWorld", http.NoBody)
 			authHeader, err := s.SignToken(tt.claims, tt.header)
 			if err != nil {
 				t.Errorf("unable to sign provided test token: %v", err)
