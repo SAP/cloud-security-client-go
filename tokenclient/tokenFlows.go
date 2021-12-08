@@ -37,15 +37,21 @@ type TokenFlows struct {
 }
 
 type request struct {
-	targetURL   string
-	parameters  string
-	httpRequest *http.Request
-	key         string
+	http.Request
+	key string `default:""`
 }
 
 func (r *request) cacheKey() string {
+	bodyReader, err := r.GetBody()
+	if err != nil {
+		panic("Unexpected error, can't read request body: " + err.Error())
+	}
+	params, err := io.ReadAll(bodyReader)
+	if err != nil {
+		panic("Unexpected error, can't read request body: " + err.Error())
+	}
 	if r.key == "" {
-		r.key = fmt.Sprintf("%v?%v", r.targetURL, r.parameters)
+		r.key = fmt.Sprintf("%v?%v", r.URL, string(params))
 	}
 	return r.key
 }
@@ -119,26 +125,13 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	if err != nil {
 		return "", err
 	}
-	r, err := t.createRequestWithContext(ctx, targetURL, data) // URL-encoded payload
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
 	if err != nil {
 		return "", fmt.Errorf("error performing client credentials flow: %w", err)
 	}
-	r.httpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	return t.getOrRequestToken(r)
-}
-
-func (t *TokenFlows) createRequestWithContext(ctx context.Context, targetURL string, data url.Values) (request, error) {
-	urlEncodedData := data.Encode()
-	r, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(urlEncodedData)) // URL-encoded payload
-	if err != nil {
-		return request{}, err
-	}
-	return request{
-		targetURL:   targetURL,
-		parameters:  urlEncodedData,
-		httpRequest: r,
-	}, nil
+	return t.getOrRequestToken(request{Request: *r})
 }
 
 func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
@@ -164,7 +157,8 @@ func (t *TokenFlows) getOrRequestToken(r request) (string, error) {
 	err := t.performRequest(r, &tokenRes)
 	if err != nil {
 		return "", err
-	} else if tokenRes.Token == "" {
+	}
+	if tokenRes.Token == "" {
 		return "", fmt.Errorf("error parsing requested client credentials token: no 'access_token' property provided")
 	}
 
@@ -186,17 +180,17 @@ func (t *TokenFlows) writeToCache(r request, token string) {
 }
 
 func (t *TokenFlows) performRequest(r request, v interface{}) error {
-	res, err := t.Options.HTTPClient.Do(r.httpRequest)
+	res, err := t.Options.HTTPClient.Do(&r.Request)
 	if err != nil {
-		return fmt.Errorf("request to '%v' failed: %w", r.targetURL, err)
+		return fmt.Errorf("request to '%v' failed: %w", r.URL, err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(res.Body)
-		return &RequestFailedError{res.StatusCode, *r.httpRequest.URL, string(body)}
+		return &RequestFailedError{res.StatusCode, *r.URL, string(body)}
 	}
 	if err = json.NewDecoder(res.Body).Decode(v); err != nil {
-		return fmt.Errorf("error parsing response from %v: %w", r.targetURL, err)
+		return fmt.Errorf("error parsing response from %v: %w", r.URL, err)
 	}
 	return nil
 }
