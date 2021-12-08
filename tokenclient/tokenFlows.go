@@ -31,7 +31,7 @@ type RequestOptions struct {
 // TokenFlows setup once per application.
 type TokenFlows struct {
 	identity env.Identity
-	options  Options
+	Options  Options
 	tokenURI string
 	cache    *cache.Cache
 }
@@ -84,7 +84,7 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 	t := TokenFlows{
 		identity: identity,
 		tokenURI: identity.GetURL() + tokenEndpoint,
-		options:  options,
+		Options:  options,
 		cache:    cache.New(15*time.Minute, 10*time.Minute), //nolint:gomnd
 	}
 	if options.HTTPClient == nil {
@@ -92,7 +92,7 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 		if err != nil {
 			return nil, err
 		}
-		t.options.HTTPClient = httpclient.DefaultHTTPClient(tlsConfig)
+		t.Options.HTTPClient = httpclient.DefaultHTTPClient(tlsConfig)
 	}
 	return &t, nil
 }
@@ -186,7 +186,7 @@ func (t *TokenFlows) writeToCache(r request, token string) {
 }
 
 func (t *TokenFlows) performRequest(r request, v interface{}) error {
-	res, err := t.options.HTTPClient.Do(r.httpRequest)
+	res, err := t.Options.HTTPClient.Do(r.httpRequest)
 	if err != nil {
 		return fmt.Errorf("request to '%v' failed: %w", r.targetURL, err)
 	}
