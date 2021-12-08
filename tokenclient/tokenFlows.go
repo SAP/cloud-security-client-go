@@ -85,7 +85,7 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 		identity: identity,
 		tokenURI: identity.GetURL() + tokenEndpoint,
 		options:  options,
-		cache:    cache.New(15*time.Minute, 0), //nolint:gomnd
+		cache:    cache.New(15*time.Minute, 10*time.Minute), //nolint:gomnd
 	}
 	if options.HTTPClient == nil {
 		tlsConfig, err := httpclient.DefaultTLSConfig(identity)
@@ -129,13 +129,14 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 }
 
 func (t *TokenFlows) createRequestWithContext(ctx context.Context, targetURL string, data url.Values) (request, error) {
-	r, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
+	urlEncodedData := data.Encode()
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(urlEncodedData)) // URL-encoded payload
 	if err != nil {
 		return request{}, err
 	}
 	return request{
 		targetURL:   targetURL,
-		parameters:  data.Encode(),
+		parameters:  urlEncodedData,
 		httpRequest: r,
 	}, nil
 }
