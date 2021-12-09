@@ -11,6 +11,7 @@ import (
 	"github.com/sap/cloud-security-client-go/env"
 	"github.com/sap/cloud-security-client-go/httpclient"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -38,22 +39,22 @@ type TokenFlows struct {
 
 type request struct {
 	http.Request
-	key string `default:""`
+	key string
 }
 
-func (r *request) cacheKey() string {
-	bodyReader, err := r.GetBody()
-	if err != nil {
-		panic("Unexpected error, can't read request body: " + err.Error())
-	}
-	params, err := io.ReadAll(bodyReader)
-	if err != nil {
-		panic("Unexpected error, can't read request body: " + err.Error())
-	}
+func (r *request) cacheKey() (string, error) {
 	if r.key == "" {
+		bodyReader, err := r.GetBody()
+		if err != nil {
+			return "", fmt.Errorf("unexpected error, can't read request body: %w", err)
+		}
+		params, err := io.ReadAll(bodyReader)
+		if err != nil {
+			return "", fmt.Errorf("unexpected error, can't read request body: %w", err)
+		}
 		r.key = fmt.Sprintf("%v?%v", r.URL, string(params))
 	}
-	return r.key
+	return r.key, nil
 }
 
 // RequestFailedError represents a HTTP server error
@@ -110,7 +111,7 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 //
 // ctx carries the request context like the deadline or other values that should be shared across API boundaries.
 // customerTenantURL like "https://custom.accounts400.ondemand.com" gives the host of the customers ias tenant
-// options allows to provide a request context and optionally additional request parameters
+// options allows to provide additional request parameters
 func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL string, options RequestOptions) (string, error) {
 	data := url.Values{}
 	data.Set(clientIDParameter, t.identity.GetClientID())
@@ -164,11 +165,15 @@ func (t *TokenFlows) getOrRequestToken(r request) (string, error) {
 
 	// cache and return retrieved token
 	t.writeToCache(r, tokenRes.Token)
-	return t.readFromCache(&r), nil
+	return tokenRes.Token, err
 }
 
 func (t *TokenFlows) readFromCache(r *request) string {
-	cachedEncodedToken, found := t.cache.Get(r.cacheKey())
+	cacheKey, err := r.cacheKey()
+	if err != nil {
+		return ""
+	}
+	cachedEncodedToken, found := t.cache.Get(cacheKey)
 	if !found {
 		return ""
 	}
@@ -176,7 +181,12 @@ func (t *TokenFlows) readFromCache(r *request) string {
 }
 
 func (t *TokenFlows) writeToCache(r request, token string) {
-	t.cache.SetDefault(r.cacheKey(), token)
+	cacheKey, err := r.cacheKey()
+	if err != nil {
+		log.Fatalf("Write to Cache is skipped. Unexpected error to determine cache key: %s", err.Error())
+		return
+	}
+	t.cache.SetDefault(cacheKey, token)
 }
 
 func (t *TokenFlows) performRequest(r request, v interface{}) error {
