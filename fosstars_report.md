@@ -1,6 +1,6 @@
 **Rating**: **MODERATE**
 
-**Score**: **4.69**, max score value is 10.0
+**Score**: **4.71**, max score value is 10.0
 
 **Confidence**: High (9.87, max confidence value is 10.0)
 
@@ -40,7 +40,7 @@ It used the following sub-scores:
         1.  **[nohttp tool](#nohttp-tool)**: **0.0** (weight is 0.2)
 1.  **[Unpatched vulnerabilities](#unpatched-vulnerabilities)**: **10.0** (weight is 0.5)
 1.  **[Community commitment](#community-commitment)**: **8.0** (weight is 0.5)
-1.  **[Project activity](#project-activity)**: **4.23** (weight is 0.5)
+1.  **[Project activity](#project-activity)**: **4.4** (weight is 0.5)
 1.  **[Project popularity](#project-popularity)**: **0.02** (weight is 0.5)
 1.  **[Security reviews](#security-reviews)**: **0.0** (weight is 0.2)
 
@@ -172,16 +172,16 @@ This sub-score is based on 3 features:
 
 ### Project activity
 
-Score: **4.23**, confidence is 10.0 (max), weight is 0.5 (medium)
+Score: **4.4**, confidence is 10.0 (max), weight is 0.5 (medium)
 
 The score evaluates how active a project is. It's based on number of commits and contributors in the last 3 months.
 
-25 commits in the last 3 months results to 3.85 points
-3 contributors increase the score value from 3.85 to 4.23
+26 commits in the last 3 months results to 4.00 points
+3 contributors increase the score value from 4.00 to 4.40
 
 This sub-score is based on 2 features:
 
-1.  Number of commits in the last three months: **25**
+1.  Number of commits in the last three months: **26**
 1.  Number of contributors in the last three months: **3**
 
 ### Project popularity
