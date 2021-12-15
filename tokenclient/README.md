@@ -37,7 +37,7 @@ Obtain a client credentials token:
 
 ````go
 params := map[string]string{
-	"resource": "resource=urn:sap:identity:consumer:clientid:<<consumer identifier>>",
+	"resource": "urn:sap:identity:consumer:clientid:<<consumer identifier>>",
 }
 customerTenantUrl := oidcToken.Issuer()
 encodedToken, err := tokenFlows.ClientCredentials(context.TODO(), customerTenantUrl, tokenclient.RequestOptions{Params: params})
