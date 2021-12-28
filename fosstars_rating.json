@@ -202,7 +202,7 @@
         }
       }
     },
-    "value" : 4.765931161037544,
+    "value" : 4.235950503397313,
     "weight" : 1.0,
     "confidence" : 9.868287740628167,
     "usedValues" : [ {
@@ -211,7 +211,7 @@
         "type" : "ProjectSecurityAwarenessScore",
         "name" : "How well open-source community is aware about security"
       },
-      "value" : 4.0,
+      "value" : 3.0,
       "weight" : 0.9,
       "confidence" : 10.0,
       "usedValues" : [ {
@@ -284,7 +284,7 @@
           "type" : "BooleanFeature",
           "name" : "If a project uses LGTM checks for commits"
         },
-        "flag" : true,
+        "flag" : false,
         "explanation" : [ ]
       }, {
         "type" : "BooleanValue",
@@ -531,7 +531,7 @@
           }
         }
       },
-      "value" : 6.136363636363636,
+      "value" : 4.545454545454545,
       "weight" : 1.0,
       "confidence" : 9.523809523809524,
       "usedValues" : [ {
@@ -801,7 +801,7 @@
             }
           }
         },
-        "value" : 3.5,
+        "value" : 0.0,
         "weight" : 1.0,
         "confidence" : 8.0,
         "usedValues" : [ {
@@ -879,7 +879,7 @@
             "type" : "CodeqlScore",
             "name" : "How a project uses CodeQL"
           },
-          "value" : 7.0,
+          "value" : 0.0,
           "weight" : 1.0,
           "confidence" : 10.0,
           "usedValues" : [ {
@@ -888,7 +888,7 @@
               "type" : "BooleanFeature",
               "name" : "If a project uses LGTM checks for commits"
             },
-            "flag" : true,
+            "flag" : false,
             "explanation" : [ ]
           }, {
             "type" : "BooleanValue",
@@ -1251,7 +1251,7 @@
             }
           }
         },
-        "value" : 6.136363636363636,
+        "value" : 4.545454545454545,
         "weight" : 1.0,
         "confidence" : 9.523809523809524,
         "usedValues" : [ {
@@ -1521,7 +1521,7 @@
               }
             }
           },
-          "value" : 3.5,
+          "value" : 0.0,
           "weight" : 1.0,
           "confidence" : 8.0,
           "usedValues" : [ {
@@ -1599,7 +1599,7 @@
               "type" : "CodeqlScore",
               "name" : "How a project uses CodeQL"
             },
-            "value" : 7.0,
+            "value" : 0.0,
             "weight" : 1.0,
             "confidence" : 10.0,
             "usedValues" : [ {
@@ -1608,7 +1608,7 @@
                 "type" : "BooleanFeature",
                 "name" : "If a project uses LGTM checks for commits"
               },
-              "flag" : true,
+              "flag" : false,
               "explanation" : [ ]
             }, {
               "type" : "BooleanValue",
@@ -2036,5 +2036,5 @@
       }
     }
   },
-  "label" : [ "OssSecurityRating$SecurityLabel", "MODERATE" ]
+  "label" : [ "OssSecurityRating$SecurityLabel", "BAD" ]
 }
