@@ -47,10 +47,10 @@ func TestToken_getClaimAsString(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error preparing test: %v", err)
 			}
-			stdToken := IdToken{
+			idToken := IDToken{
 				jwtToken: token,
 			}
-			got, err := stdToken.GetClaimAsString(tt.claimArg)
+			got, err := idToken.GetClaimAsString(tt.claimArg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetClaimAsString() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -104,10 +104,10 @@ func TestOIDCClaims_getClaimAsStringSlice(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error preparing test: %v", err)
 			}
-			stdToken := IdToken{
+			idToken := IDToken{
 				jwtToken: token,
 			}
-			got, err := stdToken.GetClaimAsStringSlice(tt.claimArg)
+			got, err := idToken.GetClaimAsStringSlice(tt.claimArg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetClaimAsStringSlice() error = %v, wantErr %v", err, tt.wantErr)
 				return
