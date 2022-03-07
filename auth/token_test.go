@@ -47,7 +47,7 @@ func TestToken_getClaimAsString(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error preparing test: %v", err)
 			}
-			stdToken := stdToken{
+			stdToken := StdToken{
 				jwtToken: token,
 			}
 			got, err := stdToken.GetClaimAsString(tt.claimArg)
@@ -104,7 +104,7 @@ func TestOIDCClaims_getClaimAsStringSlice(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error preparing test: %v", err)
 			}
-			stdToken := stdToken{
+			stdToken := StdToken{
 				jwtToken: token,
 			}
 			got, err := stdToken.GetClaimAsStringSlice(tt.claimArg)
