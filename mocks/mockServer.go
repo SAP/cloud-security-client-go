@@ -29,7 +29,7 @@ import (
 	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
-const dummyKey = `-----BEGIN RSA PRIVATE KEY-----
+const DummyKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIBOwIBAAJBAK6NtAzlUO1vwBq278cYXXQ4jgVqkE0hoHrfZ0oo4BMoZOoLc0Vx
 YONmJypYVHzR8sedHBlIkrOrx6Ea/Y+CgSMCAwEAAQJAN7rOTX+5gtU3BFB75ZkF
 3WFhFqGbSMT/s7s4Axlh0TuBX9l9iE4cPrP3Y07C9YC8x3yFazVzcss8KcaZ6t2E
@@ -66,7 +66,7 @@ func NewOIDCMockServerWithCustomIssuer(customIssuer string) (*MockServer, error)
 
 func newOIDCMockServer(customIssuer string) (*MockServer, error) {
 	r := mux.NewRouter()
-	block, _ := pem.Decode([]byte(dummyKey))
+	block, _ := pem.Decode([]byte(DummyKey))
 	if block == nil {
 		return nil, errors.New("failed to parse PEM block containing dummyKey")
 	}

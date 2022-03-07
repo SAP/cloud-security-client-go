@@ -60,7 +60,7 @@ func generateToken(t *testing.T, claimCnfMemberX5tValue string) Token {
 	err := token.Set(claimCnf, cnfClaim)
 	require.NoError(t, err, "Failed to create token: %v", err)
 
-	return StdToken{jwtToken: token}
+	return stdToken{jwtToken: token}
 }
 
 func convertToPEM(t *testing.T, derCert string) string {

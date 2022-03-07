@@ -6,12 +6,17 @@ package auth
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/lestrrat-go/jwx/jwt/openid"
+
+	"github.com/sap/cloud-security-client-go/mocks"
 )
 
 const (
@@ -50,7 +55,7 @@ type Token interface {
 	getCnfClaimMember(memberName string) string // getCnfClaimMember returns "cnf" claim. The cnf member name is case sensitive. If it doesn't exist empty string is returned
 }
 
-type StdToken struct {
+type stdToken struct {
 	encodedToken string
 	jwtToken     jwt.Token
 }
@@ -62,34 +67,63 @@ func NewToken(encodedToken string) (Token, error) {
 		return nil, err
 	}
 
-	return StdToken{
+	return stdToken{
 		encodedToken: encodedToken,
 		jwtToken:     decodedToken, // encapsulates jwt.token_gen from github.com/lestrrat-go/jwx/jwt
 	}, nil
 }
 
+// NewTokenFromClaims creates a Token from claims. !!! WARNING !!! No validation done when creating a Token this way. Use only in tests!
+func NewTokenFromClaims(claims map[string]interface{}) (Token, error) {
+	jwtToken := jwt.New()
+	for key, value := range claims {
+		err := jwtToken.Set(key, value)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	block, _ := pem.Decode([]byte(mocks.DummyKey))
+	if block == nil {
+		return nil, errors.New("failed to parse PEM block containing dummyKey")
+	}
+	rsaKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create mock server: error generating rsa key: %v", err)
+	}
+	signedJwt, err := jwt.Sign(jwtToken, jwa.RS256, rsaKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return stdToken{
+		jwtToken:     jwtToken,
+		encodedToken: string(signedJwt),
+	}, nil
+}
+
 // TokenValue returns encoded token string
-func (t StdToken) TokenValue() string {
+func (t stdToken) TokenValue() string {
 	return t.encodedToken
 }
 
-func (t StdToken) Audience() []string {
+func (t stdToken) Audience() []string {
 	return t.jwtToken.Audience()
 }
 
-func (t StdToken) Expiration() time.Time {
+func (t stdToken) Expiration() time.Time {
 	return t.jwtToken.Expiration()
 }
 
-func (t StdToken) IsExpired() bool {
+func (t stdToken) IsExpired() bool {
 	return t.Expiration().Add(1 * time.Minute).Before(time.Now())
 }
 
-func (t StdToken) IssuedAt() time.Time {
+func (t stdToken) IssuedAt() time.Time {
 	return t.jwtToken.IssuedAt()
 }
 
-func (t StdToken) CustomIssuer() string {
+func (t stdToken) CustomIssuer() string {
 	// only return iss if ias_iss does exist
 	if !t.HasClaim(claimIasIssuer) {
 		return ""
@@ -97,7 +131,7 @@ func (t StdToken) CustomIssuer() string {
 	return t.jwtToken.Issuer()
 }
 
-func (t StdToken) Issuer() string {
+func (t stdToken) Issuer() string {
 	// return standard issuer if ias_iss is not set
 	v, err := t.GetClaimAsString(claimIasIssuer)
 	if errors.Is(err, ErrClaimNotExists) {
@@ -106,35 +140,35 @@ func (t StdToken) Issuer() string {
 	return v
 }
 
-func (t StdToken) NotBefore() time.Time {
+func (t stdToken) NotBefore() time.Time {
 	return t.jwtToken.NotBefore()
 }
 
-func (t StdToken) Subject() string {
+func (t stdToken) Subject() string {
 	return t.jwtToken.Subject()
 }
 
-func (t StdToken) GivenName() string {
+func (t stdToken) GivenName() string {
 	v, _ := t.GetClaimAsString(claimGivenName)
 	return v
 }
 
-func (t StdToken) FamilyName() string {
+func (t stdToken) FamilyName() string {
 	v, _ := t.GetClaimAsString(claimFamilyName)
 	return v
 }
 
-func (t StdToken) Email() string {
+func (t stdToken) Email() string {
 	v, _ := t.GetClaimAsString(claimEmail)
 	return v
 }
 
-func (t StdToken) ZoneID() string {
+func (t stdToken) ZoneID() string {
 	v, _ := t.GetClaimAsString(claimSapGlobalZoneID)
 	return v
 }
 
-func (t StdToken) UserUUID() string {
+func (t stdToken) UserUUID() string {
 	v, _ := t.GetClaimAsString(claimSapGlobalUserID)
 	return v
 }
@@ -142,12 +176,12 @@ func (t StdToken) UserUUID() string {
 // ErrClaimNotExists shows that the requested custom claim does not exist in the token
 var ErrClaimNotExists = errors.New("claim does not exist in the token")
 
-func (t StdToken) HasClaim(claim string) bool {
+func (t stdToken) HasClaim(claim string) bool {
 	_, exists := t.jwtToken.Get(claim)
 	return exists
 }
 
-func (t StdToken) GetClaimAsString(claim string) (string, error) {
+func (t stdToken) GetClaimAsString(claim string) (string, error) {
 	value, exists := t.jwtToken.Get(claim)
 	if !exists {
 		return "", ErrClaimNotExists
@@ -159,7 +193,7 @@ func (t StdToken) GetClaimAsString(claim string) (string, error) {
 	return stringValue, nil
 }
 
-func (t StdToken) GetClaimAsStringSlice(claim string) ([]string, error) {
+func (t stdToken) GetClaimAsStringSlice(claim string) ([]string, error) {
 	value, exists := t.jwtToken.Get(claim)
 	if !exists {
 		return nil, ErrClaimNotExists
@@ -171,12 +205,12 @@ func (t StdToken) GetClaimAsStringSlice(claim string) ([]string, error) {
 	return res, nil
 }
 
-func (t StdToken) GetAllClaimsAsMap() map[string]interface{} {
+func (t stdToken) GetAllClaimsAsMap() map[string]interface{} {
 	mapClaims, _ := t.jwtToken.AsMap(context.TODO()) // err can not really occur on jwt.Token
 	return mapClaims
 }
 
-func (t StdToken) GetClaimAsMap(claim string) (map[string]interface{}, error) {
+func (t stdToken) GetClaimAsMap(claim string) (map[string]interface{}, error) {
 	value, exists := t.jwtToken.Get(claim)
 	if !exists {
 		return nil, ErrClaimNotExists
@@ -188,11 +222,11 @@ func (t StdToken) GetClaimAsMap(claim string) (map[string]interface{}, error) {
 	return res, nil
 }
 
-func (t StdToken) getJwtToken() jwt.Token {
+func (t stdToken) getJwtToken() jwt.Token {
 	return t.jwtToken
 }
 
-func (t StdToken) getCnfClaimMember(memberName string) string {
+func (t stdToken) getCnfClaimMember(memberName string) string {
 	cnfClaim, err := t.GetClaimAsMap(claimCnf)
 	if errors.Is(err, ErrClaimNotExists) || cnfClaim == nil {
 		return ""

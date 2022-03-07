@@ -8,7 +8,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestToken_getClaimAsString(t *testing.T) {
@@ -47,7 +49,7 @@ func TestToken_getClaimAsString(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error preparing test: %v", err)
 			}
-			stdToken := StdToken{
+			stdToken := stdToken{
 				jwtToken: token,
 			}
 			got, err := stdToken.GetClaimAsString(tt.claimArg)
@@ -104,7 +106,7 @@ func TestOIDCClaims_getClaimAsStringSlice(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error preparing test: %v", err)
 			}
-			stdToken := StdToken{
+			stdToken := stdToken{
 				jwtToken: token,
 			}
 			got, err := stdToken.GetClaimAsStringSlice(tt.claimArg)
@@ -195,4 +197,13 @@ func TestOIDCClaims_getSAPIssuer(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNewTokenFromClaims(t *testing.T) {
+	userUUID := uuid.NewString()
+	m := map[string]interface{}{"user_uuid": userUUID}
+	claims, err := NewTokenFromClaims(m)
+	assert.NoError(t, err)
+
+	assert.Equal(t, userUUID, claims.UserUUID(), "UserUUID() got = %v, want %v", claims.UserUUID(), userUUID)
 }
