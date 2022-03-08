@@ -37,7 +37,7 @@ func validateX5tThumbprint(clientCertificate *Certificate, token Token) error {
 		return ErrNoToken
 	}
 
-	cnfThumbprint := token.getCnfClaimMember(claimCnfMemberX5t)
+	cnfThumbprint := token.getCnfClaimMember(ClaimCnfMemberX5t)
 	if cnfThumbprint == "" {
 		return fmt.Errorf("token provides no cnf member for thumbprint confirmation")
 	}

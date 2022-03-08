@@ -6,28 +6,22 @@ package auth
 
 import (
 	"context"
-	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/lestrrat-go/jwx/jwt/openid"
-
-	"github.com/sap/cloud-security-client-go/mocks"
 )
 
 const (
-	claimCnf             = "cnf"
-	claimCnfMemberX5t    = "x5t#S256"
-	claimGivenName       = "given_name"
-	claimFamilyName      = "family_name"
-	claimEmail           = "email"
-	claimSapGlobalUserID = "user_uuid"
-	claimSapGlobalZoneID = "zone_uuid" // tenant GUID
-	claimIasIssuer       = "ias_iss"
+	ClaimCnf             = "cnf"
+	ClaimCnfMemberX5t    = "x5t#S256"
+	ClaimGivenName       = "given_name"
+	ClaimFamilyName      = "family_name"
+	ClaimEmail           = "email"
+	ClaimSapGlobalUserID = "user_uuid"
+	ClaimSapGlobalZoneID = "zone_uuid" // tenant GUID
+	ClaimIasIssuer       = "ias_iss"
 )
 
 // Token is the public API to access claims of the token
@@ -60,48 +54,6 @@ type stdToken struct {
 	jwtToken     jwt.Token
 }
 
-// NewToken creates a Token from an encoded jwt. !!! WARNING !!! No validation done when creating a Token this way. Use only in tests!
-func NewToken(encodedToken string) (Token, error) {
-	decodedToken, err := jwt.ParseString(encodedToken, jwt.WithToken(openid.New()))
-	if err != nil {
-		return nil, err
-	}
-
-	return stdToken{
-		encodedToken: encodedToken,
-		jwtToken:     decodedToken, // encapsulates jwt.token_gen from github.com/lestrrat-go/jwx/jwt
-	}, nil
-}
-
-// NewTokenFromClaims creates a Token from claims. !!! WARNING !!! No validation done when creating a Token this way. Use only in tests!
-func NewTokenFromClaims(claims map[string]interface{}) (Token, error) {
-	jwtToken := jwt.New()
-	for key, value := range claims {
-		err := jwtToken.Set(key, value)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	block, _ := pem.Decode([]byte(mocks.DummyKey))
-	if block == nil {
-		return nil, errors.New("failed to parse PEM block containing dummyKey")
-	}
-	rsaKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create mock server: error generating rsa key: %v", err)
-	}
-	signedJwt, err := jwt.Sign(jwtToken, jwa.RS256, rsaKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return stdToken{
-		jwtToken:     jwtToken,
-		encodedToken: string(signedJwt),
-	}, nil
-}
-
 // TokenValue returns encoded token string
 func (t stdToken) TokenValue() string {
 	return t.encodedToken
@@ -125,7 +77,7 @@ func (t stdToken) IssuedAt() time.Time {
 
 func (t stdToken) CustomIssuer() string {
 	// only return iss if ias_iss does exist
-	if !t.HasClaim(claimIasIssuer) {
+	if !t.HasClaim(ClaimIasIssuer) {
 		return ""
 	}
 	return t.jwtToken.Issuer()
@@ -133,7 +85,7 @@ func (t stdToken) CustomIssuer() string {
 
 func (t stdToken) Issuer() string {
 	// return standard issuer if ias_iss is not set
-	v, err := t.GetClaimAsString(claimIasIssuer)
+	v, err := t.GetClaimAsString(ClaimIasIssuer)
 	if errors.Is(err, ErrClaimNotExists) {
 		return t.jwtToken.Issuer()
 	}
@@ -149,27 +101,27 @@ func (t stdToken) Subject() string {
 }
 
 func (t stdToken) GivenName() string {
-	v, _ := t.GetClaimAsString(claimGivenName)
+	v, _ := t.GetClaimAsString(ClaimGivenName)
 	return v
 }
 
 func (t stdToken) FamilyName() string {
-	v, _ := t.GetClaimAsString(claimFamilyName)
+	v, _ := t.GetClaimAsString(ClaimFamilyName)
 	return v
 }
 
 func (t stdToken) Email() string {
-	v, _ := t.GetClaimAsString(claimEmail)
+	v, _ := t.GetClaimAsString(ClaimEmail)
 	return v
 }
 
 func (t stdToken) ZoneID() string {
-	v, _ := t.GetClaimAsString(claimSapGlobalZoneID)
+	v, _ := t.GetClaimAsString(ClaimSapGlobalZoneID)
 	return v
 }
 
 func (t stdToken) UserUUID() string {
-	v, _ := t.GetClaimAsString(claimSapGlobalUserID)
+	v, _ := t.GetClaimAsString(ClaimSapGlobalUserID)
 	return v
 }
 
@@ -227,7 +179,7 @@ func (t stdToken) getJwtToken() jwt.Token {
 }
 
 func (t stdToken) getCnfClaimMember(memberName string) string {
-	cnfClaim, err := t.GetClaimAsMap(claimCnf)
+	cnfClaim, err := t.GetClaimAsMap(ClaimCnf)
 	if errors.Is(err, ErrClaimNotExists) || cnfClaim == nil {
 		return ""
 	}
