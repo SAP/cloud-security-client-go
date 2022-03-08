@@ -5,10 +5,12 @@ package httpclient
 
 import (
 	_ "embed"
-	"github.com/sap/cloud-security-client-go/env"
-	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/sap/cloud-security-client-go/env"
 )
 
 //go:embed testdata/certificate.pem

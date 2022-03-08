@@ -2,20 +2,21 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package auth
+package mocks
 
 import (
-	"github.com/sap/cloud-security-client-go/mocks"
 	"testing"
+
+	"github.com/sap/cloud-security-client-go/auth"
 )
 
 func TestMockServer_SignTokenWithAdditionalClaims(t *testing.T) {
-	oidcMockServer, _ := mocks.NewOIDCMockServer()
+	oidcMockServer, _ := NewOIDCMockServer()
 	defer oidcMockServer.Server.Close()
 
 	tests := []struct {
 		name             string
-		claims           mocks.OIDCClaims
+		claims           OIDCClaims
 		additionalClaims map[string]interface{}
 		wantErr          bool
 	}{
@@ -43,7 +44,7 @@ func TestMockServer_SignTokenWithAdditionalClaims(t *testing.T) {
 				return
 			}
 			if !tt.wantErr {
-				token, err := NewToken(signedToken)
+				token, err := auth.NewToken(signedToken)
 				if err != nil {
 					t.Errorf("SignTokenWithAdditionalClaims() error = %v, wantErr %v", err, tt.wantErr)
 				}

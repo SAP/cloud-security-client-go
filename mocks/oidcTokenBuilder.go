@@ -5,8 +5,9 @@
 package mocks
 
 import (
-	"github.com/lestrrat-go/jwx/jwa"
 	"time"
+
+	"github.com/lestrrat-go/jwx/jwa"
 )
 
 // OIDCHeaderBuilder can construct header fields for test cases

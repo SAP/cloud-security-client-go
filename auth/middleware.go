@@ -6,15 +6,16 @@ package auth
 
 import (
 	"context"
-	"github.com/sap/cloud-security-client-go/env"
-	"github.com/sap/cloud-security-client-go/httpclient"
-	"github.com/sap/cloud-security-client-go/tokenclient"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
+
+	"github.com/sap/cloud-security-client-go/env"
+	"github.com/sap/cloud-security-client-go/httpclient"
+	"github.com/sap/cloud-security-client-go/tokenclient"
 )
 
 // The ContextKey type is used as a key for library related values in the go context. See also TokenCtxKey
