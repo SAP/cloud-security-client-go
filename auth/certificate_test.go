@@ -52,7 +52,7 @@ func TestCertificate(t *testing.T) {
 	})
 }
 
-func generateToken(t *testing.T, claimCnfMemberX5tValue string) Token {
+func generateToken(t *testing.T, claimCnfMemberX5tValue string) stdToken {
 	token := jwt.New()
 	cnfClaim := map[string]interface{}{
 		claimCnfMemberX5t: claimCnfMemberX5tValue,

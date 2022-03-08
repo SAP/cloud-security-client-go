@@ -13,28 +13,21 @@ import (
 )
 
 var ErrNoClientCert = errors.New("there is no x509 client certificate provided")
-var ErrNoToken = errors.New("there is no token provided")
 
 // validateCertificate runs all proof of possession checks.
 // This ensures that the token was issued for the sender.
-func validateCertificate(clientCertificate *Certificate, token Token) error {
+func validateCertificate(clientCertificate *Certificate, token stdToken) error {
 	if clientCertificate == nil {
 		return ErrNoClientCert
-	}
-	if token == nil {
-		return ErrNoToken
 	}
 	return validateX5tThumbprint(clientCertificate, token)
 }
 
 // validateX5tThumbprint compares the thumbprint of the provided X509 client certificate against the cnf claim with the confirmation method "x5t#S256".
 // This ensures that the token was issued for the sender.
-func validateX5tThumbprint(clientCertificate *Certificate, token Token) error {
+func validateX5tThumbprint(clientCertificate *Certificate, token stdToken) error {
 	if clientCertificate == nil {
 		return ErrNoClientCert
-	}
-	if token == nil {
-		return ErrNoToken
 	}
 
 	cnfThumbprint := token.getCnfClaimMember(claimCnfMemberX5t)

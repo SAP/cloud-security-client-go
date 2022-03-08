@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/stretchr/testify/require"
 )
 
 func TestToken_getClaimAsString(t *testing.T) {
@@ -132,10 +133,9 @@ func TestOIDCClaims_getAllClaimsAsMap(t *testing.T) {
 }
 
 func TestOIDCClaims_getClaimAsMap(t *testing.T) {
-	token, err := NewToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbmYiOnsieDV0I1MyNTYiOiIwX3daeG5EUXd6dkxqLWh0NHNZbFQ3RzBIMURuT2ZPUC02MGFxeU1PVDI4IiwicHJvb2Z0b2tlbiI6InRydWUifX0.3Xi2fe-m-6lc1Ze9_AsnNpkYAG-LKFPHCld5EggQTW4")
-	if err != nil {
-		t.Errorf("Error while preparing test: %v", err)
-	}
+	tokenI, err := NewToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbmYiOnsieDV0I1MyNTYiOiIwX3daeG5EUXd6dkxqLWh0NHNZbFQ3RzBIMURuT2ZPUC02MGFxeU1PVDI4IiwicHJvb2Z0b2tlbiI6InRydWUifX0.3Xi2fe-m-6lc1Ze9_AsnNpkYAG-LKFPHCld5EggQTW4")
+	require.NoError(t, err, "Error while preparing test: %v", err)
+	token := tokenI.(stdToken)
 
 	got, err := token.GetClaimAsMap(claimCnf)
 	if err != nil {
@@ -176,7 +176,9 @@ func TestOIDCClaims_getSAPIssuer(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			token, err := NewToken("eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo")
+			tokenI, err := NewToken("eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo")
+			require.NoError(t, err, "error creating test token")
+			token := tokenI.(stdToken)
 			jwtToken := token.getJwtToken()
 			_ = jwtToken.Set("iss", tt.iss)
 			if tt.iasIss != "" {

@@ -14,8 +14,6 @@ import (
 )
 
 const (
-	claimCnf             = "cnf"
-	claimCnfMemberX5t    = "x5t#S256"
 	claimGivenName       = "given_name"
 	claimFamilyName      = "family_name"
 	claimEmail           = "email"
@@ -187,20 +185,4 @@ func (t Token) GetClaimAsMap(claim string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("unable to assert type of claim %s to map[string]interface{}. Actual type: %T", claim, value)
 	}
 	return res, nil
-}
-
-func (t Token) getJwtToken() jwt.Token {
-	return t.JwtToken
-}
-
-func (t Token) getCnfClaimMember(memberName string) string {
-	cnfClaim, err := t.GetClaimAsMap(claimCnf)
-	if errors.Is(err, ErrClaimNotExists) || cnfClaim == nil {
-		return ""
-	}
-	res, ok := cnfClaim[memberName]
-	if ok {
-		return res.(string)
-	}
-	return ""
 }

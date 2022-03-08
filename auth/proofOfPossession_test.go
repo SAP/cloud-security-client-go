@@ -18,13 +18,6 @@ func TestProofOfPossession_parseAndValidateCertificate_edgeCases(t *testing.T) {
 		assert.Equal(t, "there is no x509 client certificate provided", err.Error())
 	})
 
-	t.Run("validateCertificate() fails when no token is given", func(t *testing.T) {
-		x509Cert, err := newCertificate(derCertGenerated)
-		require.NoError(t, err, "Failed to parse cert header: %v", err)
-		err = validateX5tThumbprint(x509Cert, nil)
-		assert.Equal(t, "there is no token provided", err.Error())
-	})
-
 	t.Run("validateCertificate() fails when cert does not match x5t", func(t *testing.T) {
 		x509Cert, err := newCertificate(derCertGenerated)
 		require.NoError(t, err, "Failed to parse cert header: %v", err)
@@ -37,13 +30,6 @@ func TestProofOfPossession_validateX5tThumbprint_edgeCases(t *testing.T) {
 	t.Run("validateX5tThumbprint() fails when no cert is given", func(t *testing.T) {
 		err := validateX5tThumbprint(nil, generateToken(t, "abc"))
 		assert.Equal(t, "there is no x509 client certificate provided", err.Error())
-	})
-
-	t.Run("validateX5tThumbprint() fails when no token is given", func(t *testing.T) {
-		x509Cert, err := newCertificate(derCertGenerated)
-		require.NoError(t, err, "Failed to parse cert header: %v", err)
-		err = validateX5tThumbprint(x509Cert, nil)
-		assert.Equal(t, "there is no token provided", err.Error())
 	})
 }
 
