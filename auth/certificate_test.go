@@ -55,9 +55,9 @@ func TestCertificate(t *testing.T) {
 func generateToken(t *testing.T, claimCnfMemberX5tValue string) Token {
 	token := jwt.New()
 	cnfClaim := map[string]interface{}{
-		ClaimCnfMemberX5t: claimCnfMemberX5tValue,
+		claimCnfMemberX5t: claimCnfMemberX5tValue,
 	}
-	err := token.Set(ClaimCnf, cnfClaim)
+	err := token.Set(claimCnf, cnfClaim)
 	require.NoError(t, err, "Failed to create token: %v", err)
 
 	return stdToken{jwtToken: token}

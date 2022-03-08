@@ -11,8 +11,17 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/lestrrat-go/jwx/jwt/openid"
+)
 
-	"github.com/sap/cloud-security-client-go/auth"
+const (
+	claimCnf             = "cnf"
+	claimCnfMemberX5t    = "x5t#S256"
+	claimGivenName       = "given_name"
+	claimFamilyName      = "family_name"
+	claimEmail           = "email"
+	claimSapGlobalUserID = "user_uuid"
+	claimSapGlobalZoneID = "zone_uuid" // tenant GUID
+	claimIasIssuer       = "ias_iss"
 )
 
 type Token struct {
@@ -83,7 +92,7 @@ func (t Token) IssuedAt() time.Time {
 
 func (t Token) CustomIssuer() string {
 	// only return iss if ias_iss does exist
-	if !t.HasClaim(auth.ClaimIasIssuer) {
+	if !t.HasClaim(claimIasIssuer) {
 		return ""
 	}
 	return t.JwtToken.Issuer()
@@ -91,7 +100,7 @@ func (t Token) CustomIssuer() string {
 
 func (t Token) Issuer() string {
 	// return standard issuer if ias_iss is not set
-	v, err := t.GetClaimAsString(auth.ClaimIasIssuer)
+	v, err := t.GetClaimAsString(claimIasIssuer)
 	if errors.Is(err, ErrClaimNotExists) {
 		return t.JwtToken.Issuer()
 	}
@@ -107,27 +116,27 @@ func (t Token) Subject() string {
 }
 
 func (t Token) GivenName() string {
-	v, _ := t.GetClaimAsString(auth.ClaimGivenName)
+	v, _ := t.GetClaimAsString(claimGivenName)
 	return v
 }
 
 func (t Token) FamilyName() string {
-	v, _ := t.GetClaimAsString(auth.ClaimFamilyName)
+	v, _ := t.GetClaimAsString(claimFamilyName)
 	return v
 }
 
 func (t Token) Email() string {
-	v, _ := t.GetClaimAsString(auth.ClaimEmail)
+	v, _ := t.GetClaimAsString(claimEmail)
 	return v
 }
 
 func (t Token) ZoneID() string {
-	v, _ := t.GetClaimAsString(auth.ClaimSapGlobalZoneID)
+	v, _ := t.GetClaimAsString(claimSapGlobalZoneID)
 	return v
 }
 
 func (t Token) UserUUID() string {
-	v, _ := t.GetClaimAsString(auth.ClaimSapGlobalUserID)
+	v, _ := t.GetClaimAsString(claimSapGlobalUserID)
 	return v
 }
 
@@ -185,7 +194,7 @@ func (t Token) getJwtToken() jwt.Token {
 }
 
 func (t Token) getCnfClaimMember(memberName string) string {
-	cnfClaim, err := t.GetClaimAsMap(auth.ClaimCnf)
+	cnfClaim, err := t.GetClaimAsMap(claimCnf)
 	if errors.Is(err, ErrClaimNotExists) || cnfClaim == nil {
 		return ""
 	}

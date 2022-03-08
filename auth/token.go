@@ -15,14 +15,14 @@ import (
 )
 
 const (
-	ClaimCnf             = "cnf"
-	ClaimCnfMemberX5t    = "x5t#S256"
-	ClaimGivenName       = "given_name"
-	ClaimFamilyName      = "family_name"
-	ClaimEmail           = "email"
-	ClaimSapGlobalUserID = "user_uuid"
-	ClaimSapGlobalZoneID = "zone_uuid" // tenant GUID
-	ClaimIasIssuer       = "ias_iss"
+	claimCnf             = "cnf"
+	claimCnfMemberX5t    = "x5t#S256"
+	claimGivenName       = "given_name"
+	claimFamilyName      = "family_name"
+	claimEmail           = "email"
+	claimSapGlobalUserID = "user_uuid"
+	claimSapGlobalZoneID = "zone_uuid" // tenant GUID
+	claimIasIssuer       = "ias_iss"
 )
 
 // Token is the public API to access claims of the token
@@ -91,7 +91,7 @@ func (t stdToken) IssuedAt() time.Time {
 
 func (t stdToken) CustomIssuer() string {
 	// only return iss if ias_iss does exist
-	if !t.HasClaim(ClaimIasIssuer) {
+	if !t.HasClaim(claimIasIssuer) {
 		return ""
 	}
 	return t.jwtToken.Issuer()
@@ -99,7 +99,7 @@ func (t stdToken) CustomIssuer() string {
 
 func (t stdToken) Issuer() string {
 	// return standard issuer if ias_iss is not set
-	v, err := t.GetClaimAsString(ClaimIasIssuer)
+	v, err := t.GetClaimAsString(claimIasIssuer)
 	if errors.Is(err, ErrClaimNotExists) {
 		return t.jwtToken.Issuer()
 	}
@@ -115,27 +115,27 @@ func (t stdToken) Subject() string {
 }
 
 func (t stdToken) GivenName() string {
-	v, _ := t.GetClaimAsString(ClaimGivenName)
+	v, _ := t.GetClaimAsString(claimGivenName)
 	return v
 }
 
 func (t stdToken) FamilyName() string {
-	v, _ := t.GetClaimAsString(ClaimFamilyName)
+	v, _ := t.GetClaimAsString(claimFamilyName)
 	return v
 }
 
 func (t stdToken) Email() string {
-	v, _ := t.GetClaimAsString(ClaimEmail)
+	v, _ := t.GetClaimAsString(claimEmail)
 	return v
 }
 
 func (t stdToken) ZoneID() string {
-	v, _ := t.GetClaimAsString(ClaimSapGlobalZoneID)
+	v, _ := t.GetClaimAsString(claimSapGlobalZoneID)
 	return v
 }
 
 func (t stdToken) UserUUID() string {
-	v, _ := t.GetClaimAsString(ClaimSapGlobalUserID)
+	v, _ := t.GetClaimAsString(claimSapGlobalUserID)
 	return v
 }
 
@@ -193,7 +193,7 @@ func (t stdToken) getJwtToken() jwt.Token {
 }
 
 func (t stdToken) getCnfClaimMember(memberName string) string {
-	cnfClaim, err := t.GetClaimAsMap(ClaimCnf)
+	cnfClaim, err := t.GetClaimAsMap(claimCnf)
 	if errors.Is(err, ErrClaimNotExists) || cnfClaim == nil {
 		return ""
 	}
