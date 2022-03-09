@@ -7,15 +7,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/patrickmn/go-cache"
-	"github.com/sap/cloud-security-client-go/env"
-	"github.com/sap/cloud-security-client-go/httpclient"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/patrickmn/go-cache"
+
+	"github.com/sap/cloud-security-client-go/env"
+	"github.com/sap/cloud-security-client-go/httpclient"
 )
 
 // Options allows configuration http(s) client

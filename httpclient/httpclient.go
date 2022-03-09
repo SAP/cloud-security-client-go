@@ -8,9 +8,10 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/sap/cloud-security-client-go/env"
 	"net/http"
 	"time"
+
+	"github.com/sap/cloud-security-client-go/env"
 )
 
 // DefaultTLSConfig creates default tls.Config. Initializes SystemCertPool with cert/key from identity config.

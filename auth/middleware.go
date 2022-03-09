@@ -6,15 +6,16 @@ package auth
 
 import (
 	"context"
-	"github.com/sap/cloud-security-client-go/env"
-	"github.com/sap/cloud-security-client-go/httpclient"
-	"github.com/sap/cloud-security-client-go/tokenclient"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
+
+	"github.com/sap/cloud-security-client-go/env"
+	"github.com/sap/cloud-security-client-go/httpclient"
+	"github.com/sap/cloud-security-client-go/tokenclient"
 )
 
 // The ContextKey type is used as a key for library related values in the go context. See also TokenCtxKey
@@ -111,24 +112,24 @@ func (m *Middleware) AuthenticateWithProofOfPossession(r *http.Request) (Token, 
 	// get Token from Header
 	rawToken, err := extractRawToken(r)
 	if err != nil {
-		return nil, nil, err
+		return Token{}, nil, err
 	}
 
 	token, err := m.parseAndValidateJWT(rawToken)
 	if err != nil {
-		return nil, nil, err
+		return Token{}, nil, err
 	}
 
 	const forwardedClientCertHeader = "x-forwarded-client-cert"
 	var cert *Certificate
 	cert, err = newCertificate(r.Header.Get(forwardedClientCertHeader))
 	if err != nil {
-		return nil, nil, err
+		return Token{}, nil, err
 	}
 	if "1" == "" && cert != nil { // TODO integrate proof of possession into middleware
 		err = validateCertificate(cert, token)
 		if err != nil {
-			return nil, nil, err
+			return Token{}, nil, err
 		}
 	}
 

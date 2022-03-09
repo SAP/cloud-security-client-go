@@ -6,13 +6,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/sap/cloud-security-client-go/auth"
-	"github.com/sap/cloud-security-client-go/env"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+
+	"github.com/sap/cloud-security-client-go/auth"
+	"github.com/sap/cloud-security-client-go/env"
 )
 
 // Main class for demonstration purposes.

@@ -21,23 +21,23 @@ import (
 func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
 	token, err := NewToken(rawToken)
 	if err != nil {
-		return nil, err
+		return Token{}, err
 	}
 
 	// get keyset
 	keySet, err := m.getOIDCTenant(token.Issuer(), token.CustomIssuer())
 	if err != nil {
-		return nil, err
+		return Token{}, err
 	}
 
 	// verify claims
 	if err := m.validateClaims(token, keySet); err != nil {
-		return nil, err
+		return Token{}, err
 	}
 
 	// verify signature
 	if err := m.verifySignature(token, keySet); err != nil {
-		return nil, err
+		return Token{}, err
 	}
 
 	return token, nil
