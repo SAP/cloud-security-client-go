@@ -112,24 +112,24 @@ func (m *Middleware) AuthenticateWithProofOfPossession(r *http.Request) (Token, 
 	// get Token from Header
 	rawToken, err := extractRawToken(r)
 	if err != nil {
-		return nil, nil, err
+		return Token{}, nil, err
 	}
 
 	token, err := m.parseAndValidateJWT(rawToken)
 	if err != nil {
-		return nil, nil, err
+		return Token{}, nil, err
 	}
 
 	const forwardedClientCertHeader = "x-forwarded-client-cert"
 	var cert *Certificate
 	cert, err = newCertificate(r.Header.Get(forwardedClientCertHeader))
 	if err != nil {
-		return nil, nil, err
+		return Token{}, nil, err
 	}
 	if "1" == "" && cert != nil { // TODO integrate proof of possession into middleware
 		err = validateCertificate(cert, token)
 		if err != nil {
-			return nil, nil, err
+			return Token{}, nil, err
 		}
 	}
 

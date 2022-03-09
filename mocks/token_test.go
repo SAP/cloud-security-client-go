@@ -9,12 +9,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/sap/cloud-security-client-go/testutil"
 )
 
 func TestNewTokenFromClaims(t *testing.T) {
 	userUUID := uuid.NewString()
 	m := map[string]interface{}{"user_uuid": userUUID}
-	claims, err := NewTokenFromClaims(m)
+	claims, err := testutil.NewTokenFromClaims(m)
 	assert.NoError(t, err)
 
 	assert.Equal(t, userUUID, claims.UserUUID(), "UserUUID() got = %v, want %v", claims.UserUUID(), userUUID)

@@ -11,11 +11,12 @@ import (
 	_ "embed"
 	"encoding/base64"
 	"encoding/pem"
+	"math/big"
+	"testing"
+
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"testing"
 )
 
 //go:embed testdata/x-forwarded-client-cert.txt
@@ -51,7 +52,7 @@ func TestCertificate(t *testing.T) {
 	})
 }
 
-func generateToken(t *testing.T, claimCnfMemberX5tValue string) stdToken {
+func generateToken(t *testing.T, claimCnfMemberX5tValue string) Token {
 	token := jwt.New()
 	cnfClaim := map[string]interface{}{
 		claimCnfMemberX5t: claimCnfMemberX5tValue,
@@ -59,7 +60,7 @@ func generateToken(t *testing.T, claimCnfMemberX5tValue string) stdToken {
 	err := token.Set(claimCnf, cnfClaim)
 	require.NoError(t, err, "Failed to create token: %v", err)
 
-	return stdToken{jwtToken: token}
+	return Token{jwtToken: token}
 }
 
 func convertToPEM(t *testing.T, derCert string) string {

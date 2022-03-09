@@ -18,34 +18,32 @@ import (
 )
 
 // parseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
-func (m *Middleware) parseAndValidateJWT(rawToken string) (stdToken, error) {
-	tokenI, err := NewToken(rawToken)
+func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
+	token, err := NewToken(rawToken)
 	if err != nil {
-		return stdToken{}, err
+		return Token{}, err
 	}
-
-	token := tokenI.(stdToken)
 
 	// get keyset
 	keySet, err := m.getOIDCTenant(token.Issuer(), token.CustomIssuer())
 	if err != nil {
-		return stdToken{}, err
+		return Token{}, err
 	}
 
 	// verify claims
 	if err := m.validateClaims(token, keySet); err != nil {
-		return stdToken{}, err
+		return Token{}, err
 	}
 
 	// verify signature
 	if err := m.verifySignature(token, keySet); err != nil {
-		return stdToken{}, err
+		return Token{}, err
 	}
 
 	return token, nil
 }
 
-func (m *Middleware) verifySignature(t stdToken, keySet *oidcclient.OIDCTenant) (err error) {
+func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant) (err error) {
 	headers, err := getHeaders(t.TokenValue())
 	if err != nil {
 		return err
@@ -78,7 +76,7 @@ func getHeaders(encodedToken string) (jws.Headers, error) {
 	return msg.Signatures()[0].ProtectedHeaders(), nil
 }
 
-func (m *Middleware) validateClaims(t stdToken, ks *oidcclient.OIDCTenant) error { // performing IsExpired check, because dgriljalva jwt.Validate() doesn't fail on missing 'exp' claim
+func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error { // performing IsExpired check, because dgriljalva jwt.Validate() doesn't fail on missing 'exp' claim
 	// performing IsExpired check, because lestrrat-go jwt.Validate() doesn't fail on missing 'exp' claim
 	if t.IsExpired() {
 		return fmt.Errorf("token is expired, exp: %v", t.Expiration())
