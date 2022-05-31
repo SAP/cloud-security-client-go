@@ -6,8 +6,6 @@ package auth
 
 import (
 	"context"
-	"github.com/sap/cloud-security-client-go/env"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -17,7 +15,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/stretchr/testify/assert"
 
+	"github.com/sap/cloud-security-client-go/env"
 	"github.com/sap/cloud-security-client-go/mocks"
 )
 

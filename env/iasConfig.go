@@ -7,10 +7,11 @@ package env
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path"
+
+	"github.com/google/uuid"
+	"gopkg.in/yaml.v3"
 )
 
 const iasServiceName = "identity"

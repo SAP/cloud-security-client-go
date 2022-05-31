@@ -6,14 +6,15 @@ package oidcclient
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/lestrrat-go/jwx/jwk"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gorilla/mux"
+	"github.com/lestrrat-go/jwx/jwk"
 )
 
 const jwksJSONString = "{\"keys\":[{\"kty\":\"RSA\",\"kid\":\"default-kid-ias\",\"e\":\"AQAB\",\"use\":\"sig\",\"n\":\"AJtUGmczI7RHx3Ypqxz9_9mK_tc-vOXojlJcMm0VRvYvMLIDlIfj1BrkC_IYLpS2Vl1OTG8AS0xAgBDEG3EUzVU6JZKuIuuxD-iXrBySBQA2ytTYtCrjHD7osji7wyogxDJ2BtVz9191gjX7AlU_WKFPpViK2a_2bCL0K4vI3M6-EZMp20wbD2gDsoD1JYqag66WnTDtZqJjQm3mv6Ohj59_C8RMOtPSLX4AxoS-n_8lYneaRc2UFm_vZepgricMNIZ4TuoLekb_fDlg7cvRtH61gD8hH7iFvQfpkf9rxoclPSG21qbxV4svUVW27DOd_Ewo3eSRdnSb8ctuGnXQuKE=\"}]}"
@@ -138,16 +139,18 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			wantProviderJSON: true,
 		},
 	}
+
+	router := NewRouter()
+	localServer := httptest.NewServer(router)
+	defer localServer.Close()
+
 	for _, tt := range tests {
-		var providerJSON ProviderJSON
-		if tt.wantProviderJSON {
-			router := NewRouter()
-			localServer := httptest.NewServer(router)
-			defer localServer.Close()
-			localServerURL, _ := url.Parse(localServer.URL)
-			providerJSON.JWKsURL = fmt.Sprintf("%s/oauth2/certs", localServerURL)
-		}
 		t.Run(tt.name, func(t *testing.T) {
+			var providerJSON ProviderJSON
+			if tt.wantProviderJSON {
+				localServerURL, _ := url.Parse(localServer.URL)
+				providerJSON.JWKsURL = fmt.Sprintf("%s/oauth2/certs", localServerURL)
+			}
 			jwksJSON, _ := jwk.ParseString(jwksJSONString)
 			tenant := OIDCTenant{
 				jwksExpiry:      time.Now().Add(tt.fields.Duration),

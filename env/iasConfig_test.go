@@ -6,12 +6,13 @@ package env
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path"
 	"reflect"
 	"testing"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 var testConfig = &DefaultIdentity{
