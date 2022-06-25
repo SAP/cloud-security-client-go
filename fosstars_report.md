@@ -103,7 +103,7 @@ This sub-score is based on 17 features:
 1.  Does it have a bug bounty program? **No**
 1.  Does it have a security policy? **Yes**
 1.  Does it have a security team? **No**
-1.  Does it sign artifacts? **Yes**
+1.  Does it sign artifacts? **No**
 1.  Does it use AddressSanitizer? **No**
 1.  Does it use Dependabot? **Yes**
 1.  Does it use FindSecBugs? **No**
@@ -115,7 +115,7 @@ This sub-score is based on 17 features:
 1.  Does it use UndefinedBehaviorSanitizer? **No**
 1.  Does it use nohttp? **No**
 1.  Does it use verified signed commits? **No**
-1.  How is OWASP Dependency Check used? **Used**
+1.  How is OWASP Dependency Check used? **Not used**
 1.  Is it included to OSS-Fuzz? **No**
 
 ### Vulnerability discovery and security testing
