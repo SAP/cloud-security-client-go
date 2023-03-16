@@ -126,6 +126,18 @@ func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 	assertToken(t, dummyToken, token, err)
 }
 
+func TestClientCredentialsTokenFlow_SucceedsWithCustomEndpoint(t *testing.T) {
+	server := setupNewTLSServer(t, tokenHandler)
+	tokenFlows, _ := NewTokenFlows(&env.DefaultIdentity{
+		ClientID: "09932670-9440-445d-be3e-432a97d7e2ef"}, Options{HTTPClient: server.Client()})
+
+	token, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{TokenEndpoint: "/oauth/token"})
+	assertToken(t, dummyToken, token, err)
+	cachedToken, ok := tokenFlows.cache.Get(server.URL + "/oauth/token?client_id=09932670-9440-445d-be3e-432a97d7e2ef&grant_type=client_credentials")
+	assert.True(t, ok)
+	assert.Equal(t, dummyToken, cachedToken)
+}
+
 func TestClientCredentialsTokenFlow_ReadFromCache(t *testing.T) {
 	server := setupNewTLSServer(t, tokenHandler)
 	tokenFlows, _ := NewTokenFlows(&env.DefaultIdentity{
@@ -161,6 +173,7 @@ func TestClientCredentialsTokenFlow_UsingMockServer_Succeeds(t *testing.T) {
 func setupNewTLSServer(t *testing.T, f func(http.ResponseWriter, *http.Request)) *httptest.Server {
 	r := mux.NewRouter()
 	r.HandleFunc("/oauth2/token", f).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
+	r.HandleFunc("/oauth/token", f).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
 
 	t.Cleanup(func() {
 		tokenRequestHandlerHitCounter = 0
