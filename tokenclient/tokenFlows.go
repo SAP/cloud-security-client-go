@@ -124,7 +124,7 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 		data.Set(name, value) // potentially overwrites data which was set before
 	}
 	data.Set(grantTypeParameter, grantTypeClientCredentials)
-	targetURL, err := t.getURL(customerTenantURL)
+	targetURL, err := t.getURL(customerTenantURL, options)
 	if err != nil {
 		return "", err
 	}
@@ -137,10 +137,14 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	return t.getOrRequestToken(request{Request: *r})
 }
 
-func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
+func (t *TokenFlows) getURL(customerTenantURL string, options RequestOptions) (string, error) {
 	customURL, err := url.Parse(customerTenantURL)
 	if err == nil && customURL.Host != "" {
-		return "https://" + customURL.Host + tokenEndpoint, nil
+		endpoint, ok := options.Params["tokenEndpoint"]
+		if !ok {
+			endpoint = tokenEndpoint
+		}
+		return "https://" + customURL.Host + endpoint, nil
 	}
 	if !strings.HasPrefix(customerTenantURL, "http") {
 		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: Trying to parse a hostname without a scheme is invalid", customerTenantURL)
