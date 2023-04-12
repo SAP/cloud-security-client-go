@@ -6,11 +6,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/gorilla/handlers"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
 	"github.com/sap/cloud-security-client-go/auth"
@@ -27,12 +28,16 @@ func main() {
 	}
 	authMiddleware := auth.NewMiddleware(config, auth.Options{})
 	r.Use(authMiddleware.AuthenticationHandler)
-
 	r.HandleFunc("/helloWorld", helloWorld).Methods(http.MethodGet)
 
 	address := ":8080"
+	server := &http.Server{
+		Addr:              address,
+		ReadHeaderTimeout: 5 * time.Second,
+		Handler:           handlers.LoggingHandler(os.Stdout, r),
+	}
 	log.Println("Starting server on address", address)
-	err = http.ListenAndServe(address, handlers.LoggingHandler(os.Stdout, r))
+	err = server.ListenAndServe()
 	if err != nil {
 		panic(err)
 	}
