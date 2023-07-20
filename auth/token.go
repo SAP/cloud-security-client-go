@@ -23,6 +23,7 @@ const (
 	claimSapGlobalUserID = "user_uuid"
 	claimSapGlobalZoneID = "zone_uuid" // tenant GUID
 	claimIasIssuer       = "ias_iss"
+	claimIasCam          = "ias_cam"
 )
 
 type Token struct {
@@ -127,6 +128,12 @@ func (t Token) UserUUID() string {
 	return v
 }
 
+// CompanyGroups returns "ias_cam", which states the groups
+func (t Token) CompanyGroups() []string {
+	v, _ := t.GetIasCamAsString(claimSapGlobalUserID)
+	return v
+}
+
 // ErrClaimNotExists shows that the requested custom claim does not exist in the token
 var ErrClaimNotExists = errors.New("claim does not exist in the token")
 
@@ -147,6 +154,29 @@ func (t Token) GetClaimAsString(claim string) (string, error) {
 		return "", fmt.Errorf("unable to assert claim %s type as string. Actual type: %T", claim, value)
 	}
 	return stringValue, nil
+}
+
+func (t Token) GetIasCamAsString(claim string) ([]string, error) {
+	value, exists := t.jwtToken.Get(claim)
+	if !exists {
+		return nil, ErrClaimNotExists
+	}
+	switch v := value.(type) {
+	case string:
+		return []string{v}, nil
+	case []interface{}:
+		strArr := make([]string, len(v))
+		for i, elem := range v {
+			strVal, ok := elem.(string)
+			if !ok {
+				return nil, fmt.Errorf("unable to assert array element as string. Actual type: %T", elem)
+			}
+			strArr[i] = strVal
+		}
+		return strArr, nil
+	default:
+		return nil, fmt.Errorf("unable to assert claim %s type as string or []string. Actual type: %T", claim, value)
+	}
 }
 
 // GetClaimAsStringSlice returns a custom claim type asserted as string slice. The claim name is case sensitive. Returns error if the claim is not available or not an array
