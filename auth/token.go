@@ -130,7 +130,7 @@ func (t Token) UserUUID() string {
 
 // CompanyGroups returns "ias_cam", which states the groups
 func (t Token) CompanyGroups() []string {
-	v, _ := t.GetIasCamAsString(claimSapGlobalUserID)
+	v, _ := t.GetIasCamAsString(claimIasCam)
 	return v
 }
 
