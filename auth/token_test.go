@@ -5,7 +5,6 @@
 package auth
 
 import (
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 
@@ -86,8 +85,8 @@ func TestOIDCClaims_getClaimAsStringSlice(t *testing.T) {
 			name:       "single string",
 			claimValue: "myValue",
 			claimArg:   "testClaim",
-			want:       nil,
-			wantErr:    true,
+			want:       []string{"myValue"},
+			wantErr:    false,
 		}, {
 			name:       "single int",
 			claimValue: 1,
@@ -203,78 +202,6 @@ func TestOIDCClaims_getSAPIssuer(t *testing.T) {
 			iasIssuerActual := token.Issuer()
 			if iasIssuerActual != tt.wantIss {
 				t.Errorf("Issuer() got = %v, want %v", iasIssuerActual, tt.wantIss)
-			}
-		})
-	}
-}
-
-func TestGetIasCamAsString(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name      string
-		claims    map[string]interface{}
-		claimKey  string
-		want      []string
-		expectErr bool
-	}{
-		{
-			name: "Test single string claim",
-			claims: map[string]interface{}{
-				"claim1": "value1",
-			},
-			claimKey:  "claim1",
-			want:      []string{"value1"},
-			expectErr: false,
-		},
-		{
-			name: "Test array string claim",
-			claims: map[string]interface{}{
-				"claim2": []interface{}{"value2", "value3"},
-			},
-			claimKey:  "claim2",
-			want:      []string{"value2", "value3"},
-			expectErr: false,
-		},
-		{
-			name: "Test non-existing claim",
-			claims: map[string]interface{}{
-				"claim1": "value1",
-			},
-			claimKey:  "claim3",
-			expectErr: true,
-		},
-		{
-			name: "Test non-string claim",
-			claims: map[string]interface{}{
-				"claim3": 123,
-			},
-			claimKey:  "claim3",
-			expectErr: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			token := jwt.New()
-			for claim, value := range tc.claims {
-				err := token.Set(claim, value)
-				if err != nil {
-					return
-				}
-			}
-
-			testToken := Token{
-				jwtToken: token,
-			}
-
-			got, err := testToken.GetIasCamAsString(tc.claimKey)
-
-			if tc.expectErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tc.want, got)
 			}
 		})
 	}
