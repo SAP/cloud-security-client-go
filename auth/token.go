@@ -23,7 +23,6 @@ const (
 	claimSapGlobalUserID = "user_uuid"
 	claimSapGlobalZoneID = "zone_uuid" // tenant GUID
 	claimIasIssuer       = "ias_iss"
-	claimIasCam          = "ias_cam"
 )
 
 type Token struct {
@@ -128,12 +127,6 @@ func (t Token) UserUUID() string {
 	return v
 }
 
-// CompanyGroups returns "ias_cam", which states the groups
-func (t Token) CompanyGroups() []string {
-	v, _ := t.GetIasCamAsString(claimIasCam)
-	return v
-}
-
 // ErrClaimNotExists shows that the requested custom claim does not exist in the token
 var ErrClaimNotExists = errors.New("claim does not exist in the token")
 
@@ -156,7 +149,8 @@ func (t Token) GetClaimAsString(claim string) (string, error) {
 	return stringValue, nil
 }
 
-func (t Token) GetIasCamAsString(claim string) ([]string, error) {
+// GetClaimAsStringSlice returns a custom claim type asserted as string slice. The claim name is case sensitive. Returns error if the claim is not available or not an array
+func (t Token) GetClaimAsStringSlice(claim string) ([]string, error) {
 	value, exists := t.jwtToken.Get(claim)
 	if !exists {
 		return nil, ErrClaimNotExists
@@ -174,22 +168,11 @@ func (t Token) GetIasCamAsString(claim string) ([]string, error) {
 			strArr[i] = strVal
 		}
 		return strArr, nil
+	case []string:
+		return v, nil
 	default:
 		return nil, fmt.Errorf("unable to assert claim %s type as string or []string. Actual type: %T", claim, value)
 	}
-}
-
-// GetClaimAsStringSlice returns a custom claim type asserted as string slice. The claim name is case sensitive. Returns error if the claim is not available or not an array
-func (t Token) GetClaimAsStringSlice(claim string) ([]string, error) {
-	value, exists := t.jwtToken.Get(claim)
-	if !exists {
-		return nil, ErrClaimNotExists
-	}
-	res, ok := value.([]string)
-	if !ok {
-		return nil, fmt.Errorf("unable to assert type of claim %s to string. Actual type: %T", claim, value)
-	}
-	return res, nil
 }
 
 // GetAllClaimsAsMap returns a map of all claims contained in the token. The claim name is case sensitive. Includes also custom claims
