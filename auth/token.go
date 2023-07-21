@@ -155,11 +155,24 @@ func (t Token) GetClaimAsStringSlice(claim string) ([]string, error) {
 	if !exists {
 		return nil, ErrClaimNotExists
 	}
-	res, ok := value.([]string)
-	if !ok {
-		return nil, fmt.Errorf("unable to assert type of claim %s to string. Actual type: %T", claim, value)
+	switch v := value.(type) {
+	case string:
+		return []string{v}, nil
+	case []interface{}:
+		strArr := make([]string, len(v))
+		for i, elem := range v {
+			strVal, ok := elem.(string)
+			if !ok {
+				return nil, fmt.Errorf("unable to assert array element as string. Actual type: %T", elem)
+			}
+			strArr[i] = strVal
+		}
+		return strArr, nil
+	case []string:
+		return v, nil
+	default:
+		return nil, fmt.Errorf("unable to assert claim %s type as string or []string. Actual type: %T", claim, value)
 	}
-	return res, nil
 }
 
 // GetAllClaimsAsMap returns a map of all claims contained in the token. The claim name is case sensitive. Includes also custom claims
