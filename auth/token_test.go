@@ -13,6 +13,8 @@ import (
 )
 
 func TestToken_getClaimAsString(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		claimValue interface{}
@@ -64,6 +66,8 @@ func TestToken_getClaimAsString(t *testing.T) {
 }
 
 func TestOIDCClaims_getClaimAsStringSlice(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		claimValue interface{}
@@ -81,8 +85,8 @@ func TestOIDCClaims_getClaimAsStringSlice(t *testing.T) {
 			name:       "single string",
 			claimValue: "myValue",
 			claimArg:   "testClaim",
-			want:       nil,
-			wantErr:    true,
+			want:       []string{"myValue"},
+			wantErr:    false,
 		}, {
 			name:       "single int",
 			claimValue: 1,
@@ -121,6 +125,8 @@ func TestOIDCClaims_getClaimAsStringSlice(t *testing.T) {
 }
 
 func TestOIDCClaims_getAllClaimsAsMap(t *testing.T) {
+	t.Parallel()
+
 	token, err := NewToken("eyJhbGciOiJSUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOlsiY2xpZW50aWQiXSwiZW1haWwiOiJmb29AYmFyLm9yZyIsImV4cCI6MTYyMDA5MjI1MSwiZmFtaWx5X25hbWUiOiJCYXIiLCJnaXZlbl9uYW1lIjoiRm9vIiwiaWFzLWFkbWluIjoidHJ1ZSIsImlhdCI6MTYxOTc5MjI1MSwiaXNzIjoiaHR0cHM6Ly8xMjcuMC4wLjE6NTQ0ODIiLCJqdGkiOiI4NjI3NGE1Ny01N2FlLTQ5NDktOWRjOC03ODY0NjcyOWYzYmMiLCJuYmYiOjE2MTk3OTIyNTEsInVzZXJfdXVpZCI6IjIyMjIyMjIyLTMzMzMtNDQ0NC01NTU1LTY2NjY2NjY2NjY2NiIsInpvbmVfdXVpZCI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTg4ODg4ODg4ODg4OCJ9.W-Owtad1oybqDI3tsJYGIIZPXBz2IdKOFoMCp07mv8kBNNVWNL0FbRIwilqU-cry_m-DA__5dKaVwaNW7q_6nCmIdvfmqdDJGCd6836AU4VC18uylSKMwVrm7o3TZsS04dDCjR5pnrSR2tzr-3VrMECRK7YSW4tuAaQC8XDWEnVIxz_l7eIB3v09SeRXi3iiqiYTUTyP3o5EU2Ae1tjYSfgLvOmkHTV406Rp5oaiZZV-jdMq7w-JaD-9JLon8O3XRdTApiYJ6yI9sXLcBrElHzy8M2HKm4FvOb66cJYT4GtB8Ntoq7XQKor0oW5dPPXuEBIl77Hz6PgNa7WYKkBi_w")
 	if err != nil {
 		t.Errorf("Error while preparing test: %v", err)
@@ -133,6 +139,8 @@ func TestOIDCClaims_getAllClaimsAsMap(t *testing.T) {
 }
 
 func TestOIDCClaims_getClaimAsMap(t *testing.T) {
+	t.Parallel()
+
 	token, err := NewToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbmYiOnsieDV0I1MyNTYiOiIwX3daeG5EUXd6dkxqLWh0NHNZbFQ3RzBIMURuT2ZPUC02MGFxeU1PVDI4IiwicHJvb2Z0b2tlbiI6InRydWUifX0.3Xi2fe-m-6lc1Ze9_AsnNpkYAG-LKFPHCld5EggQTW4")
 	require.NoError(t, err, "Error while preparing test: %v", err)
 
@@ -151,6 +159,8 @@ func TestOIDCClaims_getClaimAsMap(t *testing.T) {
 }
 
 func TestOIDCClaims_getSAPIssuer(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		iss           string
