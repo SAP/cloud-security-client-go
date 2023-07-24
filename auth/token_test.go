@@ -88,6 +88,12 @@ func TestOIDCClaims_getClaimAsStringSlice(t *testing.T) {
 			want:       []string{"myValue"},
 			wantErr:    false,
 		}, {
+			name:       "interface slice",
+			claimValue: []interface{}{"valueOne", "valueTwo"},
+			claimArg:   "testClaim",
+			want:       []string{"valueOne", "valueTwo"},
+			wantErr:    false,
+		}, {
 			name:       "single int",
 			claimValue: 1,
 			claimArg:   "testClaim",
