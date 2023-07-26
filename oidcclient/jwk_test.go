@@ -183,14 +183,14 @@ func NewRouter() (r *mux.Router) {
 	return r
 }
 
-func ReturnJWKS(writer http.ResponseWriter, request *http.Request) {
+func ReturnJWKS(writer http.ResponseWriter, _ *http.Request) {
 	_, _ = writer.Write([]byte(jwksJSONString))
 }
 
-func ReturnInvalidJWKS(writer http.ResponseWriter, request *http.Request) {
+func ReturnInvalidJWKS(writer http.ResponseWriter, _ *http.Request) {
 	_, _ = writer.Write([]byte("\"kid\":\"default-kid-ias\""))
 }
 
-func ReturnInvalidZone(writer http.ResponseWriter, request *http.Request) {
+func ReturnInvalidZone(writer http.ResponseWriter, _ *http.Request) {
 	writer.WriteHeader(400)
 }

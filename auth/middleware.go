@@ -165,6 +165,6 @@ func (m *Middleware) ClearCache() {
 }
 
 // DefaultErrorHandler responds with the error and HTTP status 401
-func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
+func DefaultErrorHandler(w http.ResponseWriter, _ *http.Request, err error) {
 	http.Error(w, err.Error(), http.StatusUnauthorized)
 }
