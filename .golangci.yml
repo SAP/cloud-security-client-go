@@ -59,7 +59,6 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
     - dogsled
     - dupl
     - errcheck
@@ -83,13 +82,11 @@ linters:
     - rowserrcheck
     - exportloopref
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
     - revive
 
