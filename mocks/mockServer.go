@@ -51,8 +51,8 @@ type MockServer struct {
 	CustomIssuer        string           // CustomIssuer holds a custom domain returned by the discovery endpoint
 }
 
-// InvalidZoneID represents a zone guid which is rejected by mock server on behalf of IAS tenant
-const InvalidZoneID string = "dff69954-a259-4104-9074-193bc9a366ce"
+// InvalidAppTID represents a zone guid which is rejected by mock server on behalf of IAS tenant
+const InvalidAppTID string = "dff69954-a259-4104-9074-193bc9a366ce"
 
 // NewOIDCMockServer instantiates a new MockServer.
 func NewOIDCMockServer() (*MockServer, error) {
@@ -93,7 +93,7 @@ func newOIDCMockServer(customIssuer string) (*MockServer, error) {
 	}
 
 	r.HandleFunc("/.well-known/openid-configuration", mockServer.WellKnownHandler).Methods(http.MethodGet)
-	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandlerInvalidZone).Methods(http.MethodGet).Headers("x-zone_uuid", InvalidZoneID)
+	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandlerInvalidAppTID).Methods(http.MethodGet).Headers("x-zone_uuid", InvalidAppTID)
 	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/oauth2/token", mockServer.tokenHandler).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
 
@@ -150,9 +150,9 @@ func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write(payload)
 }
 
-// JWKsHandlerInvalidZone is the http handler which answers invalid requests to the JWKS endpoint.
-// in reality it returns "{ \"msg\":\"Invalid zone_uuid provided\" }"
-func (m *MockServer) JWKsHandlerInvalidZone(w http.ResponseWriter, _ *http.Request) {
+// JWKsHandlerInvalidAppTID is the http handler which answers invalid requests to the JWKS endpoint.
+// in reality, it returns "{ \"msg\":\"Invalid app_tid provided\" }"
+func (m *MockServer) JWKsHandlerInvalidAppTID(w http.ResponseWriter, _ *http.Request) {
 	m.JWKsHitCounter++
 	w.WriteHeader(http.StatusBadRequest)
 }
@@ -295,6 +295,7 @@ type MockConfig struct {
 	URL                  string
 	Domains              []string
 	ZoneUUID             uuid.UUID
+	AppTID               uuid.UUID
 	ProofTokenURL        string
 	OsbURL               string
 	Certificate          string
@@ -325,6 +326,11 @@ func (c MockConfig) GetDomains() []string {
 // GetZoneUUID implements the env.Identity interface.
 func (c MockConfig) GetZoneUUID() uuid.UUID {
 	return c.ZoneUUID
+}
+
+// GetAppTID implements the env.Identity interface.
+func (c MockConfig) GetAppTID() uuid.UUID {
+	return c.AppTID
 }
 
 // GetProofTokenURL implements the env.Identity interface.

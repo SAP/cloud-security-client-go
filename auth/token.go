@@ -22,6 +22,7 @@ const (
 	claimEmail           = "email"
 	claimSapGlobalUserID = "user_uuid"
 	claimSapGlobalZoneID = "zone_uuid" // tenant GUID
+	claimSapGlobalAppTID = "app_tid"
 	claimIasIssuer       = "ias_iss"
 )
 
@@ -115,10 +116,25 @@ func (t Token) Email() string {
 	return v
 }
 
-// ZoneID returns "zone_uuid" claim, if it doesn't exist empty string is returned
+// ZoneID returns "app_tid" claim, if it doesn't exist empty string is returned
+// Deprecated: will be replaced by AppTID and removed in future
 func (t Token) ZoneID() string {
-	v, _ := t.GetClaimAsString(claimSapGlobalZoneID)
-	return v
+	appTID, err := t.GetClaimAsString(claimSapGlobalAppTID)
+	if errors.Is(err, ErrClaimNotExists) {
+		zoneUUID, _ := t.GetClaimAsString(claimSapGlobalZoneID)
+		return zoneUUID
+	}
+	return appTID
+}
+
+// AppTID returns "app_tid" claim, if it doesn't exist empty string is returned
+func (t Token) AppTID() string {
+	appTID, err := t.GetClaimAsString(claimSapGlobalAppTID)
+	if errors.Is(err, ErrClaimNotExists) {
+		zoneUUID, _ := t.GetClaimAsString(claimSapGlobalZoneID)
+		return zoneUUID
+	}
+	return appTID
 }
 
 // UserUUID returns "user_uuid" claim, if it doesn't exist empty string is returned

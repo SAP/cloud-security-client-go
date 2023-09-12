@@ -24,5 +24,6 @@ type OIDCClaims struct {
 	FamilyName string   `json:"family_name,omitempty"`
 	Email      string   `json:"email,omitempty"`
 	ZoneID     string   `json:"zone_uuid,omitempty"`
+	AppTID     string   `json:"app_tid,omitempty"`
 	UserUUID   string   `json:"user_uuid,omitempty"`
 }

@@ -140,6 +140,12 @@ func (b *OIDCClaimsBuilder) ZoneID(zoneID string) *OIDCClaimsBuilder {
 	return b
 }
 
+// AppTID sets the app_tid field
+func (b *OIDCClaimsBuilder) AppTID(appTID string) *OIDCClaimsBuilder {
+	b.claims.AppTID = appTID
+	return b
+}
+
 // WithoutAudience removes the aud claim
 func (b *OIDCClaimsBuilder) WithoutAudience() *OIDCClaimsBuilder {
 	b.claims.Audience = nil

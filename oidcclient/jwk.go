@@ -53,13 +53,13 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 }
 
 // GetJWKs returns the validation keys either cached or updated ones
-func (ks *OIDCTenant) GetJWKs(zoneID string) (jwk.Set, error) {
-	keys, err := ks.readJWKsFromMemory(zoneID)
+func (ks *OIDCTenant) GetJWKs(appTID string) (jwk.Set, error) {
+	keys, err := ks.readJWKsFromMemory(appTID)
 	if keys == nil {
 		if err != nil {
 			return nil, err
 		}
-		return ks.updateJWKsMemory(zoneID)
+		return ks.updateJWKsMemory(appTID)
 	}
 	return keys, nil
 }
