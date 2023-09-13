@@ -210,36 +210,20 @@ func TestEnd2End(t *testing.T) {
 			claims:  oidcMockServer.DefaultClaims(),
 			wantErr: true,
 		}, {
-			name:   "jwks rejects zone",
+			name:   "jwks prioritize app_tid",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
 				ZoneID(mocks.InvalidAppTID).
-				Build(),
-			wantErr: true,
-		}, {
-			name:   "lib rejects unaccepted zone again",
-			header: oidcMockServer.DefaultHeaders(),
-			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
-				ZoneID(mocks.InvalidAppTID).
-				Build(),
-			wantErr: true,
-		}, {
-			name:   "lib accepts any zone",
-			header: oidcMockServer.DefaultHeaders(),
-			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
-				ZoneID(uuid.New().String()).
 				Build(),
 			wantErr: false,
-		},
-		{
+		}, {
 			name:   "lib accepts any app_tid",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).
 				AppTID(uuid.New().String()).
 				Build(),
 			wantErr: false,
-		},
-		{
+		}, {
 			name:   "lib rejects unaccepted app_tid",
 			header: oidcMockServer.DefaultHeaders(),
 			claims: mocks.NewOIDCClaimsBuilder(oidcMockServer.DefaultClaims()).

@@ -93,7 +93,7 @@ func newOIDCMockServer(customIssuer string) (*MockServer, error) {
 	}
 
 	r.HandleFunc("/.well-known/openid-configuration", mockServer.WellKnownHandler).Methods(http.MethodGet)
-	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandlerInvalidAppTID).Methods(http.MethodGet).Headers("x-zone_uuid", InvalidAppTID)
+	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandlerInvalidAppTID).Methods(http.MethodGet).Headers("x-app_tid", InvalidAppTID)
 	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/oauth2/token", mockServer.tokenHandler).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
 
@@ -271,7 +271,7 @@ func (m *MockServer) DefaultClaims() OIDCClaims {
 		GivenName:  "Foo",
 		FamilyName: "Bar",
 		Email:      "foo@bar.org",
-		ZoneID:     "11111111-2222-3333-4444-888888888888",
+		AppTID:     "11111111-2222-3333-4444-888888888888",
 		UserUUID:   "22222222-3333-4444-5555-666666666666",
 	}
 	return claims

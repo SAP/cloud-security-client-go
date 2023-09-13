@@ -21,17 +21,23 @@ import (
 )
 
 const defaultJwkExpiration = 15 * time.Minute
-const zoneIDHeader = "x-zone_uuid"
+const appTIDHeader = "x-app_tid"
+const clientIDHeader = "x-client_id"
 
 // OIDCTenant represents one IAS tenant correlating with one zone with it's OIDC discovery results and cached JWKs
 type OIDCTenant struct {
 	ProviderJSON    ProviderJSON
-	acceptedZoneIds map[string]bool
+	acceptedTenants map[tenantKey]bool
 	httpClient      *http.Client
 	// A set of cached keys and their expiry.
 	jwks       jwk.Set
 	jwksExpiry time.Time
 	mu         sync.RWMutex
+}
+
+type tenantKey struct {
+	appTID   string
+	clientID string
 }
 
 type updateKeysResult struct {
@@ -43,7 +49,7 @@ type updateKeysResult struct {
 func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
 	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
-	ks.acceptedZoneIds = make(map[string]bool)
+	ks.acceptedTenants = make(map[tenantKey]bool)
 	err := ks.performDiscovery(targetIss.Host)
 	if err != nil {
 		return nil, err
@@ -53,39 +59,39 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 }
 
 // GetJWKs returns the validation keys either cached or updated ones
-func (ks *OIDCTenant) GetJWKs(appTID string) (jwk.Set, error) {
-	keys, err := ks.readJWKsFromMemory(appTID)
+func (ks *OIDCTenant) GetJWKs(appTID, clientID string) (jwk.Set, error) {
+	keys, err := ks.readJWKsFromMemory(appTID, clientID)
 	if keys == nil {
 		if err != nil {
 			return nil, err
 		}
-		return ks.updateJWKsMemory(appTID)
+		return ks.updateJWKsMemory(appTID, clientID)
 	}
 	return keys, nil
 }
 
 // readJWKsFromMemory returns the validation keys from memory, or error in case of invalid zone or nil, in case nothing found in memory
-func (ks *OIDCTenant) readJWKsFromMemory(zoneID string) (jwk.Set, error) {
+func (ks *OIDCTenant) readJWKsFromMemory(appTID, clientID string) (jwk.Set, error) {
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()
 
-	isZoneAccepted, isZoneKnown := ks.acceptedZoneIds[zoneID]
+	isTenantAccepted, isTenantKnown := ks.acceptedTenants[tenantKey{appTID, clientID}]
 
-	if time.Now().Before(ks.jwksExpiry) && isZoneKnown {
-		if isZoneAccepted {
+	if time.Now().Before(ks.jwksExpiry) && isTenantKnown {
+		if isTenantAccepted {
 			return ks.jwks, nil
 		}
-		return nil, fmt.Errorf("zone_uuid %v is not accepted by the identity service tenant", zoneID)
+		return nil, fmt.Errorf("combination of app_tid: %s and client_id: %s is not accepted by the identity service", appTID, clientID)
 	}
 	return nil, nil
 }
 
 // updateJWKsMemory updates and returns the validation keys from memory, or error in case of invalid zone or nil, in case nothing found in memory
-func (ks *OIDCTenant) updateJWKsMemory(zoneID string) (jwk.Set, error) {
+func (ks *OIDCTenant) updateJWKsMemory(appTID, clientID string) (jwk.Set, error) {
 	ks.mu.Lock()
 	defer ks.mu.Unlock()
 
-	updatedKeys, err := ks.getJWKsFromServer(zoneID)
+	updatedKeys, err := ks.getJWKsFromServer(appTID, clientID)
 	if err != nil {
 		return nil, fmt.Errorf("error updating JWKs: %v", err)
 	}
@@ -96,13 +102,14 @@ func (ks *OIDCTenant) updateJWKsMemory(zoneID string) (jwk.Set, error) {
 	return ks.jwks, nil
 }
 
-func (ks *OIDCTenant) getJWKsFromServer(zoneID string) (r interface{}, err error) {
+func (ks *OIDCTenant) getJWKsFromServer(appTID, clientID string) (r interface{}, err error) {
 	result := updateKeysResult{}
 	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, ks.ProviderJSON.JWKsURL, http.NoBody)
 	if err != nil {
 		return result, fmt.Errorf("can't create request to fetch jwk: %v", err)
 	}
-	req.Header.Add(zoneIDHeader, zoneID)
+	req.Header.Add(appTIDHeader, appTID)
+	req.Header.Add(clientIDHeader, clientID)
 
 	resp, err := ks.httpClient.Do(req)
 	if err != nil {
@@ -111,10 +118,11 @@ func (ks *OIDCTenant) getJWKsFromServer(zoneID string) (r interface{}, err error
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		ks.acceptedZoneIds[zoneID] = false
-		return result, fmt.Errorf("failed to fetch jwks from remote for x-zone_uuid %s: %v (%s)", zoneID, err, resp.Body)
+		ks.acceptedTenants[tenantKey{appTID, clientID}] = false
+		return result, fmt.Errorf(
+			"failed to fetch jwks from remote for appTID %s and clientID %s: %v (%s)", appTID, clientID, err, resp.Body)
 	}
-	ks.acceptedZoneIds[zoneID] = true
+	ks.acceptedTenants[tenantKey{appTID, clientID}] = true
 	jwks, err := jwk.ParseReader(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse JWK set: %w", err)

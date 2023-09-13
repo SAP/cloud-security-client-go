@@ -66,7 +66,8 @@ func TestProviderJSON_assertMandatoryFieldsPresent(t *testing.T) {
 func TestOIDCTenant_ReadJWKs(t *testing.T) {
 	type fields struct {
 		Duration         time.Duration
-		ZoneID           string
+		AppTID           string
+		ClientID         string
 		ExpectedErrorMsg string
 	}
 	tests := []struct {
@@ -76,19 +77,21 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 		wantProviderJSON bool
 	}{
 		{
-			name: "read from cache with accepted zone",
+			name: "read from cache with accepted app_tid and client_id",
 			fields: fields{
 				Duration: 2 * time.Second,
-				ZoneID:   "zone-id",
+				AppTID:   "app-tid",
+				ClientID: "client-id",
 			},
 			wantErr:          false,
 			wantProviderJSON: false,
 		}, {
-			name: "read from cache with denied zone",
+			name: "read from cache with unknown app-tid",
 			fields: fields{
 				Duration:         2 * time.Second,
-				ZoneID:           "unknown-zone-id",
-				ExpectedErrorMsg: "zone_uuid unknown-zone-id is not accepted by the identity service tenant",
+				AppTID:           "unknown-app-tid",
+				ClientID:         "unknown-client-id",
+				ExpectedErrorMsg: "combination of app_tid: unknown-app-tid and client_id: unknown-client-id is not accepted",
 			},
 			wantErr:          true,
 			wantProviderJSON: false,
@@ -97,7 +100,8 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read from token keys endpoint with accepted zone",
 			fields: fields{
 				Duration: 0,
-				ZoneID:   "zone-id",
+				AppTID:   "app-tid",
+				ClientID: "client-id",
 			},
 			wantErr:          false,
 			wantProviderJSON: true,
@@ -105,8 +109,9 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read from token keys endpoint with denied zone",
 			fields: fields{
 				Duration:         0,
-				ZoneID:           "unknown-zone-id",
-				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for x-zone_uuid unknown-zone-id",
+				AppTID:           "unknown-app-tid",
+				ClientID:         "unknown-client-id",
+				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for appTID unknown-app-tid",
 			},
 			wantErr:          true,
 			wantProviderJSON: true,
@@ -114,7 +119,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read from token keys endpoint with accepted zone but no jwks response",
 			fields: fields{
 				Duration:         0,
-				ZoneID:           "provide-invalidJWKS",
+				AppTID:           "provide-invalidJWKS",
 				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote: ",
 			},
 			wantErr:          true, // as providerJSON is nil
@@ -123,7 +128,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read from token keys endpoint with accepted zone provoking parsing error",
 			fields: fields{
 				Duration:         0,
-				ZoneID:           "provide-invalidJWKS",
+				AppTID:           "provide-invalidJWKS",
 				ExpectedErrorMsg: "error updating JWKs: failed to parse JWK set: failed to unmarshal JWK set",
 			},
 			wantErr:          true, // as jwks endpoint returns no JSON
@@ -132,8 +137,9 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read from token keys endpoint with deleted zone",
 			fields: fields{
 				Duration:         0,
-				ZoneID:           "deleted-zone-id",
-				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for x-zone_uuid deleted-zone-id",
+				AppTID:           "deleted-app-tid",
+				ClientID:         "deleted-client-id",
+				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for appTID deleted-app-tid",
 			},
 			wantErr:          true,
 			wantProviderJSON: true,
@@ -153,22 +159,26 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			}
 			jwksJSON, _ := jwk.ParseString(jwksJSONString)
 			tenant := OIDCTenant{
-				jwksExpiry:      time.Now().Add(tt.fields.Duration),
-				acceptedZoneIds: map[string]bool{"zone-id": true, "deleted-zone-id": true, "unknown-zone-id": false},
-				httpClient:      http.DefaultClient,
-				jwks:            jwksJSON,
-				ProviderJSON:    providerJSON,
+				jwksExpiry: time.Now().Add(tt.fields.Duration),
+				acceptedTenants: map[tenantKey]bool{
+					{"app-tid", "client-id"}:                 true,
+					{"deleted-app-tid", "deleted-client-id"}: true,
+					{"unknown-app-tid", "unknown-client-id"}: false,
+				},
+				httpClient:   http.DefaultClient,
+				jwks:         jwksJSON,
+				ProviderJSON: providerJSON,
 			}
-			jwks, err := tenant.GetJWKs(tt.fields.ZoneID)
+			jwks, err := tenant.GetJWKs(tt.fields.AppTID, tt.fields.ClientID)
 			if tt.wantErr {
 				if err == nil {
-					t.Errorf("GetJWKs() does not provide error = %v, zoneID %v", err, tt.fields.ZoneID)
+					t.Errorf("GetJWKs() does not provide error = %v, appTID %v clienID %v", err, tt.fields.AppTID, tt.fields.ClientID)
 				}
 				if !strings.HasPrefix(err.Error(), tt.fields.ExpectedErrorMsg) {
 					t.Errorf("GetJWKs() does not provide expected error message = %v", err.Error())
 				}
 			} else if jwks == nil {
-				t.Errorf("GetJWKs() returns nil = %v, zoneID %v", err, tt.fields.ZoneID)
+				t.Errorf("GetJWKs() returns nil = %v, ppTID %v clienID %v", err, tt.fields.AppTID, tt.fields.ClientID)
 			}
 		})
 	}
@@ -176,10 +186,10 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 
 func NewRouter() (r *mux.Router) {
 	r = mux.NewRouter()
-	r.HandleFunc("/oauth2/certs", ReturnJWKS).Methods(http.MethodGet).Headers("x-zone_uuid", "zone-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods(http.MethodGet).Headers("x-zone_uuid", "unknown-zone-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods(http.MethodGet).Headers("x-zone_uuid", "deleted-zone-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidJWKS).Methods(http.MethodGet).Headers("x-zone_uuid", "provide-invalidJWKS")
+	r.HandleFunc("/oauth2/certs", ReturnJWKS).Methods(http.MethodGet).Headers(appTIDHeader, "app-tid", clientIDHeader, "client-id")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods(http.MethodGet).Headers(appTIDHeader, "unknown-app-tid", clientIDHeader, "unknown-client-id")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods(http.MethodGet).Headers(appTIDHeader, "deleted-app-tid", clientIDHeader, "deleted-client-id")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidJWKS).Methods(http.MethodGet).Headers(appTIDHeader, "provide-invalidJWKS")
 	return r
 }
 
