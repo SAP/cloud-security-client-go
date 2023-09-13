@@ -6,11 +6,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/handlers"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/gorilla/handlers"
 
 	"github.com/gorilla/mux"
 
