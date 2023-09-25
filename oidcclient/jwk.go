@@ -24,7 +24,7 @@ const defaultJwkExpiration = 15 * time.Minute
 const appTIDHeader = "x-app_tid"
 const clientIDHeader = "x-client_id"
 
-// OIDCTenant represents one IAS tenant correlating with one zone with it's OIDC discovery results and cached JWKs
+// OIDCTenant represents one IAS tenant correlating with one app_tid and client_id with it's OIDC discovery results and cached JWKs
 type OIDCTenant struct {
 	ProviderJSON    ProviderJSON
 	acceptedTenants map[tenantKey]bool
@@ -70,7 +70,7 @@ func (ks *OIDCTenant) GetJWKs(appTID, clientID string) (jwk.Set, error) {
 	return keys, nil
 }
 
-// readJWKsFromMemory returns the validation keys from memory, or error in case of invalid zone or nil, in case nothing found in memory
+// readJWKsFromMemory returns the validation keys from memory, or error in case of invalid header combination or nil, in case nothing found in memory
 func (ks *OIDCTenant) readJWKsFromMemory(appTID, clientID string) (jwk.Set, error) {
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()
@@ -86,7 +86,7 @@ func (ks *OIDCTenant) readJWKsFromMemory(appTID, clientID string) (jwk.Set, erro
 	return nil, nil
 }
 
-// updateJWKsMemory updates and returns the validation keys from memory, or error in case of invalid zone or nil, in case nothing found in memory
+// updateJWKsMemory updates and returns the validation keys from memory, or error in case of invalid header combination nil, in case nothing found in memory
 func (ks *OIDCTenant) updateJWKsMemory(appTID, clientID string) (jwk.Set, error) {
 	ks.mu.Lock()
 	defer ks.mu.Unlock()

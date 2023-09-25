@@ -97,7 +97,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			wantProviderJSON: false,
 		},
 		{
-			name: "read from token keys endpoint with accepted zone",
+			name: "read from token keys endpoint with accepted headers (appTID, ClientID...)",
 			fields: fields{
 				Duration: 0,
 				AppTID:   "app-tid",
@@ -106,7 +106,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			wantErr:          false,
 			wantProviderJSON: true,
 		}, {
-			name: "read from token keys endpoint with denied zone",
+			name: "read from token keys endpoint with denied headers (appTID, ClientID...)",
 			fields: fields{
 				Duration:         0,
 				AppTID:           "unknown-app-tid",
@@ -116,7 +116,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			wantErr:          true,
 			wantProviderJSON: true,
 		}, {
-			name: "read from token keys endpoint with accepted zone but no jwks response",
+			name: "read from token keys endpoint with accepted headers (appTID, ClientID...) but no jwks response",
 			fields: fields{
 				Duration:         0,
 				AppTID:           "provide-invalidJWKS",
@@ -125,7 +125,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			wantErr:          true, // as providerJSON is nil
 			wantProviderJSON: false,
 		}, {
-			name: "read from token keys endpoint with accepted zone provoking parsing error",
+			name: "read from token keys endpoint with accepted headers (appTID, ClientID...) provoking parsing error",
 			fields: fields{
 				Duration:         0,
 				AppTID:           "provide-invalidJWKS",
@@ -134,7 +134,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			wantErr:          true, // as jwks endpoint returns no JSON
 			wantProviderJSON: true,
 		}, {
-			name: "read from token keys endpoint with deleted zone",
+			name: "read from token keys endpoint with deleted headers (appTID, ClientID...)",
 			fields: fields{
 				Duration:         0,
 				AppTID:           "deleted-app-tid",
@@ -187,8 +187,8 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 func NewRouter() (r *mux.Router) {
 	r = mux.NewRouter()
 	r.HandleFunc("/oauth2/certs", ReturnJWKS).Methods(http.MethodGet).Headers(appTIDHeader, "app-tid", clientIDHeader, "client-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods(http.MethodGet).Headers(appTIDHeader, "unknown-app-tid", clientIDHeader, "unknown-client-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidZone).Methods(http.MethodGet).Headers(appTIDHeader, "deleted-app-tid", clientIDHeader, "deleted-client-id")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidHeaders).Methods(http.MethodGet).Headers(appTIDHeader, "unknown-app-tid", clientIDHeader, "unknown-client-id")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidHeaders).Methods(http.MethodGet).Headers(appTIDHeader, "deleted-app-tid", clientIDHeader, "deleted-client-id")
 	r.HandleFunc("/oauth2/certs", ReturnInvalidJWKS).Methods(http.MethodGet).Headers(appTIDHeader, "provide-invalidJWKS")
 	return r
 }
@@ -201,6 +201,6 @@ func ReturnInvalidJWKS(writer http.ResponseWriter, _ *http.Request) {
 	_, _ = writer.Write([]byte("\"kid\":\"default-kid-ias\""))
 }
 
-func ReturnInvalidZone(writer http.ResponseWriter, _ *http.Request) {
+func ReturnInvalidHeaders(writer http.ResponseWriter, _ *http.Request) {
 	writer.WriteHeader(400)
 }

@@ -51,7 +51,7 @@ type MockServer struct {
 	CustomIssuer        string           // CustomIssuer holds a custom domain returned by the discovery endpoint
 }
 
-// InvalidAppTID represents a zone guid which is rejected by mock server on behalf of IAS tenant
+// InvalidAppTID represents a guid which is rejected by mock server on behalf of IAS tenant
 const InvalidAppTID string = "dff69954-a259-4104-9074-193bc9a366ce"
 
 // NewOIDCMockServer instantiates a new MockServer.
