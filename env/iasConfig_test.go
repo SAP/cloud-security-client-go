@@ -21,7 +21,7 @@ var testConfig = &DefaultIdentity{
 	Domains:      []string{"accounts400.ondemand.com", "my.arbitrary.domain"},
 	URL:          "https://mytenant.accounts400.ondemand.com",
 	ZoneUUID:     uuid.MustParse("bef12345-de57-480f-be92-1d8c1c7abf16"),
-	AppTID:       uuid.MustParse("70cd0de3-528a-4655-b56a-5862591def5c"),
+	AppTID:       "70cd0de3-528a-4655-b56a-5862591def5c",
 }
 
 func TestParseIdentityConfig(t *testing.T) {

@@ -34,7 +34,7 @@ type Identity interface {
 	GetURL() string                  // Returns the url to the DefaultIdentity tenant. E.g. https://abcdefgh.accounts.ondemand.com
 	GetDomains() []string            // Returns the domains of the DefaultIdentity service. E.g. ["accounts.ondemand.com"]
 	GetZoneUUID() uuid.UUID          // Deprecated: Returns the zone uuid, will be replaced by GetAppTID Optional
-	GetAppTID() uuid.UUID            // Returns the app tid uuid and replaces zone uuid in future Optional
+	GetAppTID() string               // Returns the app tid uuid and replaces zone uuid in future Optional
 	GetProofTokenURL() string        // Returns the proof token url. Optional
 	GetCertificate() string          // Returns the client certificate. Optional
 	GetKey() string                  // Returns the client certificate key. Optional
@@ -49,7 +49,7 @@ type DefaultIdentity struct {
 	Domains              []string  `json:"domains"`
 	URL                  string    `json:"url"`
 	ZoneUUID             uuid.UUID `json:"zone_uuid"` // Deprecated: will be replaced by AppTID
-	AppTID               uuid.UUID `json:"app_tid"`   // replaces ZoneUUID
+	AppTID               string    `json:"app_tid"`   // replaces ZoneUUID
 	ProofTokenURL        string    `json:"prooftoken_url"`
 	OsbURL               string    `json:"osb_url"`
 	Certificate          string    `json:"certificate"`
@@ -188,18 +188,19 @@ func (c DefaultIdentity) GetDomains() []string {
 // GetZoneUUID implements the env.Identity interface.
 // Deprecated: will be replaced by GetAppTID and removed in future
 func (c DefaultIdentity) GetZoneUUID() uuid.UUID {
-	if c.AppTID != uuid.Nil {
-		return c.AppTID
+	appTid, err := uuid.Parse(c.AppTID)
+	if err != nil {
+		return appTid
 	}
 	return c.ZoneUUID
 }
 
 // GetAppTID implements the env.Identity interface and replaces GetZoneUUID in future
-func (c DefaultIdentity) GetAppTID() uuid.UUID {
-	if c.AppTID != uuid.Nil {
+func (c DefaultIdentity) GetAppTID() string {
+	if c.AppTID != "" {
 		return c.AppTID
 	}
-	return c.ZoneUUID
+	return c.ZoneUUID.String()
 }
 
 // GetProofTokenURL implements the env.Identity interface.

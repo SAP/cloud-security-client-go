@@ -295,7 +295,7 @@ type MockConfig struct {
 	URL                  string
 	Domains              []string
 	ZoneUUID             uuid.UUID
-	AppTID               uuid.UUID
+	AppTID               string
 	ProofTokenURL        string
 	OsbURL               string
 	Certificate          string
@@ -329,7 +329,7 @@ func (c MockConfig) GetZoneUUID() uuid.UUID {
 }
 
 // GetAppTID implements the env.Identity interface.
-func (c MockConfig) GetAppTID() uuid.UUID {
+func (c MockConfig) GetAppTID() string {
 	return c.AppTID
 }
 
