@@ -129,11 +129,7 @@ func (t Token) ZoneID() string {
 
 // AppTID returns "app_tid" claim, if it doesn't exist empty string is returned
 func (t Token) AppTID() string {
-	appTID, err := t.GetClaimAsString(claimAppTID)
-	if errors.Is(err, ErrClaimNotExists) {
-		zoneUUID, _ := t.GetClaimAsString(claimSapGlobalZoneID)
-		return zoneUUID
-	}
+	appTID, _ := t.GetClaimAsString(claimAppTID)
 	return appTID
 }
 
