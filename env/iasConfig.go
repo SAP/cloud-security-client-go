@@ -186,7 +186,7 @@ func (c DefaultIdentity) GetDomains() []string {
 }
 
 // GetZoneUUID implements the env.Identity interface.
-// Deprecated: will be replaced by GetAppTID and removed in future
+// Deprecated: is replaced by GetAppTID and will be removed with the next major release
 func (c DefaultIdentity) GetZoneUUID() uuid.UUID {
 	appTid, err := uuid.Parse(c.AppTID)
 	if err != nil {
