@@ -24,6 +24,7 @@ const (
 	claimSapGlobalZoneID = "zone_uuid" // tenant GUID
 	claimSapGlobalAppTID = "app_tid"
 	claimIasIssuer       = "ias_iss"
+	claimAzp             = "azp"
 )
 
 type Token struct {
@@ -130,6 +131,12 @@ func (t Token) ZoneID() string {
 // AppTID returns "app_tid" claim, if it doesn't exist empty string is returned
 func (t Token) AppTID() string {
 	appTID, _ := t.GetClaimAsString(claimSapGlobalAppTID)
+	return appTID
+}
+
+// Azp returns "azp" claim, if it doesn't exist empty string is returned
+func (t Token) Azp() string {
+	appTID, _ := t.GetClaimAsString(claimAzp)
 	return appTID
 }
 

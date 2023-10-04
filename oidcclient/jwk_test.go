@@ -66,8 +66,7 @@ func TestProviderJSON_assertMandatoryFieldsPresent(t *testing.T) {
 func TestOIDCTenant_ReadJWKs(t *testing.T) {
 	type fields struct {
 		Duration         time.Duration
-		AppTID           string
-		ClientID         string
+		Tenant           TenantInfo
 		ExpectedErrorMsg string
 	}
 	tests := []struct {
@@ -77,69 +76,58 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 		wantProviderJSON bool
 	}{
 		{
-			name: "read from cache with accepted app_tid and client_id",
+			name: "read from cache with accepted tenant credentials",
 			fields: fields{
 				Duration: 2 * time.Second,
-				AppTID:   "app-tid",
-				ClientID: "client-id",
+				Tenant:   TenantInfo{"client-id", "app-tid", "azp"},
 			},
 			wantErr:          false,
 			wantProviderJSON: false,
 		}, {
-			name: "read from cache with unknown app-tid",
+			name: "read from cache with unknown tenant credentials",
 			fields: fields{
-				Duration:         2 * time.Second,
-				AppTID:           "unknown-app-tid",
-				ClientID:         "unknown-client-id",
-				ExpectedErrorMsg: "combination of app_tid: unknown-app-tid and client_id: unknown-client-id is not accepted",
+				Duration: 2 * time.Second,
+				Tenant:   TenantInfo{"unknown-client-id", "unknown-app-tid", "unknown-azp"},
+				ExpectedErrorMsg: "tenant credentials: {ClientID:unknown-client-id AppTID:unknown-app-tid Azp:unknown-azp} " +
+					"are not accepted by the identity service",
 			},
 			wantErr:          true,
 			wantProviderJSON: false,
 		},
 		{
-			name: "read from token keys endpoint with accepted headers (appTID, ClientID...)",
+			name: "read from token keys endpoint with accepted tenant credentials",
 			fields: fields{
 				Duration: 0,
-				AppTID:   "app-tid",
-				ClientID: "client-id",
+				Tenant:   TenantInfo{"client-id", "app-tid", "azp"},
 			},
 			wantErr:          false,
 			wantProviderJSON: true,
 		}, {
-			name: "read from token keys endpoint with denied headers (appTID, ClientID...)",
+			name: "read from token keys endpoint with denied tenant credentials",
 			fields: fields{
-				Duration:         0,
-				AppTID:           "unknown-app-tid",
-				ClientID:         "unknown-client-id",
-				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for appTID unknown-app-tid",
+				Duration: 0,
+				Tenant:   TenantInfo{"unknown-client-id", "unknown-app-tid", "unknown-azp"},
+				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote " +
+					"for tenant credentials {ClientID:unknown-client-id AppTID:unknown-app-tid Azp:unknown-azp}",
 			},
 			wantErr:          true,
 			wantProviderJSON: true,
 		}, {
-			name: "read from token keys endpoint with accepted headers (appTID, ClientID...) but no jwks response",
+			name: "read from token keys endpoint with accepted tenant credentials provoking parsing error",
 			fields: fields{
 				Duration:         0,
-				AppTID:           "provide-invalidJWKS",
-				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote: ",
-			},
-			wantErr:          true, // as providerJSON is nil
-			wantProviderJSON: false,
-		}, {
-			name: "read from token keys endpoint with accepted headers (appTID, ClientID...) provoking parsing error",
-			fields: fields{
-				Duration:         0,
-				AppTID:           "provide-invalidJWKS",
+				Tenant:           TenantInfo{ClientID: "provide-invalidJWKS"},
 				ExpectedErrorMsg: "error updating JWKs: failed to parse JWK set: failed to unmarshal JWK set",
 			},
 			wantErr:          true, // as jwks endpoint returns no JSON
 			wantProviderJSON: true,
 		}, {
-			name: "read from token keys endpoint with deleted headers (appTID, ClientID...)",
+			name: "read from token keys endpoint with deleted tenant credentials",
 			fields: fields{
-				Duration:         0,
-				AppTID:           "deleted-app-tid",
-				ClientID:         "deleted-client-id",
-				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for appTID deleted-app-tid",
+				Duration: 0,
+				Tenant:   TenantInfo{"deleted-client-id", "deleted-app-tid", "deleted-azp"},
+				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for " +
+					"tenant credentials {ClientID:deleted-client-id AppTID:deleted-app-tid Azp:deleted-azp}",
 			},
 			wantErr:          true,
 			wantProviderJSON: true,
@@ -160,25 +148,25 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			jwksJSON, _ := jwk.ParseString(jwksJSONString)
 			tenant := OIDCTenant{
 				jwksExpiry: time.Now().Add(tt.fields.Duration),
-				acceptedTenants: map[tenantKey]bool{
-					{"app-tid", "client-id"}:                 true,
-					{"deleted-app-tid", "deleted-client-id"}: true,
-					{"unknown-app-tid", "unknown-client-id"}: false,
+				acceptedTenants: map[TenantInfo]bool{
+					{ClientID: "client-id", AppTID: "app-tid", Azp: "azp"}:                         true,
+					{ClientID: "deleted-client-id", AppTID: "deleted-app-tid", Azp: "deleted-azp"}: true,
+					{ClientID: "unknown-client-id", AppTID: "unknown-app-tid", Azp: "unknown-azp"}: false,
 				},
 				httpClient:   http.DefaultClient,
 				jwks:         jwksJSON,
 				ProviderJSON: providerJSON,
 			}
-			jwks, err := tenant.GetJWKs(tt.fields.AppTID, tt.fields.ClientID)
+			jwks, err := tenant.GetJWKs(tt.fields.Tenant)
 			if tt.wantErr {
 				if err == nil {
-					t.Errorf("GetJWKs() does not provide error = %v, appTID %v clienID %v", err, tt.fields.AppTID, tt.fields.ClientID)
+					t.Errorf("GetJWKs() does not provide error = %v, tenantCredentials %+v", err, tt.fields.Tenant)
 				}
 				if !strings.HasPrefix(err.Error(), tt.fields.ExpectedErrorMsg) {
 					t.Errorf("GetJWKs() does not provide expected error message = %v", err.Error())
 				}
 			} else if jwks == nil {
-				t.Errorf("GetJWKs() returns nil = %v, ppTID %v clienID %v", err, tt.fields.AppTID, tt.fields.ClientID)
+				t.Errorf("GetJWKs() returns nil = %v, tenantCredentials %+v", err, tt.fields.Tenant)
 			}
 		})
 	}
@@ -186,10 +174,10 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 
 func NewRouter() (r *mux.Router) {
 	r = mux.NewRouter()
-	r.HandleFunc("/oauth2/certs", ReturnJWKS).Methods(http.MethodGet).Headers(appTIDHeader, "app-tid", clientIDHeader, "client-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidHeaders).Methods(http.MethodGet).Headers(appTIDHeader, "unknown-app-tid", clientIDHeader, "unknown-client-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidHeaders).Methods(http.MethodGet).Headers(appTIDHeader, "deleted-app-tid", clientIDHeader, "deleted-client-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidJWKS).Methods(http.MethodGet).Headers(appTIDHeader, "provide-invalidJWKS")
+	r.HandleFunc("/oauth2/certs", ReturnJWKS).Methods(http.MethodGet).Headers(clientIDHeader, "client-id", appTIDHeader, "app-tid", azpHeader, "azp")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidHeaders).Methods(http.MethodGet).Headers(clientIDHeader, "unknown-client-id", appTIDHeader, "unknown-app-tid", azpHeader, "unknown-azp")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidHeaders).Methods(http.MethodGet).Headers(clientIDHeader, "deleted-client-id", appTIDHeader, "deleted-app-tid", azpHeader, "deleted-azp")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidJWKS).Methods(http.MethodGet).Headers(clientIDHeader, "provide-invalidJWKS")
 	return r
 }
 

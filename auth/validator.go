@@ -56,7 +56,12 @@ func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant) (er
 	}
 
 	// parse and verify signature
-	jwks, err := keySet.GetJWKs(t.AppTID(), m.identity.GetClientID())
+	tenantOpts := oidcclient.TenantInfo{
+		ClientID: m.identity.GetClientID(),
+		AppTID:   t.AppTID(),
+		Azp:      t.Azp(),
+	}
+	jwks, err := keySet.GetJWKs(tenantOpts)
 	if err != nil {
 		return err
 	}
