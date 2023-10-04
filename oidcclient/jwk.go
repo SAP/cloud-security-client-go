@@ -110,6 +110,7 @@ func (ks *OIDCTenant) getJWKsFromServer(tenant TenantInfo) (r interface{}, err e
 	if err != nil {
 		return result, fmt.Errorf("can't create request to fetch jwk: %v", err)
 	}
+	// at least client-id is necessary, all further headers only refine the validation
 	req.Header.Add(clientIDHeader, tenant.ClientID)
 	req.Header.Add(appTIDHeader, tenant.AppTID)
 	req.Header.Add(azpHeader, tenant.Azp)
@@ -122,8 +123,13 @@ func (ks *OIDCTenant) getJWKsFromServer(tenant TenantInfo) (r interface{}, err e
 
 	if resp.StatusCode != http.StatusOK {
 		ks.acceptedTenants[tenant] = false
+		resp, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return result, fmt.Errorf(
+				"failed to fetch jwks from remote for tenant credentials %+v: %v", tenant, err)
+		}
 		return result, fmt.Errorf(
-			"failed to fetch jwks from remote for tenant credentials %+v: %v (%s)", tenant, err, resp.Body)
+			"failed to fetch jwks from remote for tenant credentials %+v: (%s)", tenant, resp)
 	}
 	ks.acceptedTenants[tenant] = true
 	jwks, err := jwk.ParseReader(resp.Body)
