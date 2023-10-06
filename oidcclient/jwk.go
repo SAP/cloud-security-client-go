@@ -122,7 +122,10 @@ func (ks *OIDCTenant) getJWKsFromServer(clientInfo ClientInfo) (r interface{}, e
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		ks.acceptedTenants[clientInfo] = false
+		// prevent caching ias backend flaps like 503 -> only cache 400
+		if resp.StatusCode == http.StatusBadRequest {
+			ks.acceptedTenants[clientInfo] = false
+		}
 		resp, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return result, fmt.Errorf(
