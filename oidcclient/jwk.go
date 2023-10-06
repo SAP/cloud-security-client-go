@@ -28,7 +28,7 @@ const azpHeader = "x-azp"
 // OIDCTenant represents one IAS tenant correlating with one app_tid and client_id with it's OIDC discovery results and cached JWKs
 type OIDCTenant struct {
 	ProviderJSON    ProviderJSON
-	acceptedTenants map[ClientInfo]bool
+	acceptedClients map[ClientInfo]bool
 	httpClient      *http.Client
 	// A set of cached keys and their expiry.
 	jwks       jwk.Set
@@ -51,7 +51,7 @@ type updateKeysResult struct {
 func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
 	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
-	ks.acceptedTenants = make(map[ClientInfo]bool)
+	ks.acceptedClients = make(map[ClientInfo]bool)
 	err := ks.performDiscovery(targetIss.Host)
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func (ks *OIDCTenant) readJWKsFromMemory(clientInfo ClientInfo) (jwk.Set, error)
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()
 
-	isTenantAccepted, isTenantKnown := ks.acceptedTenants[clientInfo]
+	isTenantAccepted, isTenantKnown := ks.acceptedClients[clientInfo]
 
 	if time.Now().Before(ks.jwksExpiry) && isTenantKnown {
 		if isTenantAccepted {
@@ -124,7 +124,7 @@ func (ks *OIDCTenant) getJWKsFromServer(clientInfo ClientInfo) (r interface{}, e
 	if resp.StatusCode != http.StatusOK {
 		// prevent caching ias backend flaps like 503 -> only cache 400
 		if resp.StatusCode == http.StatusBadRequest {
-			ks.acceptedTenants[clientInfo] = false
+			ks.acceptedClients[clientInfo] = false
 		}
 		resp, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -134,7 +134,7 @@ func (ks *OIDCTenant) getJWKsFromServer(clientInfo ClientInfo) (r interface{}, e
 		return result, fmt.Errorf(
 			"failed to fetch jwks from remote for tenant credentials %+v: (%s)", clientInfo, resp)
 	}
-	ks.acceptedTenants[clientInfo] = true
+	ks.acceptedClients[clientInfo] = true
 	jwks, err := jwk.ParseReader(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse JWK set: %w", err)

@@ -177,7 +177,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			jwksJSON, _ := jwk.ParseString(jwksJSONString)
 			tenant := OIDCTenant{
 				jwksExpiry: time.Now().Add(tt.fields.Duration),
-				acceptedTenants: map[ClientInfo]bool{
+				acceptedClients: map[ClientInfo]bool{
 					{ClientID: "client-id", AppTID: "app-tid", Azp: "azp"}:                         true,
 					{ClientID: "deleted-client-id", AppTID: "deleted-app-tid", Azp: "deleted-azp"}: true,
 					{ClientID: "invalid-client-id", AppTID: "invalid-app-tid", Azp: "invalid-azp"}: false,
