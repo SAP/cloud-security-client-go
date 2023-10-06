@@ -66,7 +66,7 @@ func TestProviderJSON_assertMandatoryFieldsPresent(t *testing.T) {
 func TestOIDCTenant_ReadJWKs(t *testing.T) {
 	type fields struct {
 		Duration         time.Duration
-		Tenant           Info
+		Tenant           ClientInfo
 		ExpectedErrorMsg string
 	}
 	tests := []struct {
@@ -79,7 +79,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read from cache with accepted tenant credentials",
 			fields: fields{
 				Duration: 2 * time.Second,
-				Tenant:   Info{"client-id", "app-tid", "azp"},
+				Tenant:   ClientInfo{"client-id", "app-tid", "azp"},
 			},
 			wantErr:          false,
 			wantProviderJSON: false,
@@ -87,7 +87,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read from cache with invalid tenant credentials",
 			fields: fields{
 				Duration: 2 * time.Second,
-				Tenant:   Info{"invalid-client-id", "invalid-app-tid", "invalid-azp"},
+				Tenant:   ClientInfo{"invalid-client-id", "invalid-app-tid", "invalid-azp"},
 				ExpectedErrorMsg: "tenant credentials: {ClientID:invalid-client-id AppTID:invalid-app-tid Azp:invalid-azp} " +
 					"are not accepted by the identity service",
 			},
@@ -97,7 +97,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read token endpoint with invalid client_id",
 			fields: fields{
 				Duration: 2 * time.Second,
-				Tenant:   Info{"invalid-client-id", "app-tid", "azp"},
+				Tenant:   ClientInfo{"invalid-client-id", "app-tid", "azp"},
 				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for tenant credentials " +
 					"{ClientID:invalid-client-id AppTID:app-tid Azp:azp}: ({\"msg\":\"Invalid x-client_id or x-app_tid provided\"})",
 			},
@@ -107,7 +107,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read token endpoint with invalid app_tid",
 			fields: fields{
 				Duration: 2 * time.Second,
-				Tenant:   Info{"client-id", "invalid-app-tid", "azp"},
+				Tenant:   ClientInfo{"client-id", "invalid-app-tid", "azp"},
 				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for tenant credentials " +
 					"{ClientID:client-id AppTID:invalid-app-tid Azp:azp}: ({\"msg\":\"Invalid x-client_id or x-app_tid provided\"})",
 			},
@@ -117,7 +117,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read token endpoint with invalid azp",
 			fields: fields{
 				Duration: 2 * time.Second,
-				Tenant:   Info{"client-id", "app-tid", "invalid-azp"},
+				Tenant:   ClientInfo{"client-id", "app-tid", "invalid-azp"},
 				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for tenant credentials " +
 					"{ClientID:client-id AppTID:app-tid Azp:invalid-azp}: ({\"msg\":\"Invalid x-azp provided\"})",
 			},
@@ -127,7 +127,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read from token keys endpoint with accepted tenant credentials",
 			fields: fields{
 				Duration: 0,
-				Tenant:   Info{"client-id", "app-tid", "azp"},
+				Tenant:   ClientInfo{"client-id", "app-tid", "azp"},
 			},
 			wantErr:          false,
 			wantProviderJSON: true,
@@ -135,7 +135,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read from token keys endpoint with denied tenant credentials",
 			fields: fields{
 				Duration: 0,
-				Tenant:   Info{"invalid-client-id", "invalid-app-tid", "invalid-azp"},
+				Tenant:   ClientInfo{"invalid-client-id", "invalid-app-tid", "invalid-azp"},
 				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote " +
 					"for tenant credentials {ClientID:invalid-client-id AppTID:invalid-app-tid Azp:invalid-azp}",
 			},
@@ -145,7 +145,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read from token keys endpoint with accepted tenant credentials provoking parsing error",
 			fields: fields{
 				Duration:         0,
-				Tenant:           Info{ClientID: "provide-invalidJWKS"},
+				Tenant:           ClientInfo{ClientID: "provide-invalidJWKS"},
 				ExpectedErrorMsg: "error updating JWKs: failed to parse JWK set: failed to unmarshal JWK set",
 			},
 			wantErr:          true, // as jwks endpoint returns no JSON
@@ -154,7 +154,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read from token keys endpoint with deleted tenant credentials",
 			fields: fields{
 				Duration: 0,
-				Tenant:   Info{"deleted-client-id", "deleted-app-tid", "deleted-azp"},
+				Tenant:   ClientInfo{"deleted-client-id", "deleted-app-tid", "deleted-azp"},
 				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for " +
 					"tenant credentials {ClientID:deleted-client-id AppTID:deleted-app-tid Azp:deleted-azp}",
 			},
@@ -177,7 +177,7 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			jwksJSON, _ := jwk.ParseString(jwksJSONString)
 			tenant := OIDCTenant{
 				jwksExpiry: time.Now().Add(tt.fields.Duration),
-				acceptedTenants: map[Info]bool{
+				acceptedTenants: map[ClientInfo]bool{
 					{ClientID: "client-id", AppTID: "app-tid", Azp: "azp"}:                         true,
 					{ClientID: "deleted-client-id", AppTID: "deleted-app-tid", Azp: "deleted-azp"}: true,
 					{ClientID: "invalid-client-id", AppTID: "invalid-app-tid", Azp: "invalid-azp"}: false,

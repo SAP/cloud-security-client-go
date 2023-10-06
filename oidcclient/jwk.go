@@ -28,7 +28,7 @@ const azpHeader = "x-azp"
 // OIDCTenant represents one IAS tenant correlating with one app_tid and client_id with it's OIDC discovery results and cached JWKs
 type OIDCTenant struct {
 	ProviderJSON    ProviderJSON
-	acceptedTenants map[Info]bool
+	acceptedTenants map[ClientInfo]bool
 	httpClient      *http.Client
 	// A set of cached keys and their expiry.
 	jwks       jwk.Set
@@ -36,7 +36,7 @@ type OIDCTenant struct {
 	mu         sync.RWMutex
 }
 
-type Info struct {
+type ClientInfo struct {
 	ClientID string
 	AppTID   string
 	Azp      string
@@ -51,7 +51,7 @@ type updateKeysResult struct {
 func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
 	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
-	ks.acceptedTenants = make(map[Info]bool)
+	ks.acceptedTenants = make(map[ClientInfo]bool)
 	err := ks.performDiscovery(targetIss.Host)
 	if err != nil {
 		return nil, err
@@ -61,39 +61,39 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 }
 
 // GetJWKs returns the validation keys either cached or updated ones
-func (ks *OIDCTenant) GetJWKs(tenant Info) (jwk.Set, error) {
-	keys, err := ks.readJWKsFromMemory(tenant)
+func (ks *OIDCTenant) GetJWKs(clientInfo ClientInfo) (jwk.Set, error) {
+	keys, err := ks.readJWKsFromMemory(clientInfo)
 	if keys == nil {
 		if err != nil {
 			return nil, err
 		}
-		return ks.updateJWKsMemory(tenant)
+		return ks.updateJWKsMemory(clientInfo)
 	}
 	return keys, nil
 }
 
 // readJWKsFromMemory returns the validation keys from memory, or error in case of invalid header combination or nil, in case nothing found in memory
-func (ks *OIDCTenant) readJWKsFromMemory(tenant Info) (jwk.Set, error) {
+func (ks *OIDCTenant) readJWKsFromMemory(clientInfo ClientInfo) (jwk.Set, error) {
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()
 
-	isTenantAccepted, isTenantKnown := ks.acceptedTenants[tenant]
+	isTenantAccepted, isTenantKnown := ks.acceptedTenants[clientInfo]
 
 	if time.Now().Before(ks.jwksExpiry) && isTenantKnown {
 		if isTenantAccepted {
 			return ks.jwks, nil
 		}
-		return nil, fmt.Errorf("tenant credentials: %+v are not accepted by the identity service", tenant)
+		return nil, fmt.Errorf("tenant credentials: %+v are not accepted by the identity service", clientInfo)
 	}
 	return nil, nil
 }
 
 // updateJWKsMemory updates and returns the validation keys from memory, or error in case of invalid header combination nil, in case nothing found in memory
-func (ks *OIDCTenant) updateJWKsMemory(tenant Info) (jwk.Set, error) {
+func (ks *OIDCTenant) updateJWKsMemory(clientInfo ClientInfo) (jwk.Set, error) {
 	ks.mu.Lock()
 	defer ks.mu.Unlock()
 
-	updatedKeys, err := ks.getJWKsFromServer(tenant)
+	updatedKeys, err := ks.getJWKsFromServer(clientInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error updating JWKs: %v", err)
 	}
@@ -104,16 +104,16 @@ func (ks *OIDCTenant) updateJWKsMemory(tenant Info) (jwk.Set, error) {
 	return ks.jwks, nil
 }
 
-func (ks *OIDCTenant) getJWKsFromServer(tenant Info) (r interface{}, err error) {
+func (ks *OIDCTenant) getJWKsFromServer(clientInfo ClientInfo) (r interface{}, err error) {
 	result := updateKeysResult{}
 	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, ks.ProviderJSON.JWKsURL, http.NoBody)
 	if err != nil {
 		return result, fmt.Errorf("can't create request to fetch jwk: %v", err)
 	}
 	// at least client-id is necessary, all further headers only refine the validation
-	req.Header.Add(clientIDHeader, tenant.ClientID)
-	req.Header.Add(appTIDHeader, tenant.AppTID)
-	req.Header.Add(azpHeader, tenant.Azp)
+	req.Header.Add(clientIDHeader, clientInfo.ClientID)
+	req.Header.Add(appTIDHeader, clientInfo.AppTID)
+	req.Header.Add(azpHeader, clientInfo.Azp)
 
 	resp, err := ks.httpClient.Do(req)
 	if err != nil {
@@ -122,16 +122,16 @@ func (ks *OIDCTenant) getJWKsFromServer(tenant Info) (r interface{}, err error) 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		ks.acceptedTenants[tenant] = false
+		ks.acceptedTenants[clientInfo] = false
 		resp, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return result, fmt.Errorf(
-				"failed to fetch jwks from remote for tenant credentials %+v: %v", tenant, err)
+				"failed to fetch jwks from remote for tenant credentials %+v: %v", clientInfo, err)
 		}
 		return result, fmt.Errorf(
-			"failed to fetch jwks from remote for tenant credentials %+v: (%s)", tenant, resp)
+			"failed to fetch jwks from remote for tenant credentials %+v: (%s)", clientInfo, resp)
 	}
-	ks.acceptedTenants[tenant] = true
+	ks.acceptedTenants[clientInfo] = true
 	jwks, err := jwk.ParseReader(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse JWK set: %w", err)
