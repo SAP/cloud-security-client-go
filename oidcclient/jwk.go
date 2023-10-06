@@ -28,7 +28,7 @@ const azpHeader = "x-azp"
 // OIDCTenant represents one IAS tenant correlating with one app_tid and client_id with it's OIDC discovery results and cached JWKs
 type OIDCTenant struct {
 	ProviderJSON    ProviderJSON
-	acceptedTenants map[TenantInfo]bool
+	acceptedTenants map[Info]bool
 	httpClient      *http.Client
 	// A set of cached keys and their expiry.
 	jwks       jwk.Set
@@ -36,7 +36,7 @@ type OIDCTenant struct {
 	mu         sync.RWMutex
 }
 
-type TenantInfo struct {
+type Info struct {
 	ClientID string
 	AppTID   string
 	Azp      string
@@ -51,7 +51,7 @@ type updateKeysResult struct {
 func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
 	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
-	ks.acceptedTenants = make(map[TenantInfo]bool)
+	ks.acceptedTenants = make(map[Info]bool)
 	err := ks.performDiscovery(targetIss.Host)
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 }
 
 // GetJWKs returns the validation keys either cached or updated ones
-func (ks *OIDCTenant) GetJWKs(tenant TenantInfo) (jwk.Set, error) {
+func (ks *OIDCTenant) GetJWKs(tenant Info) (jwk.Set, error) {
 	keys, err := ks.readJWKsFromMemory(tenant)
 	if keys == nil {
 		if err != nil {
@@ -73,7 +73,7 @@ func (ks *OIDCTenant) GetJWKs(tenant TenantInfo) (jwk.Set, error) {
 }
 
 // readJWKsFromMemory returns the validation keys from memory, or error in case of invalid header combination or nil, in case nothing found in memory
-func (ks *OIDCTenant) readJWKsFromMemory(tenant TenantInfo) (jwk.Set, error) {
+func (ks *OIDCTenant) readJWKsFromMemory(tenant Info) (jwk.Set, error) {
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()
 
@@ -89,7 +89,7 @@ func (ks *OIDCTenant) readJWKsFromMemory(tenant TenantInfo) (jwk.Set, error) {
 }
 
 // updateJWKsMemory updates and returns the validation keys from memory, or error in case of invalid header combination nil, in case nothing found in memory
-func (ks *OIDCTenant) updateJWKsMemory(tenant TenantInfo) (jwk.Set, error) {
+func (ks *OIDCTenant) updateJWKsMemory(tenant Info) (jwk.Set, error) {
 	ks.mu.Lock()
 	defer ks.mu.Unlock()
 
@@ -104,7 +104,7 @@ func (ks *OIDCTenant) updateJWKsMemory(tenant TenantInfo) (jwk.Set, error) {
 	return ks.jwks, nil
 }
 
-func (ks *OIDCTenant) getJWKsFromServer(tenant TenantInfo) (r interface{}, err error) {
+func (ks *OIDCTenant) getJWKsFromServer(tenant Info) (r interface{}, err error) {
 	result := updateKeysResult{}
 	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, ks.ProviderJSON.JWKsURL, http.NoBody)
 	if err != nil {
