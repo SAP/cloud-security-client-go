@@ -66,7 +66,7 @@ func TestProviderJSON_assertMandatoryFieldsPresent(t *testing.T) {
 func TestOIDCTenant_ReadJWKs(t *testing.T) {
 	type fields struct {
 		Duration         time.Duration
-		Tenant           ClientInfo
+		Client           ClientInfo
 		ExpectedErrorMsg string
 	}
 	tests := []struct {
@@ -76,19 +76,19 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 		wantProviderJSON bool
 	}{
 		{
-			name: "read from cache with accepted tenant credentials",
+			name: "read from cache with accepted client credentials",
 			fields: fields{
 				Duration: 2 * time.Second,
-				Tenant:   ClientInfo{"client-id", "app-tid", "azp"},
+				Client:   ClientInfo{"client-id", "app-tid", "azp"},
 			},
 			wantErr:          false,
 			wantProviderJSON: false,
 		}, {
-			name: "read from cache with invalid tenant credentials",
+			name: "read from cache with invalid client credentials",
 			fields: fields{
 				Duration: 2 * time.Second,
-				Tenant:   ClientInfo{"invalid-client-id", "invalid-app-tid", "invalid-azp"},
-				ExpectedErrorMsg: "tenant credentials: {ClientID:invalid-client-id AppTID:invalid-app-tid Azp:invalid-azp} " +
+				Client:   ClientInfo{"invalid-client-id", "invalid-app-tid", "invalid-azp"},
+				ExpectedErrorMsg: "client credentials: {ClientID:invalid-client-id AppTID:invalid-app-tid Azp:invalid-azp} " +
 					"are not accepted by the identity service",
 			},
 			wantErr:          true,
@@ -97,8 +97,8 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read token endpoint with invalid client_id",
 			fields: fields{
 				Duration: 2 * time.Second,
-				Tenant:   ClientInfo{"invalid-client-id", "app-tid", "azp"},
-				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for tenant credentials " +
+				Client:   ClientInfo{"invalid-client-id", "app-tid", "azp"},
+				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for client credentials " +
 					"{ClientID:invalid-client-id AppTID:app-tid Azp:azp}: ({\"msg\":\"Invalid x-client_id or x-app_tid provided\"})",
 			},
 			wantErr:          true,
@@ -107,8 +107,8 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read token endpoint with invalid app_tid",
 			fields: fields{
 				Duration: 2 * time.Second,
-				Tenant:   ClientInfo{"client-id", "invalid-app-tid", "azp"},
-				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for tenant credentials " +
+				Client:   ClientInfo{"client-id", "invalid-app-tid", "azp"},
+				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for client credentials " +
 					"{ClientID:client-id AppTID:invalid-app-tid Azp:azp}: ({\"msg\":\"Invalid x-client_id or x-app_tid provided\"})",
 			},
 			wantErr:          true,
@@ -117,46 +117,46 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 			name: "read token endpoint with invalid azp",
 			fields: fields{
 				Duration: 2 * time.Second,
-				Tenant:   ClientInfo{"client-id", "app-tid", "invalid-azp"},
-				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for tenant credentials " +
+				Client:   ClientInfo{"client-id", "app-tid", "invalid-azp"},
+				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for client credentials " +
 					"{ClientID:client-id AppTID:app-tid Azp:invalid-azp}: ({\"msg\":\"Invalid x-azp provided\"})",
 			},
 			wantErr:          true,
 			wantProviderJSON: true,
 		}, {
-			name: "read from token keys endpoint with accepted tenant credentials",
+			name: "read from token keys endpoint with accepted client credentials",
 			fields: fields{
 				Duration: 0,
-				Tenant:   ClientInfo{"client-id", "app-tid", "azp"},
+				Client:   ClientInfo{"client-id", "app-tid", "azp"},
 			},
 			wantErr:          false,
 			wantProviderJSON: true,
 		}, {
-			name: "read from token keys endpoint with denied tenant credentials",
+			name: "read from token keys endpoint with denied client credentials",
 			fields: fields{
 				Duration: 0,
-				Tenant:   ClientInfo{"invalid-client-id", "invalid-app-tid", "invalid-azp"},
+				Client:   ClientInfo{"invalid-client-id", "invalid-app-tid", "invalid-azp"},
 				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote " +
-					"for tenant credentials {ClientID:invalid-client-id AppTID:invalid-app-tid Azp:invalid-azp}",
+					"for client credentials {ClientID:invalid-client-id AppTID:invalid-app-tid Azp:invalid-azp}",
 			},
 			wantErr:          true,
 			wantProviderJSON: true,
 		}, {
-			name: "read from token keys endpoint with accepted tenant credentials provoking parsing error",
+			name: "read from token keys endpoint with accepted client credentials provoking parsing error",
 			fields: fields{
 				Duration:         0,
-				Tenant:           ClientInfo{ClientID: "provide-invalidJWKS"},
+				Client:           ClientInfo{ClientID: "provide-invalidJWKS"},
 				ExpectedErrorMsg: "error updating JWKs: failed to parse JWK set: failed to unmarshal JWK set",
 			},
 			wantErr:          true, // as jwks endpoint returns no JSON
 			wantProviderJSON: true,
 		}, {
-			name: "read from token keys endpoint with deleted tenant credentials",
+			name: "read from token keys endpoint with deleted client credentials",
 			fields: fields{
 				Duration: 0,
-				Tenant:   ClientInfo{"deleted-client-id", "deleted-app-tid", "deleted-azp"},
+				Client:   ClientInfo{"deleted-client-id", "deleted-app-tid", "deleted-azp"},
 				ExpectedErrorMsg: "error updating JWKs: failed to fetch jwks from remote for " +
-					"tenant credentials {ClientID:deleted-client-id AppTID:deleted-app-tid Azp:deleted-azp}",
+					"client credentials {ClientID:deleted-client-id AppTID:deleted-app-tid Azp:deleted-azp}",
 			},
 			wantErr:          true,
 			wantProviderJSON: true,
@@ -186,16 +186,16 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 				jwks:         jwksJSON,
 				ProviderJSON: providerJSON,
 			}
-			jwks, err := tenant.GetJWKs(tt.fields.Tenant)
+			jwks, err := tenant.GetJWKs(tt.fields.Client)
 			if tt.wantErr {
 				if err == nil {
-					t.Errorf("GetJWKs() does not provide error = %v, tenantCredentials %+v", err, tt.fields.Tenant)
+					t.Errorf("GetJWKs() does not provide error = %v, tenantCredentials %+v", err, tt.fields.Client)
 				}
 				if !strings.HasPrefix(err.Error(), tt.fields.ExpectedErrorMsg) {
 					t.Errorf("GetJWKs() does not provide expected error message = %v", err.Error())
 				}
 			} else if jwks == nil {
-				t.Errorf("GetJWKs() returns nil = %v, tenantCredentials %+v", err, tt.fields.Tenant)
+				t.Errorf("GetJWKs() returns nil = %v, tenantCredentials %+v", err, tt.fields.Client)
 			}
 		})
 	}
@@ -204,9 +204,9 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 func NewRouter() (r *mux.Router) {
 	r = mux.NewRouter()
 	r.HandleFunc("/oauth2/certs", ReturnJWKS).Methods(http.MethodGet).Headers(clientIDHeader, "client-id", appTIDHeader, "app-tid", azpHeader, "azp")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidTenant).Methods(http.MethodGet).Headers(clientIDHeader, "invalid-client-id")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidTenant).Methods(http.MethodGet).Headers(appTIDHeader, "invalid-app-tid")
-	r.HandleFunc("/oauth2/certs", ReturnInvalidTenant).Methods(http.MethodGet).Headers(azpHeader, "invalid-azp")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidClient).Methods(http.MethodGet).Headers(clientIDHeader, "invalid-client-id")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidClient).Methods(http.MethodGet).Headers(appTIDHeader, "invalid-app-tid")
+	r.HandleFunc("/oauth2/certs", ReturnInvalidClient).Methods(http.MethodGet).Headers(azpHeader, "invalid-azp")
 	r.HandleFunc("/oauth2/certs", ReturnInvalidHeaders).Methods(http.MethodGet).Headers(clientIDHeader, "deleted-client-id", appTIDHeader, "deleted-app-tid", azpHeader, "deleted-azp")
 	r.HandleFunc("/oauth2/certs", ReturnInvalidJWKS).Methods(http.MethodGet).Headers(clientIDHeader, "provide-invalidJWKS")
 	return r
@@ -224,7 +224,7 @@ func ReturnInvalidHeaders(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(400)
 }
 
-func ReturnInvalidTenant(w http.ResponseWriter, r *http.Request) {
+func ReturnInvalidClient(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(400)
 	w.Header().Set("Content-Type", "application/json")
 	if r.Header.Get(azpHeader) == "invalid-azp" {

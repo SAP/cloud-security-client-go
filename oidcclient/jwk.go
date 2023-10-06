@@ -77,13 +77,13 @@ func (ks *OIDCTenant) readJWKsFromMemory(clientInfo ClientInfo) (jwk.Set, error)
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()
 
-	isTenantAccepted, isTenantKnown := ks.acceptedClients[clientInfo]
+	isClientAccepted, isClientKnown := ks.acceptedClients[clientInfo]
 
-	if time.Now().Before(ks.jwksExpiry) && isTenantKnown {
-		if isTenantAccepted {
+	if time.Now().Before(ks.jwksExpiry) && isClientKnown {
+		if isClientAccepted {
 			return ks.jwks, nil
 		}
-		return nil, fmt.Errorf("tenant credentials: %+v are not accepted by the identity service", clientInfo)
+		return nil, fmt.Errorf("client credentials: %+v are not accepted by the identity service", clientInfo)
 	}
 	return nil, nil
 }
@@ -129,10 +129,10 @@ func (ks *OIDCTenant) getJWKsFromServer(clientInfo ClientInfo) (r interface{}, e
 		resp, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return result, fmt.Errorf(
-				"failed to fetch jwks from remote for tenant credentials %+v: %v", clientInfo, err)
+				"failed to fetch jwks from remote for client credentials %+v: %v", clientInfo, err)
 		}
 		return result, fmt.Errorf(
-			"failed to fetch jwks from remote for tenant credentials %+v: (%s)", clientInfo, resp)
+			"failed to fetch jwks from remote for client credentials %+v: (%s)", clientInfo, resp)
 	}
 	ks.acceptedClients[clientInfo] = true
 	jwks, err := jwk.ParseReader(resp.Body)
