@@ -21,17 +21,25 @@ import (
 )
 
 const defaultJwkExpiration = 15 * time.Minute
-const zoneIDHeader = "x-zone_uuid"
+const appTIDHeader = "x-app_tid"
+const clientIDHeader = "x-client_id"
+const azpHeader = "x-azp"
 
-// OIDCTenant represents one IAS tenant correlating with one zone with it's OIDC discovery results and cached JWKs
+// OIDCTenant represents one IAS tenant correlating with one app_tid and client_id with it's OIDC discovery results and cached JWKs
 type OIDCTenant struct {
 	ProviderJSON    ProviderJSON
-	acceptedZoneIds map[string]bool
+	acceptedClients map[ClientInfo]bool
 	httpClient      *http.Client
 	// A set of cached keys and their expiry.
 	jwks       jwk.Set
 	jwksExpiry time.Time
 	mu         sync.RWMutex
+}
+
+type ClientInfo struct {
+	ClientID string
+	AppTID   string
+	Azp      string
 }
 
 type updateKeysResult struct {
@@ -43,7 +51,7 @@ type updateKeysResult struct {
 func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
 	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
-	ks.acceptedZoneIds = make(map[string]bool)
+	ks.acceptedClients = make(map[ClientInfo]bool)
 	err := ks.performDiscovery(targetIss.Host)
 	if err != nil {
 		return nil, err
@@ -53,39 +61,39 @@ func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, er
 }
 
 // GetJWKs returns the validation keys either cached or updated ones
-func (ks *OIDCTenant) GetJWKs(zoneID string) (jwk.Set, error) {
-	keys, err := ks.readJWKsFromMemory(zoneID)
+func (ks *OIDCTenant) GetJWKs(clientInfo ClientInfo) (jwk.Set, error) {
+	keys, err := ks.readJWKsFromMemory(clientInfo)
 	if keys == nil {
 		if err != nil {
 			return nil, err
 		}
-		return ks.updateJWKsMemory(zoneID)
+		return ks.updateJWKsMemory(clientInfo)
 	}
 	return keys, nil
 }
 
-// readJWKsFromMemory returns the validation keys from memory, or error in case of invalid zone or nil, in case nothing found in memory
-func (ks *OIDCTenant) readJWKsFromMemory(zoneID string) (jwk.Set, error) {
+// readJWKsFromMemory returns the validation keys from memory, or error in case of invalid header combination or nil, in case nothing found in memory
+func (ks *OIDCTenant) readJWKsFromMemory(clientInfo ClientInfo) (jwk.Set, error) {
 	ks.mu.RLock()
 	defer ks.mu.RUnlock()
 
-	isZoneAccepted, isZoneKnown := ks.acceptedZoneIds[zoneID]
+	isClientAccepted, isClientKnown := ks.acceptedClients[clientInfo]
 
-	if time.Now().Before(ks.jwksExpiry) && isZoneKnown {
-		if isZoneAccepted {
+	if time.Now().Before(ks.jwksExpiry) && isClientKnown {
+		if isClientAccepted {
 			return ks.jwks, nil
 		}
-		return nil, fmt.Errorf("zone_uuid %v is not accepted by the identity service tenant", zoneID)
+		return nil, fmt.Errorf("client credentials: %+v are not accepted by the identity service", clientInfo)
 	}
 	return nil, nil
 }
 
-// updateJWKsMemory updates and returns the validation keys from memory, or error in case of invalid zone or nil, in case nothing found in memory
-func (ks *OIDCTenant) updateJWKsMemory(zoneID string) (jwk.Set, error) {
+// updateJWKsMemory updates and returns the validation keys from memory, or error in case of invalid header combination nil, in case nothing found in memory
+func (ks *OIDCTenant) updateJWKsMemory(clientInfo ClientInfo) (jwk.Set, error) {
 	ks.mu.Lock()
 	defer ks.mu.Unlock()
 
-	updatedKeys, err := ks.getJWKsFromServer(zoneID)
+	updatedKeys, err := ks.getJWKsFromServer(clientInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error updating JWKs: %v", err)
 	}
@@ -96,13 +104,16 @@ func (ks *OIDCTenant) updateJWKsMemory(zoneID string) (jwk.Set, error) {
 	return ks.jwks, nil
 }
 
-func (ks *OIDCTenant) getJWKsFromServer(zoneID string) (r interface{}, err error) {
+func (ks *OIDCTenant) getJWKsFromServer(clientInfo ClientInfo) (r interface{}, err error) {
 	result := updateKeysResult{}
 	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, ks.ProviderJSON.JWKsURL, http.NoBody)
 	if err != nil {
 		return result, fmt.Errorf("can't create request to fetch jwk: %v", err)
 	}
-	req.Header.Add(zoneIDHeader, zoneID)
+	// at least client-id is necessary, all further headers only refine the validation
+	req.Header.Add(clientIDHeader, clientInfo.ClientID)
+	req.Header.Add(appTIDHeader, clientInfo.AppTID)
+	req.Header.Add(azpHeader, clientInfo.Azp)
 
 	resp, err := ks.httpClient.Do(req)
 	if err != nil {
@@ -111,10 +122,19 @@ func (ks *OIDCTenant) getJWKsFromServer(zoneID string) (r interface{}, err error
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		ks.acceptedZoneIds[zoneID] = false
-		return result, fmt.Errorf("failed to fetch jwks from remote for x-zone_uuid %s: %v (%s)", zoneID, err, resp.Body)
+		// prevent caching ias backend flaps like 503 -> only cache 400
+		if resp.StatusCode == http.StatusBadRequest {
+			ks.acceptedClients[clientInfo] = false
+		}
+		resp, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return result, fmt.Errorf(
+				"failed to fetch jwks from remote for client credentials %+v: %v", clientInfo, err)
+		}
+		return result, fmt.Errorf(
+			"failed to fetch jwks from remote for client credentials %+v: (%s)", clientInfo, resp)
 	}
-	ks.acceptedZoneIds[zoneID] = true
+	ks.acceptedClients[clientInfo] = true
 	jwks, err := jwk.ParseReader(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse JWK set: %w", err)

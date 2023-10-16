@@ -21,6 +21,7 @@ var testConfig = &DefaultIdentity{
 	Domains:      []string{"accounts400.ondemand.com", "my.arbitrary.domain"},
 	URL:          "https://mytenant.accounts400.ondemand.com",
 	ZoneUUID:     uuid.MustParse("bef12345-de57-480f-be92-1d8c1c7abf16"),
+	AppTID:       "70cd0de3-528a-4655-b56a-5862591def5c",
 }
 
 func TestParseIdentityConfig(t *testing.T) {
@@ -33,7 +34,7 @@ func TestParseIdentityConfig(t *testing.T) {
 	}{
 		{
 			name:    "[CF] single identity service instance bound",
-			env:     "{\"identity\":[{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"[the_CLIENT.secret:3[/abc\",\"domains\":[\"accounts400.ondemand.com\",\"my.arbitrary.domain\"],\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\",\"zone_uuid\":\"bef12345-de57-480f-be92-1d8c1c7abf16\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]}]}",
+			env:     "{\"identity\":[{\"binding_name\":null,\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"clientsecret\":\"[the_CLIENT.secret:3[/abc\",\"domains\":[\"accounts400.ondemand.com\",\"my.arbitrary.domain\"],\"token_url\":\"https://mytenant.accounts400.ondemand.com/oauth2/token\",\"url\":\"https://mytenant.accounts400.ondemand.com\",\"zone_uuid\":\"bef12345-de57-480f-be92-1d8c1c7abf16\", \"app_tid\":\"70cd0de3-528a-4655-b56a-5862591def5c\"},\"instance_name\":\"my-ams-instance\",\"label\":\"identity\",\"name\":\"my-ams-instance\",\"plan\":\"application\",\"provider\":null,\"syslog_drain_url\":null,\"tags\":[\"ias\"],\"volume_mounts\":[]}]}",
 			want:    testConfig,
 			wantErr: false,
 		},

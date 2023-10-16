@@ -33,7 +33,8 @@ type Identity interface {
 	GetClientSecret() string         // Returns the client secret. Optional
 	GetURL() string                  // Returns the url to the DefaultIdentity tenant. E.g. https://abcdefgh.accounts.ondemand.com
 	GetDomains() []string            // Returns the domains of the DefaultIdentity service. E.g. ["accounts.ondemand.com"]
-	GetZoneUUID() uuid.UUID          // Returns the zone uuid. Optional
+	GetZoneUUID() uuid.UUID          // Deprecated: Returns the zone uuid, will be replaced by GetAppTID Optional
+	GetAppTID() string               // Returns the app tid uuid and replaces zone uuid in future Optional
 	GetProofTokenURL() string        // Returns the proof token url. Optional
 	GetCertificate() string          // Returns the client certificate. Optional
 	GetKey() string                  // Returns the client certificate key. Optional
@@ -47,7 +48,8 @@ type DefaultIdentity struct {
 	ClientSecret         string    `json:"clientsecret"`
 	Domains              []string  `json:"domains"`
 	URL                  string    `json:"url"`
-	ZoneUUID             uuid.UUID `json:"zone_uuid"`
+	ZoneUUID             uuid.UUID `json:"zone_uuid"` // Deprecated: will be replaced by AppTID
+	AppTID               string    `json:"app_tid"`   // replaces ZoneUUID
 	ProofTokenURL        string    `json:"prooftoken_url"`
 	OsbURL               string    `json:"osb_url"`
 	Certificate          string    `json:"certificate"`
@@ -184,8 +186,21 @@ func (c DefaultIdentity) GetDomains() []string {
 }
 
 // GetZoneUUID implements the env.Identity interface.
+// Deprecated: is replaced by GetAppTID and will be removed with the next major release
 func (c DefaultIdentity) GetZoneUUID() uuid.UUID {
+	appTid, err := uuid.Parse(c.AppTID)
+	if err != nil {
+		return appTid
+	}
 	return c.ZoneUUID
+}
+
+// GetAppTID implements the env.Identity interface and replaces GetZoneUUID in future
+func (c DefaultIdentity) GetAppTID() string {
+	if c.AppTID != "" {
+		return c.AppTID
+	}
+	return c.ZoneUUID.String()
 }
 
 // GetProofTokenURL implements the env.Identity interface.
