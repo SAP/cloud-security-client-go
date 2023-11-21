@@ -25,6 +25,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/sap/cloud-security-client-go/httpclient"
 
 	"github.com/sap/cloud-security-client-go/oidcclient"
 )
@@ -92,12 +93,23 @@ func newOIDCMockServer(customIssuer string) (*MockServer, error) {
 		CustomIssuer: customIssuer,
 	}
 
+	r.Use(verifyUserAgent)
 	r.HandleFunc("/.well-known/openid-configuration", mockServer.WellKnownHandler).Methods(http.MethodGet)
 	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandlerInvalidAppTID).Methods(http.MethodGet).Headers("x-app_tid", InvalidAppTID)
 	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/oauth2/token", mockServer.tokenHandler).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
 
 	return mockServer, nil
+}
+
+func verifyUserAgent(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("User-Agent") != httpclient.UserAgent {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte("wrong user agent, expected: " + httpclient.UserAgent))
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // ClearAllHitCounters resets all http handlers hit counters. See MockServer.WellKnownHitCounter and MockServer.JWKsHitCounter
