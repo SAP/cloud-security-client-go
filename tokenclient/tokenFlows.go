@@ -128,7 +128,7 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	if err != nil {
 		return "", err
 	}
-	r, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
+	r, err := httpclient.NewRequestWithUserAgent(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
 	if err != nil {
 		return "", fmt.Errorf("error performing client credentials flow: %w", err)
 	}
