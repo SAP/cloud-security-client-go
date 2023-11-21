@@ -5,12 +5,14 @@
 package auth
 
 import (
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/sap/cloud-security-client-go/env"
 	"github.com/sap/cloud-security-client-go/mocks"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAdditionalDomain(t *testing.T) {
@@ -87,6 +89,97 @@ func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 	if hits := oidcMockServer.WellKnownHitCounter; hits != 1 {
 		t.Errorf("GetOIDCTenant() /.well-known/openid-configuration endpoint called too often; got = %d, want: 1", hits)
 	}
+}
+
+func TestVerifyIssuerLocal(t *testing.T) {
+	m := NewMiddleware(env.DefaultIdentity{
+		Domains: append([]string{"127.0.0.1:52421"}),
+	}, Options{})
+
+	// trusted url
+	_, err := m.verifyIssuer("https://127.0.0.1:52421")
+	assert.NoError(t, err)
+}
+
+func TestVerifyIssuer(t *testing.T) {
+	trustedDomain := "accounts400.ondemand.com"
+	m := NewMiddleware(env.DefaultIdentity{
+		Domains: append([]string{"accounts400.cloud.sap", trustedDomain}),
+	}, Options{})
+
+	// exact domain
+	url, err := m.verifyIssuer("https://" + trustedDomain)
+	assert.NoError(t, err)
+	assert.Equal(t, url.Host, trustedDomain)
+	// trusted url
+	url, err = m.verifyIssuer("https://test." + trustedDomain)
+	assert.NoError(t, err)
+	assert.Equal(t, url.Host, "test."+trustedDomain)
+	// trusted domain
+	url, err = m.verifyIssuer("test." + trustedDomain)
+	assert.NoError(t, err)
+	assert.Equal(t, url.Host, "test."+trustedDomain)
+
+	// support domains with 1 - 63 characters only
+	_, err = m.verifyIssuer(strings.Repeat("a", 1) + "." + trustedDomain)
+	assert.NoError(t, err)
+	_, err = m.verifyIssuer(strings.Repeat("a", 63) + "." + trustedDomain)
+	assert.NoError(t, err)
+	_, err = m.verifyIssuer(strings.Repeat("a", 64) + "." + trustedDomain)
+	assert.Error(t, err)
+
+	// error when issuer contains tabs or new lines
+	_, err = m.verifyIssuer("te\tnant." + trustedDomain)
+	assert.Error(t, err)
+	_, err = m.verifyIssuer("tenant.accounts400.ond\temand.com")
+	assert.Error(t, err)
+	_, err = m.verifyIssuer("te\nnant." + trustedDomain)
+	assert.Error(t, err)
+	_, err = m.verifyIssuer("tenant.accounts400.ond\nemand.com")
+	assert.Error(t, err)
+
+	// error when issuer contains encoded characters
+	_, err = m.verifyIssuer("https://tenant%2e" + trustedDomain) // %2e instead of .
+	assert.Error(t, err)
+	_, err = m.verifyIssuer("https://tenant%2d0815.accounts400.ond\nemand.com")
+	assert.Error(t, err)
+
+	// empty issuer
+	_, err = m.verifyIssuer("")
+	assert.Error(t, err)
+	// illegal subdomain
+	_, err = m.verifyIssuer("https://my-" + trustedDomain)
+	assert.Error(t, err)
+
+	// invalid url
+	_, err = m.verifyIssuer("https://")
+	assert.Error(t, err)
+
+	// error when issuer contains more than a valid subdomain of the trusted domains
+	_, err = m.verifyIssuer("https://" + trustedDomain + "a")
+	assert.Error(t, err)
+	_, err = m.verifyIssuer("https://" + trustedDomain + "%2f")
+	assert.Error(t, err)
+	_, err = m.verifyIssuer("https://" + trustedDomain + "%2fpath")
+	assert.Error(t, err)
+	_, err = m.verifyIssuer("https://" + trustedDomain + "&")
+	assert.Error(t, err)
+	_, err = m.verifyIssuer("https://" + trustedDomain + "%26")
+	assert.Error(t, err)
+	url, err = m.verifyIssuer("https://" + trustedDomain + "?")
+	assert.NoError(t, err)
+	assert.Equal(t, url.Host, trustedDomain)
+	_, err = m.verifyIssuer("https://" + trustedDomain + "?foo")
+	assert.NoError(t, err)
+	assert.Equal(t, url.Host, trustedDomain)
+	_, err = m.verifyIssuer("https://" + trustedDomain + "#")
+	assert.NoError(t, err)
+	assert.Equal(t, url.Host, trustedDomain)
+	_, err = m.verifyIssuer("https://" + "user@" + trustedDomain)
+	assert.NoError(t, err)
+	assert.Equal(t, url.Host, trustedDomain)
+	_, err = m.verifyIssuer("https://" + "tenant!" + trustedDomain)
+	assert.Error(t, err)
 }
 
 func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {

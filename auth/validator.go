@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -135,18 +136,48 @@ func (m *Middleware) verifyIssuer(issuer string) (issURI *url.URL, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse issuer URI: %s", issuer)
 	}
+	// if issuer has no protocol host is empty
+	if issURI.Host == "" {
+		issURI, err = url.Parse("https://" + issuer)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse issuer URI: %s", issuer)
+		}
+	}
 
-	if !matchesDomain(issURI.Host, m.identity.GetDomains()) {
+	doesMatch, err := matchesDomain(issURI.Host, m.identity.GetDomains())
+	if err != nil {
+		return nil, fmt.Errorf("error matching domain: %v", err)
+	}
+	if !doesMatch {
 		return nil, fmt.Errorf("token is unverifiable: unknown server (domain doesn't match)")
 	}
+
 	return issURI, nil
 }
 
-func matchesDomain(hostname string, domains []string) bool {
+func matchesDomain(hostname string, domains []string) (bool, error) {
 	for _, domain := range domains {
-		if strings.HasSuffix(hostname, domain) {
-			return true
+		if !strings.HasSuffix(hostname, domain) {
+			continue
+		}
+		// hostname matches exactly trusted domain
+		if hostname == domain {
+			return true, nil
+		}
+		isValid, regexErr := isValidSubDomain(hostname, domain)
+		if regexErr != nil {
+			return false, regexErr
+		}
+		if isValid {
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
+}
+
+// isValidSubDomain additionally check subdomain because "my-accounts400.ondemand.com" DOES match Suffix,
+// but should not be allowed
+func isValidSubDomain(hostname string, domain string) (bool, error) {
+	validSubdomainPattern := fmt.Sprintf("^[a-zA-Z0-9-]{1,63}\\." + regexp.QuoteMeta(domain) + "$")
+	return regexp.MatchString(validSubdomainPattern, hostname)
 }
