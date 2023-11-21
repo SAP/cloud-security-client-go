@@ -31,7 +31,10 @@ func main() {
 	r.Use(authMiddleware.AuthenticationHandler)
 	r.HandleFunc("/helloWorld", helloWorld).Methods(http.MethodGet)
 
-	address := ":8080"
+	address := ":" + os.Getenv("PORT")
+	if address == "" {
+		address = ":8080"
+	}
 	server := &http.Server{
 		Addr:              address,
 		ReadHeaderTimeout: 5 * time.Second,

@@ -29,7 +29,7 @@ The client library works as a middleware and has to be instantiated with `NewMid
 To access service instance configurations from the application, Kubernetes secrets need to be provided as files in a volume mounted on application's container. Library will look up the configuration files on the `mountPath:"/etc/secrets/sapbtp/identity/<YOUR IAS INSTANCE NAME>"`.
 
 ### Usage Sample
-[samples/middleware.go](samples/middleware.go)
+[samples/middleware.go](sample/middleware.go)
 
 ### Testing
 The client library offers an OIDC Mock Server with means to create arbitrary tokens for testing purposes. Examples for the usage of the Mock Server in combination with the OIDC Token Builder can be found in [auth/middleware_test.go](auth/middleware_test.go) 
