@@ -107,8 +107,8 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 }
 
 // ClientCredentials implements the client credentials flow (RFC 6749, section 4.4).
-// Clients obtain an access token outside of the context of a user.
-// It is used for non interactive applications (a CLI, a batch job, or for service-2-service communication) where the token is issued to the application itself,
+// Clients obtain an access token outside the context of a user.
+// It is used for non-interactive applications (a CLI, a batch job, or for service-2-service communication) where the token is issued to the application itself,
 // instead of an end user for accessing resources without principal propagation.
 //
 // ctx carries the request context like the deadline or other values that should be shared across API boundaries.
