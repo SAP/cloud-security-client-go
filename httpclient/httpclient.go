@@ -16,7 +16,7 @@ import (
 	"github.com/sap/cloud-security-client-go/env"
 )
 
-const userAgent = "go-sec-lib"
+const UserAgent = "go-sec-lib"
 
 // DefaultTLSConfig creates default tls.Config. Initializes SystemCertPool with cert/key from identity config.
 //
@@ -67,11 +67,11 @@ func DefaultHTTPClient(tlsConfig *tls.Config) *http.Client {
 // NewRequestWithUserAgent creates a request and sets the libs custom user agent
 // it would be nicer to set this in the default http.client, but
 // it's discouraged to manipulate the request in RoundTrip per official documentation
-func NewRequestWithUserAgent(ctx context.Context, method string, url string, body io.Reader) (*http.Request, error) {
+func NewRequestWithUserAgent(ctx context.Context, method, url string, body io.Reader) (*http.Request, error) {
 	r, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}
-	r.Header.Set("User-Agent", userAgent)
+	r.Header.Set("User-Agent", UserAgent)
 	return r, nil
 }

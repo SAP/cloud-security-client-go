@@ -93,7 +93,7 @@ func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 
 func TestVerifyIssuerLocal(t *testing.T) {
 	m := NewMiddleware(env.DefaultIdentity{
-		Domains: append([]string{"127.0.0.1:52421"}),
+		Domains: []string{"127.0.0.1:52421"},
 	}, Options{})
 
 	// trusted url
@@ -104,7 +104,7 @@ func TestVerifyIssuerLocal(t *testing.T) {
 func TestVerifyIssuer(t *testing.T) {
 	trustedDomain := "accounts400.ondemand.com"
 	m := NewMiddleware(env.DefaultIdentity{
-		Domains: append([]string{"accounts400.cloud.sap", trustedDomain}),
+		Domains: []string{"accounts400.cloud.sap", trustedDomain},
 	}, Options{})
 
 	// exact domain

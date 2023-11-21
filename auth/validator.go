@@ -177,7 +177,7 @@ func matchesDomain(hostname string, domains []string) (bool, error) {
 
 // isValidSubDomain additionally check subdomain because "my-accounts400.ondemand.com" DOES match Suffix,
 // but should not be allowed
-func isValidSubDomain(hostname string, domain string) (bool, error) {
+func isValidSubDomain(hostname, domain string) (bool, error) {
 	validSubdomainPattern := fmt.Sprintf("^[a-zA-Z0-9-]{1,63}\\." + regexp.QuoteMeta(domain) + "$")
 	return regexp.MatchString(validSubdomainPattern, hostname)
 }
