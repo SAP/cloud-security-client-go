@@ -155,6 +155,10 @@ func TestVerifyIssuer(t *testing.T) {
 	_, err = m.verifyIssuer("https://")
 	assert.Error(t, err)
 
+	// error if http protocol is used
+	_, err = m.verifyIssuer("http://" + trustedDomain)
+	assert.Error(t, err)
+
 	// error when issuer contains more than a valid subdomain of the trusted domains
 	_, err = m.verifyIssuer("https://" + trustedDomain + "a")
 	assert.Error(t, err)
@@ -173,6 +177,8 @@ func TestVerifyIssuer(t *testing.T) {
 	_, err = m.verifyIssuer("https://" + trustedDomain + "#")
 	assert.Error(t, err)
 	_, err = m.verifyIssuer("https://" + "user@" + trustedDomain)
+	assert.Error(t, err)
+	_, err = m.verifyIssuer("https://" + "user%40" + trustedDomain)
 	assert.Error(t, err)
 	_, err = m.verifyIssuer("https://" + "tenant!" + trustedDomain)
 	assert.Error(t, err)
