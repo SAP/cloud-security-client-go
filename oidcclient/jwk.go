@@ -11,7 +11,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -49,11 +48,11 @@ type updateKeysResult struct {
 }
 
 // NewOIDCTenant instantiates a new OIDCTenant and performs the OIDC discovery
-func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
+func NewOIDCTenant(httpClient *http.Client, targetIssHost string) (*OIDCTenant, error) {
 	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
 	ks.acceptedClients = make(map[ClientInfo]bool)
-	err := ks.performDiscovery(targetIss.Host)
+	err := ks.performDiscovery(targetIssHost)
 	if err != nil {
 		return nil, err
 	}

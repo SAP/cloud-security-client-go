@@ -108,17 +108,17 @@ func TestVerifyIssuer(t *testing.T) {
 	}, Options{})
 
 	// exact domain
-	url, err := m.verifyIssuer("https://" + trustedDomain)
+	host, err := m.verifyIssuer("https://" + trustedDomain)
 	assert.NoError(t, err)
-	assert.Equal(t, url.Host, trustedDomain)
+	assert.Equal(t, host, trustedDomain)
 	// trusted url
-	url, err = m.verifyIssuer("https://test." + trustedDomain)
+	host, err = m.verifyIssuer("https://test." + trustedDomain)
 	assert.NoError(t, err)
-	assert.Equal(t, url.Host, "test."+trustedDomain)
+	assert.Equal(t, host, "test."+trustedDomain)
 	// trusted domain
-	url, err = m.verifyIssuer("test." + trustedDomain)
+	host, err = m.verifyIssuer("test." + trustedDomain)
 	assert.NoError(t, err)
-	assert.Equal(t, url.Host, "test."+trustedDomain)
+	assert.Equal(t, host, "test."+trustedDomain)
 
 	// support domains with 1 - 63 characters only
 	_, err = m.verifyIssuer(strings.Repeat("a", 1) + "." + trustedDomain)
@@ -166,18 +166,14 @@ func TestVerifyIssuer(t *testing.T) {
 	assert.Error(t, err)
 	_, err = m.verifyIssuer("https://" + trustedDomain + "%26")
 	assert.Error(t, err)
-	url, err = m.verifyIssuer("https://" + trustedDomain + "?")
-	assert.NoError(t, err)
-	assert.Equal(t, url.Host, trustedDomain)
+	_, err = m.verifyIssuer("https://" + trustedDomain + "?")
+	assert.Error(t, err)
 	_, err = m.verifyIssuer("https://" + trustedDomain + "?foo")
-	assert.NoError(t, err)
-	assert.Equal(t, url.Host, trustedDomain)
+	assert.Error(t, err)
 	_, err = m.verifyIssuer("https://" + trustedDomain + "#")
-	assert.NoError(t, err)
-	assert.Equal(t, url.Host, trustedDomain)
+	assert.Error(t, err)
 	_, err = m.verifyIssuer("https://" + "user@" + trustedDomain)
-	assert.NoError(t, err)
-	assert.Equal(t, url.Host, trustedDomain)
+	assert.Error(t, err)
 	_, err = m.verifyIssuer("https://" + "tenant!" + trustedDomain)
 	assert.Error(t, err)
 }

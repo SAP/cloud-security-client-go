@@ -7,7 +7,6 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -104,7 +103,7 @@ func (m *Middleware) validateClaims(t Token, ks *oidcclient.OIDCTenant) error { 
 //
 // customIssuer represents the custom issuer of the incoming token if given (token.CustomIssuer())
 func (m *Middleware) getOIDCTenant(issuer, customIssuer string) (*oidcclient.OIDCTenant, error) {
-	issURI, err := m.verifyIssuer(issuer)
+	issHost, err := m.verifyIssuer(issuer)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +117,7 @@ func (m *Middleware) getOIDCTenant(issuer, customIssuer string) (*oidcclient.OID
 	// redo discovery if not found, cache expired, or tokenIssuer is not the same as Issuer on providerJSON (e.g. custom domain config just changed for that tenant)
 	if !found || time.Now().After(exp) || oidcTenant.(*oidcclient.OIDCTenant).ProviderJSON.Issuer != tokenIssuer {
 		newKeySet, err, _ := m.sf.Do(issuer, func() (i interface{}, err error) {
-			set, err := oidcclient.NewOIDCTenant(m.options.HTTPClient, issURI)
+			set, err := oidcclient.NewOIDCTenant(m.options.HTTPClient, issHost)
 			return set, err
 		})
 
@@ -131,28 +130,19 @@ func (m *Middleware) getOIDCTenant(issuer, customIssuer string) (*oidcclient.OID
 	return oidcTenant.(*oidcclient.OIDCTenant), nil
 }
 
-func (m *Middleware) verifyIssuer(issuer string) (issURI *url.URL, err error) {
-	issURI, err = url.Parse(issuer)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse issuer URI: %s", issuer)
-	}
-	// if issuer has no protocol host is empty
-	if issURI.Host == "" {
-		issURI, err = url.Parse("https://" + issuer)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse issuer URI: %s", issuer)
-		}
-	}
+func (m *Middleware) verifyIssuer(issuer string) (issuerHost string, err error) {
+	// issuer must be a host or https url
+	issuerHost = strings.TrimPrefix(issuer, "https://")
 
-	doesMatch, err := matchesDomain(issURI.Host, m.identity.GetDomains())
+	doesMatch, err := matchesDomain(issuerHost, m.identity.GetDomains())
 	if err != nil {
-		return nil, fmt.Errorf("error matching domain: %v", err)
+		return "", fmt.Errorf("error matching domain: %v", err)
 	}
 	if !doesMatch {
-		return nil, fmt.Errorf("token is unverifiable: unknown server (domain doesn't match)")
+		return "", fmt.Errorf("token is unverifiable: unknown server (domain doesn't match)")
 	}
 
-	return issURI, nil
+	return issuerHost, nil
 }
 
 func matchesDomain(hostname string, domains []string) (bool, error) {
@@ -175,8 +165,9 @@ func matchesDomain(hostname string, domains []string) (bool, error) {
 	return false, nil
 }
 
-// isValidSubDomain additionally check subdomain because "my-accounts400.ondemand.com" DOES match Suffix,
-// but should not be allowed
+// isValidSubDomain additionally check subdomain because "my-accounts400.ondemand.com"
+// does match Suffix, but should not be allowed
+// additionally it returns false if hostname contains paths like /foo or ?test=true
 func isValidSubDomain(hostname, domain string) (bool, error) {
 	validSubdomainPattern := fmt.Sprintf("^[a-zA-Z0-9-]{1,63}\\." + regexp.QuoteMeta(domain) + "$")
 	return regexp.MatchString(validSubdomainPattern, hostname)
