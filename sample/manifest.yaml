@@ -1,0 +1,14 @@
+---
+version: 1
+applications:
+  - name: go-sec-test
+    path: ../
+    memory: 256MB
+    disk_quota: 256MB
+    instances: 1
+    env:
+      GO_INSTALL_PACKAGE_SPEC: github.com/sap/cloud-security-client-go/sample
+    buildpacks:
+      - go_buildpack
+    services:
+      - ias-test # cf create-service identity application ias-test --wait

@@ -11,13 +11,13 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pquerna/cachecontrol"
+	"github.com/sap/cloud-security-client-go/httpclient"
 )
 
 const defaultJwkExpiration = 15 * time.Minute
@@ -48,11 +48,11 @@ type updateKeysResult struct {
 }
 
 // NewOIDCTenant instantiates a new OIDCTenant and performs the OIDC discovery
-func NewOIDCTenant(httpClient *http.Client, targetIss *url.URL) (*OIDCTenant, error) {
+func NewOIDCTenant(httpClient *http.Client, targetIssHost string) (*OIDCTenant, error) {
 	ks := new(OIDCTenant)
 	ks.httpClient = httpClient
 	ks.acceptedClients = make(map[ClientInfo]bool)
-	err := ks.performDiscovery(targetIss.Host)
+	err := ks.performDiscovery(targetIssHost)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (ks *OIDCTenant) updateJWKsMemory(clientInfo ClientInfo) (jwk.Set, error) {
 
 func (ks *OIDCTenant) getJWKsFromServer(clientInfo ClientInfo) (r interface{}, err error) {
 	result := updateKeysResult{}
-	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, ks.ProviderJSON.JWKsURL, http.NoBody)
+	req, err := httpclient.NewRequestWithUserAgent(context.TODO(), http.MethodGet, ks.ProviderJSON.JWKsURL, http.NoBody)
 	if err != nil {
 		return result, fmt.Errorf("can't create request to fetch jwk: %v", err)
 	}
@@ -152,7 +152,7 @@ func (ks *OIDCTenant) getJWKsFromServer(clientInfo ClientInfo) (r interface{}, e
 
 func (ks *OIDCTenant) performDiscovery(baseURL string) error {
 	wellKnown := fmt.Sprintf("https://%s/.well-known/openid-configuration", strings.TrimSuffix(baseURL, "/"))
-	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, wellKnown, http.NoBody)
+	req, err := httpclient.NewRequestWithUserAgent(context.TODO(), http.MethodGet, wellKnown, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("unable to construct discovery request: %v", err)
 	}
