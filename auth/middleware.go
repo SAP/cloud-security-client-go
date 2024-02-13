@@ -41,14 +41,16 @@ type Options struct {
 
 // TokenFromCtx retrieves the claims of a request which
 // have been injected before via the auth middleware
-func TokenFromCtx(r *http.Request) Token {
-	return r.Context().Value(TokenCtxKey).(Token)
+func TokenFromCtx(r *http.Request) (Token, bool) {
+	token, ok := r.Context().Value(TokenCtxKey).(Token)
+	return token, ok
 }
 
 // ClientCertificateFromCtx retrieves the X.509 client certificate of a request which
 // have been injected before via the auth middleware
-func ClientCertificateFromCtx(r *http.Request) *Certificate {
-	return r.Context().Value(ClientCertificateCtxKey).(*Certificate)
+func ClientCertificateFromCtx(r *http.Request) (*Certificate, bool) {
+	cert, ok := r.Context().Value(ClientCertificateCtxKey).(*Certificate)
+	return cert, ok
 }
 
 // Middleware is the main entrypoint to the authn client library, instantiate with NewMiddleware. It holds information about the oAuth config and configured options.

@@ -48,6 +48,10 @@ func main() {
 }
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
-	user := auth.TokenFromCtx(r)
-	_, _ = fmt.Fprintf(w, "Hello world!\nYou're logged in as %s", user.Email())
+	user, ok := auth.TokenFromCtx(r)
+	if !ok {
+		_, _ = fmt.Fprintf(w, "Hello world!\nYou're logged in as %s", user.Email())
+	} else {
+		_, _ = fmt.Fprintf(w, "Missing token in context")
+	}
 }
