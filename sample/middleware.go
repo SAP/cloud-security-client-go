@@ -28,8 +28,8 @@ func main() {
 		panic(err)
 	}
 	authMiddleware := auth.NewMiddleware(config, auth.Options{})
-	r.Use(authMiddleware.AuthenticationHandler)
-	r.HandleFunc("/helloWorld", helloWorld).Methods(http.MethodGet)
+	r.Use(authMiddleware.AuthenticationHandler) // force oauth2 bearer token flow
+	r.HandleFunc("/auth", parseToken).Methods(http.MethodGet)
 
 	address := ":" + os.Getenv("PORT")
 	if address == "" {
@@ -47,7 +47,7 @@ func main() {
 	}
 }
 
-func helloWorld(w http.ResponseWriter, r *http.Request) {
+func parseToken(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.TokenFromCtx(r)
 	if ok {
 		_, _ = fmt.Fprintf(w, "Hello world!\nYou're logged in as %s", user.Email())
