@@ -25,7 +25,7 @@ const (
 	claimSapGlobalAppTID = "app_tid"
 	claimIasIssuer       = "ias_iss"
 	claimAzp             = "azp"
-	claimScimId          = "scim_id"
+	claimScimID          = "scim_id"
 	claimGroups          = "groups"
 )
 
@@ -148,9 +148,9 @@ func (t Token) UserUUID() string {
 	return v
 }
 
-// ScimId returns "scim_id" claim, if it doesn't exist empty string is returned
-func (t Token) ScimId() string {
-	v, _ := t.GetClaimAsString(claimScimId)
+// ScimID returns "scim_id" claim, if it doesn't exist empty string is returned
+func (t Token) ScimID() string {
+	v, _ := t.GetClaimAsString(claimScimID)
 	return v
 }
 
