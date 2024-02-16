@@ -25,6 +25,8 @@ const (
 	claimSapGlobalAppTID = "app_tid"
 	claimIasIssuer       = "ias_iss"
 	claimAzp             = "azp"
+	claimScimId          = "scim_id"
+	claimGroups          = "groups"
 )
 
 type Token struct {
@@ -146,6 +148,18 @@ func (t Token) UserUUID() string {
 	return v
 }
 
+// ScimId returns "scim_id" claim, if it doesn't exist empty string is returned
+func (t Token) ScimId() string {
+	v, _ := t.GetClaimAsString(claimScimId)
+	return v
+}
+
+// Groups returns "groups" claim, if it doesn't exist empty string is returned
+func (t Token) Groups() []string {
+	v, _ := t.GetClaimAsStringSlice(claimGroups)
+	return v
+}
+
 // ErrClaimNotExists shows that the requested custom claim does not exist in the token
 var ErrClaimNotExists = errors.New("claim does not exist in the token")
 
@@ -168,7 +182,7 @@ func (t Token) GetClaimAsString(claim string) (string, error) {
 	return stringValue, nil
 }
 
-// GetClaimAsStringSlice returns a custom claim type asserted as string slice. The claim name is case sensitive. Returns error if the claim is not available or not an array
+// GetClaimAsStringSlice returns a custom claim type asserted as string slice. The claim name is case-sensitive. Returns error if the claim is not available or not an array
 func (t Token) GetClaimAsStringSlice(claim string) ([]string, error) {
 	value, exists := t.jwtToken.Get(claim)
 	if !exists {
