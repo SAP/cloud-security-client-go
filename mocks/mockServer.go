@@ -302,17 +302,18 @@ func (m *MockServer) DefaultHeaders() map[string]interface{} {
 
 // MockConfig represents the credentials to the mock server
 type MockConfig struct {
-	ClientID             string
-	ClientSecret         string
-	URL                  string
-	Domains              []string
-	ZoneUUID             uuid.UUID
-	AppTID               string
-	ProofTokenURL        string
-	OsbURL               string
-	Certificate          string
-	Key                  string
-	CertificateExpiresAt string
+	ClientID                string
+	ClientSecret            string
+	URL                     string
+	Domains                 []string
+	ZoneUUID                uuid.UUID
+	AppTID                  string
+	ProofTokenURL           string
+	OsbURL                  string
+	Certificate             string
+	Key                     string
+	CertificateExpiresAt    string
+	AuthorizationInstanceID string
 }
 
 // GetClientID implements the env.Identity interface.
@@ -374,6 +375,9 @@ func (c MockConfig) GetCertificateExpiresAt() string {
 func (c MockConfig) IsCertificateBased() bool {
 	return c.Certificate != "" && c.Key != ""
 }
+
+// GetAuthorizationInstanceID implements the env.Identity interface.
+func (c MockConfig) GetAuthorizationInstanceID() string { return c.AuthorizationInstanceID }
 
 // JSONWebKeySet represents the data which is returned by the tenants /oauth2/certs endpoint
 type JSONWebKeySet struct {
