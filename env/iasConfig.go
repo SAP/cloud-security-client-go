@@ -29,32 +29,34 @@ type VCAPServices struct {
 
 // Identity interface has to be implemented to instantiate NewMiddleware. For IAS the standard implementation IASConfig from ../env/iasConfig.go package can be used.
 type Identity interface {
-	GetClientID() string             // Returns the client id of the oAuth client.
-	GetClientSecret() string         // Returns the client secret. Optional
-	GetURL() string                  // Returns the url to the DefaultIdentity tenant. E.g. https://abcdefgh.accounts.ondemand.com
-	GetDomains() []string            // Returns the domains of the DefaultIdentity service. E.g. ["accounts.ondemand.com"]
-	GetZoneUUID() uuid.UUID          // Deprecated: Returns the zone uuid, will be replaced by GetAppTID Optional
-	GetAppTID() string               // Returns the app tid uuid and replaces zone uuid in future Optional
-	GetProofTokenURL() string        // Returns the proof token url. Optional
-	GetCertificate() string          // Returns the client certificate. Optional
-	GetKey() string                  // Returns the client certificate key. Optional
-	GetCertificateExpiresAt() string // Returns the client certificate expiration time. Optional
-	IsCertificateBased() bool        // Returns true, in case GetCertificate() and GetKey returns non empty values
+	GetClientID() string                // Returns the client id of the oAuth client.
+	GetClientSecret() string            // Returns the client secret. Optional
+	GetURL() string                     // Returns the url to the DefaultIdentity tenant. E.g. https://abcdefgh.accounts.ondemand.com
+	GetDomains() []string               // Returns the domains of the DefaultIdentity service. E.g. ["accounts.ondemand.com"]
+	GetZoneUUID() uuid.UUID             // Deprecated: Returns the zone uuid, will be replaced by GetAppTID Optional
+	GetAppTID() string                  // Returns the app tid uuid and replaces zone uuid in future Optional
+	GetProofTokenURL() string           // Returns the proof token url. Optional
+	GetCertificate() string             // Returns the client certificate. Optional
+	GetKey() string                     // Returns the client certificate key. Optional
+	GetCertificateExpiresAt() string    // Returns the client certificate expiration time. Optional
+	GetAuthorizationInstanceID() string // Returns the AMS instance id if authorization is enabled
+	IsCertificateBased() bool           // Returns true, in case GetCertificate() and GetKey returns non-empty values
 }
 
 // DefaultIdentity represents the parsed credentials from the ias binding
 type DefaultIdentity struct {
-	ClientID             string    `json:"clientid"`
-	ClientSecret         string    `json:"clientsecret"`
-	Domains              []string  `json:"domains"`
-	URL                  string    `json:"url"`
-	ZoneUUID             uuid.UUID `json:"zone_uuid"` // Deprecated: will be replaced by AppTID
-	AppTID               string    `json:"app_tid"`   // replaces ZoneUUID
-	ProofTokenURL        string    `json:"prooftoken_url"`
-	OsbURL               string    `json:"osb_url"`
-	Certificate          string    `json:"certificate"`
-	Key                  string    `json:"key"`
-	CertificateExpiresAt string    `json:"certificate_expires_at"`
+	ClientID                string    `json:"clientid"`
+	ClientSecret            string    `json:"clientsecret"`
+	Domains                 []string  `json:"domains"`
+	URL                     string    `json:"url"`
+	ZoneUUID                uuid.UUID `json:"zone_uuid"` // Deprecated: will be replaced by AppTID
+	AppTID                  string    `json:"app_tid"`   // replaces ZoneUUID
+	ProofTokenURL           string    `json:"prooftoken_url"`
+	OsbURL                  string    `json:"osb_url"`
+	Certificate             string    `json:"certificate"`
+	Key                     string    `json:"key"`
+	CertificateExpiresAt    string    `json:"certificate_expires_at"`
+	AuthorizationInstanceID string    `json:"authorization_instance_id"`
 }
 
 // ParseIdentityConfig parses the IAS config from the applications environment
@@ -231,4 +233,9 @@ func (c DefaultIdentity) GetKey() string {
 // GetCertificateExpiresAt implements the env.Identity interface.
 func (c DefaultIdentity) GetCertificateExpiresAt() string {
 	return c.CertificateExpiresAt
+}
+
+// GetAuthorizationInstanceID implements the env.Identity interface.
+func (c DefaultIdentity) GetAuthorizationInstanceID() string {
+	return c.AuthorizationInstanceID
 }
