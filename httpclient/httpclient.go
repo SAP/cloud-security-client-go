@@ -41,9 +41,10 @@ func DefaultTLSConfig(identity env.Identity) (*tls.Config, error) {
 		return nil, errors.New("error adding certs to pool for DefaultTLSConfig")
 	}
 	tlsConfig := &tls.Config{
-		MinVersion:   tls.VersionTLS12,
-		RootCAs:      tlsCertPool,
-		Certificates: []tls.Certificate{tlsCert},
+		MinVersion:    tls.VersionTLS12,
+		RootCAs:       tlsCertPool,
+		Certificates:  []tls.Certificate{tlsCert},
+		Renegotiation: tls.RenegotiateOnceAsClient,
 	}
 	return tlsConfig, nil
 }
