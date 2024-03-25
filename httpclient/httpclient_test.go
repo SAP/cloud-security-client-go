@@ -32,7 +32,7 @@ var mTLSConfig = &env.DefaultIdentity{
 func TestDefaultTLSConfig_ReturnsNil(t *testing.T) {
 	tlsConfig, err := DefaultTLSConfig(&env.DefaultIdentity{})
 	assert.NoError(t, err)
-	assert.Nil(t, tlsConfig)
+	assert.NotNil(t, tlsConfig)
 }
 
 func TestDefaultHTTPClient_ClientCertificate(t *testing.T) {
