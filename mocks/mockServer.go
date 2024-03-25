@@ -25,12 +25,13 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/sap/cloud-security-client-go/httpclient"
 
+	"github.com/sap/cloud-security-client-go/httpclient"
 	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
-const dummyKey = `-----BEGIN RSA PRIVATE KEY-----
+//nolint:gosec // dummy key for tests
+const dummyKey = `-----BEGIN RSA PRIVATE KEY----- 
 MIIBOwIBAAJBAK6NtAzlUO1vwBq278cYXXQ4jgVqkE0hoHrfZ0oo4BMoZOoLc0Vx
 YONmJypYVHzR8sedHBlIkrOrx6Ea/Y+CgSMCAwEAAQJAN7rOTX+5gtU3BFB75ZkF
 3WFhFqGbSMT/s7s4Axlh0TuBX9l9iE4cPrP3Y07C9YC8x3yFazVzcss8KcaZ6t2E

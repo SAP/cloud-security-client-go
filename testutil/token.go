@@ -15,6 +15,7 @@ import (
 	"github.com/sap/cloud-security-client-go/auth"
 )
 
+//nolint:gosec // dummy key for tests
 const dummyKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIBOwIBAAJBAK6NtAzlUO1vwBq278cYXXQ4jgVqkE0hoHrfZ0oo4BMoZOoLc0Vx
 YONmJypYVHzR8sedHBlIkrOrx6Ea/Y+CgSMCAwEAAQJAN7rOTX+5gtU3BFB75ZkF

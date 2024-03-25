@@ -33,14 +33,6 @@ linters-settings:
           - case
           - condition
           - return
-  govet:
-    check-shadowing: false
-    settings:
-      printf:
-        funcs:
-          - (github.wdf.sap.corp/CPSecurity/cas-ams-server/ams-server/log.Logger).Debugf
-          - (github.wdf.sap.corp/CPSecurity/cas-ams-server/ams-server/log.Logger).Infof
-          - (github.wdf.sap.corp/CPSecurity/cas-ams-server/ams-server/log.Logger).Errorf
   lll:
     line-length: 140
   maligned:
@@ -97,6 +89,8 @@ issues:
       linters:
         - gomnd
         - funlen
+        - revive
+        - goconst
     - linters:
         - gocritic
       text: "hugeParam:"
