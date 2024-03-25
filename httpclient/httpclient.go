@@ -23,7 +23,10 @@ const UserAgent = "go-sec-lib"
 // identity provides certificate and key
 func DefaultTLSConfig(identity env.Identity) (*tls.Config, error) {
 	if !identity.IsCertificateBased() {
-		return nil, nil
+		return &tls.Config{
+			MinVersion:    tls.VersionTLS12,
+			Renegotiation: tls.RenegotiateOnceAsClient,
+		}, nil
 	}
 	certPEMBlock := []byte(identity.GetCertificate())
 	keyPEMBlock := []byte(identity.GetKey())
