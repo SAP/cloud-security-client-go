@@ -39,8 +39,9 @@ type Identity interface {
 	GetCertificate() string             // Returns the client certificate. Optional
 	GetKey() string                     // Returns the client certificate key. Optional
 	GetCertificateExpiresAt() string    // Returns the client certificate expiration time. Optional
-	GetAuthorizationInstanceID() string // Returns the AMS instance id if authorization is enabled
 	IsCertificateBased() bool           // Returns true, in case GetCertificate() and GetKey returns non-empty values
+	GetAuthorizationInstanceID() string // Returns the AMS instance id if authorization is enabled
+	GetAuthorizationBundleURL() string  // Returns the AMS Bundle URL if authorization is enabled
 }
 
 // DefaultIdentity represents the parsed credentials from the ias binding
@@ -57,6 +58,7 @@ type DefaultIdentity struct {
 	Key                     string    `json:"key"`
 	CertificateExpiresAt    string    `json:"certificate_expires_at"`
 	AuthorizationInstanceID string    `json:"authorization_instance_id"`
+	AuthorizationBundleURL  string    `json:"authorization_bundle_url"`
 }
 
 // ParseIdentityConfig parses the IAS config from the applications environment
@@ -238,4 +240,9 @@ func (c DefaultIdentity) GetCertificateExpiresAt() string {
 // GetAuthorizationInstanceID implements the env.Identity interface.
 func (c DefaultIdentity) GetAuthorizationInstanceID() string {
 	return c.AuthorizationInstanceID
+}
+
+// GetAuthorizationBundleURL implements the env.Identity interface.
+func (c DefaultIdentity) GetAuthorizationBundleURL() string {
+	return c.AuthorizationBundleURL
 }
