@@ -315,6 +315,7 @@ type MockConfig struct {
 	Key                     string
 	CertificateExpiresAt    string
 	AuthorizationInstanceID string
+	AuthorizationBundleURL  string
 }
 
 // GetClientID implements the env.Identity interface.
@@ -379,6 +380,9 @@ func (c MockConfig) IsCertificateBased() bool {
 
 // GetAuthorizationInstanceID implements the env.Identity interface.
 func (c MockConfig) GetAuthorizationInstanceID() string { return c.AuthorizationInstanceID }
+
+// GetAuthorizationInstanceID implements the env.Identity interface.
+func (c MockConfig) GetAuthorizationBundleURL() string { return c.AuthorizationBundleURL }
 
 // JSONWebKeySet represents the data which is returned by the tenants /oauth2/certs endpoint
 type JSONWebKeySet struct {
