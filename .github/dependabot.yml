@@ -7,6 +7,5 @@ updates:
       time: "10:00"
       timezone: Etc/UCT
     reviewers:
-      - "liga-oz"
-      - "f-blass"
+      - "cloud-security-client-go-team"
     open-pull-requests-limit: 10
