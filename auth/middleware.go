@@ -117,7 +117,7 @@ func (m *Middleware) AuthenticateWithProofOfPossession(r *http.Request) (Token, 
 		return Token{}, nil, err
 	}
 
-	token, err := m.parseAndValidateJWT(rawToken)
+	token, err := m.ParseAndValidateJWT(rawToken)
 	if err != nil {
 		return Token{}, nil, err
 	}
