@@ -61,7 +61,6 @@ linters:
     - gocritic
     - gocyclo
     - gofmt
-    - gomnd
     - goprintffuncname
     - gosec
     - gosimple
@@ -72,7 +71,7 @@ linters:
     - noctx
     - nolintlint
     - rowserrcheck
-    - exportloopref
+    - exportloopref # keep for now until the minimum go version of this library is set to >=1.22
     - staticcheck
     - stylecheck
     - typecheck

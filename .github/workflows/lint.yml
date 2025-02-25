@@ -11,9 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.57.1
+          version: v1.64
 
           # Optional: golangci-lint command line arguments.
           # args: --issues-exit-code=0
