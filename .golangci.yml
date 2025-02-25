@@ -57,7 +57,6 @@ linters:
     - noctx
     - nolintlint
     - rowserrcheck
-    - exportloopref # keep for now until the minimum go version of this library is set to >=1.22
     - staticcheck
     - stylecheck
     - typecheck
