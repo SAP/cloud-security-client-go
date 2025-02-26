@@ -17,8 +17,8 @@ import (
 	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
-// parseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
-func (m *Middleware) parseAndValidateJWT(rawToken string) (Token, error) {
+// ParseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
+func (m *Middleware) ParseAndValidateJWT(rawToken string) (Token, error) {
 	token, err := NewToken(rawToken)
 	if err != nil {
 		return Token{}, err

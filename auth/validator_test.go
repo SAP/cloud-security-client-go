@@ -34,7 +34,7 @@ func TestAdditionalDomain(t *testing.T) {
 		t.Errorf("unable to sign provided test token: %v", err)
 	}
 
-	_, err = m.parseAndValidateJWT(rawToken)
+	_, err = m.ParseAndValidateJWT(rawToken)
 	if err != nil {
 		t.Error("unexpected error: ", err.Error())
 	}
@@ -59,7 +59,7 @@ func TestAuthMiddleware_getOIDCTenant(t *testing.T) {
 		t.Errorf("unable to sign provided test token: %v", err)
 	}
 
-	token, err := m.parseAndValidateJWT(rawToken)
+	token, err := m.ParseAndValidateJWT(rawToken)
 	if err != nil {
 		t.Errorf("unable to parse provided test token: %v", err)
 	}
