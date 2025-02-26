@@ -1,6 +1,6 @@
 module github.com/sap/cloud-security-client-go
 
-go 1.20
+go 1.20 // should be kept in sync with .github/workflows/build.yml
 
 require (
 	github.com/google/uuid v1.6.0

@@ -169,6 +169,6 @@ func matchesDomain(hostname string, domains []string) (bool, error) {
 // does match Suffix, but should not be allowed
 // additionally it returns false if hostname contains paths like /foo or ?test=true
 func isValidSubDomain(hostname, domain string) (bool, error) {
-	validSubdomainPattern := fmt.Sprintf("^[a-zA-Z0-9-]{1,63}\\." + regexp.QuoteMeta(domain) + "$")
+	validSubdomainPattern := "^[a-zA-Z0-9-]{1,63}\\." + regexp.QuoteMeta(domain) + "$"
 	return regexp.MatchString(validSubdomainPattern, hostname)
 }
