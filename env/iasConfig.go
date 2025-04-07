@@ -193,7 +193,7 @@ func (c DefaultIdentity) GetDomains() []string {
 // Deprecated: is replaced by GetAppTID and will be removed with the next major release
 func (c DefaultIdentity) GetZoneUUID() uuid.UUID {
 	appTid, err := uuid.Parse(c.AppTID)
-	if err != nil {
+	if err == nil {
 		return appTid
 	}
 	return c.ZoneUUID
