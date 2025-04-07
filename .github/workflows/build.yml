@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
-        go: [ '1.20', 'stable' ] # minimum version should be kept in sync with go version in go.mod
+        go: [ '1.23', 'stable' ] # minimum version should be kept in sync with go version in go.mod
       fail-fast: false
 
     name: Go ${{ matrix.go }} ${{ matrix.os }} build
