@@ -5,13 +5,10 @@
 package env
 
 import (
-	"fmt"
-	"os"
 	"path"
 	"reflect"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +17,6 @@ var testConfig = &DefaultIdentity{
 	ClientSecret:            "[the_CLIENT.secret:3[/abc",
 	Domains:                 []string{"accounts400.ondemand.com", "my.arbitrary.domain"},
 	URL:                     "https://mytenant.accounts400.ondemand.com",
-	ZoneUUID:                uuid.MustParse("bef12345-de57-480f-be92-1d8c1c7abf16"),
 	AppTID:                  "70cd0de3-528a-4655-b56a-5862591def5c",
 	AuthorizationInstanceID: "8d5423d7-bda4-461c-9670-1b9adc142f0a",
 	AuthorizationBundleURL:  "https://mytenant.accounts400.ondemand.com/sap/ams/v1/bundles",
@@ -36,7 +32,7 @@ func TestParseIdentityConfig(t *testing.T) {
 	}{
 		{
 			name:    "[CF] single identity service instance bound",
-			env:     `{"identity":[{"binding_name":null,"credentials":{"clientid":"cef76757-de57-480f-be92-1d8c1c7abf16","clientsecret":"[the_CLIENT.secret:3[/abc","domains":["accounts400.ondemand.com","my.arbitrary.domain"],"token_url":"https://mytenant.accounts400.ondemand.com/oauth2/token","url":"https://mytenant.accounts400.ondemand.com","zone_uuid":"bef12345-de57-480f-be92-1d8c1c7abf16", "app_tid":"70cd0de3-528a-4655-b56a-5862591def5c", "authorization_instance_id":"8d5423d7-bda4-461c-9670-1b9adc142f0a", "authorization_bundle_url":"https://mytenant.accounts400.ondemand.com/sap/ams/v1/bundles"},"instance_name":"my-ams-instance","label":"identity","name":"my-ams-instance","plan":"application","provider":null,"syslog_drain_url":null,"tags":["ias"],"volume_mounts":[]}]}`,
+			env:     `{"identity":[{"binding_name":null,"credentials":{"clientid":"cef76757-de57-480f-be92-1d8c1c7abf16","clientsecret":"[the_CLIENT.secret:3[/abc","domains":["accounts400.ondemand.com","my.arbitrary.domain"],"token_url":"https://mytenant.accounts400.ondemand.com/oauth2/token","url":"https://mytenant.accounts400.ondemand.com", "app_tid":"70cd0de3-528a-4655-b56a-5862591def5c", "authorization_instance_id":"8d5423d7-bda4-461c-9670-1b9adc142f0a", "authorization_bundle_url":"https://mytenant.accounts400.ondemand.com/sap/ams/v1/bundles"},"instance_name":"my-ams-instance","label":"identity","name":"my-ams-instance","plan":"application","provider":null,"syslog_drain_url":null,"tags":["ias"],"volume_mounts":[]}]}`,
 			want:    testConfig,
 			wantErr: false,
 		},
@@ -82,9 +78,9 @@ func TestParseIdentityConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var err error
 			if tt.env != "" {
-				err = setTestEnv(tt.env)
+				setTestEnv(t, tt.env)
 			} else if tt.k8sSecretPath != "" {
-				err = setK8sTestEnv(tt.k8sSecretPath)
+				setK8sTestEnv(t, tt.k8sSecretPath)
 			}
 			if err != nil {
 				t.Error(err)
@@ -103,69 +99,30 @@ func TestParseIdentityConfig(t *testing.T) {
 			if tt.want != nil {
 				assert.False(t, tt.want.IsCertificateBased())
 			}
-			err = clearTestEnv()
-			if err != nil {
-				t.Error(err)
-			}
 		})
 	}
 }
 
 func TestX509BasedCredentials(t *testing.T) {
-	err := setTestEnv("{\"identity\":[{\"credentials\":{\"clientid\":\"cef76757-de57-480f-be92-1d8c1c7abf16\",\"certificate\":\"theCertificate\",\"key\":\"thekey\"}}]}")
-	assert.NoError(t, err)
+	setTestEnv(t, `{"identity":[{"credentials":{"clientid":"cef76757-de57-480f-be92-1d8c1c7abf16","certificate":"theCertificate","key":"thekey","app_tid":"70cd0de3-528a-4655-b56a-5862591def5c"}}]}`)
 	got, err := ParseIdentityConfig()
 	assert.NoError(t, err)
 	assert.Equal(t, got.GetClientID(), "cef76757-de57-480f-be92-1d8c1c7abf16")
 	assert.Equal(t, got.GetCertificate(), "theCertificate")
 	assert.Equal(t, got.GetKey(), "thekey")
+	assert.Equal(t, got.GetZoneUUID().String(), "70cd0de3-528a-4655-b56a-5862591def5c")
 	assert.True(t, got.IsCertificateBased())
 }
 
-// TODO go 1.17 supports T.SetEnv https://pkg.go.dev/testing#T.Setenv
 // Cleanup when go 1.18 is released
-func setTestEnv(vcapServices string) error {
-	err := os.Setenv("VCAP_SERVICES", vcapServices)
-	if err != nil {
-		return fmt.Errorf("error preparing test: could not set env VCAP_SERVICES: %w", err)
-	}
-	err = os.Setenv("VCAP_APPLICATION", "{}")
-	if err != nil {
-		return fmt.Errorf("error preparing test: could not set env VCAP_APPLICATION: %w", err)
-	}
-	return nil
+func setTestEnv(t *testing.T, vcapServices string) {
+	t.Setenv("VCAP_SERVICES", vcapServices)
+	t.Setenv("VCAP_APPLICATION", "{}")
 }
 
-func setK8sTestEnv(secretPath string) error {
-	err := os.Setenv("KUBERNETES_SERVICE_HOST", "0.0.0.0")
-	if err != nil {
-		return fmt.Errorf("error preparing test: could not set env KUBERNETES_SERVICE_HOST: %w", err)
-	}
+func setK8sTestEnv(t *testing.T, secretPath string) {
+	t.Setenv("KUBERNETES_SERVICE_HOST", "0.0.0.0")
 	if secretPath != "" && secretPath != "ignore" {
-		err = os.Setenv("IAS_CONFIG_PATH", secretPath)
-		if err != nil {
-			return fmt.Errorf("error preparing test: could not set env IAS_CONFIG_PATH: %w", err)
-		}
+		t.Setenv("IAS_CONFIG_PATH", secretPath)
 	}
-	return nil
-}
-
-func clearTestEnv() error {
-	err := os.Unsetenv("VCAP_SERVICES")
-	if err != nil {
-		return fmt.Errorf("error cleaning up after test: could not unset env VCAP_SERVICES: %w", err)
-	}
-	err = os.Unsetenv("VCAP_APPLICATION")
-	if err != nil {
-		return fmt.Errorf("error cleaning up after test: could not unset env VCAP_APPLICATION/VCAP_SERVICES: %w", err)
-	}
-	err = os.Unsetenv("KUBERNETES_SERVICE_HOST")
-	if err != nil {
-		return fmt.Errorf("error cleaning up after test: could not unset env KUBERNETES_SERVICE_HOST: %w", err)
-	}
-	err = os.Unsetenv("IAS_CONFIG_PATH")
-	if err != nil {
-		return fmt.Errorf("error cleaning up after test: could not unset env IAS_CONFIG_PATH: %w", err)
-	}
-	return nil
 }
