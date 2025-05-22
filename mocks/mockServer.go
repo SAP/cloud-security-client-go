@@ -30,7 +30,6 @@ import (
 	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
-//nolint:gosec // dummy key for tests
 const dummyKey = `-----BEGIN RSA TESTING KEY-----
 MIIEowIBAAKCAQEAsPnoGUOnrpiSqt4XynxA+HRP7S+BSObI6qJ7fQAVSPtRkqso
 tWxQYLEYzNEx5ZSHTGypibVsJylvCfuToDTfMul8b/CZjP2Ob0LdpYrNH6l5hvFE
