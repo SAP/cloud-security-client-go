@@ -154,8 +154,8 @@ func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 		Kid: "testKey",
 		Kty: "RSA",
 		Alg: "RS256",
-		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(m.RSAKey.PublicKey.E)).Bytes()),
-		N:   base64.RawURLEncoding.EncodeToString(m.RSAKey.PublicKey.N.Bytes()),
+		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(m.RSAKey.E)).Bytes()),
+		N:   base64.RawURLEncoding.EncodeToString(m.RSAKey.N.Bytes()),
 		Use: "sig",
 	}
 	keySet := JSONWebKeySet{Keys: []*JSONWebKey{key}}
