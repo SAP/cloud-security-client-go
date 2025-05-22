@@ -7,5 +7,5 @@ updates:
       time: "10:00"
       timezone: Etc/UCT
     reviewers:
-      - "cloud-security-client-go-team"
+      - "cloud-security-ams-team"
     open-pull-requests-limit: 10
