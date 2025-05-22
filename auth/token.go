@@ -27,6 +27,7 @@ const (
 	claimAzp             = "azp"
 	claimScimID          = "scim_id"
 	claimGroups          = "groups"
+	claimIasAPIs         = "ias_apis"
 )
 
 type Token struct {

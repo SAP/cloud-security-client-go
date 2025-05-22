@@ -94,7 +94,7 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 	t := TokenFlows{
 		identity: identity,
 		Options:  options,
-		cache:    cache.New(15*time.Minute, 10*time.Minute), //nolint:gomnd
+		cache:    cache.New(15*time.Minute, 10*time.Minute),
 	}
 	if options.HTTPClient == nil {
 		tlsConfig, err := httpclient.DefaultTLSConfig(identity)
