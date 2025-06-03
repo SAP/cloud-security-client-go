@@ -36,6 +36,8 @@ Files:
     env/testdata/**
     auth/testdata/**
     httpclient/testdata/**
+    mocks/testdata/**
+    testutil/testdata/**
     tokenclient/README.md
     sample/manifest.yaml
 Copyright: 2020-2021 SAP SE or an SAP affiliate company and Cloud Security Client Go contributors
