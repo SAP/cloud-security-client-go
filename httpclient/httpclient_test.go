@@ -6,6 +6,7 @@ package httpclient
 import (
 	_ "embed"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,16 +17,16 @@ import (
 //go:embed testdata/certificate.pem
 var certificate string
 
-//go:embed testdata/privateKey.pem
-var key string
+//go:embed testdata/privateTestingKey.pem
+var dummyKey string
 
-//go:embed testdata/privateRSAKey.pem
+//go:embed testdata/otherTestingKey.pem
 var otherKey string
 
 var mTLSConfig = &env.DefaultIdentity{
 	ClientID:    "09932670-9440-445d-be3e-432a97d7e2ef",
 	Certificate: certificate,
-	Key:         key,
+	Key:         strings.ReplaceAll(dummyKey, "TESTING KEY", "PRIVATE KEY"),
 	URL:         "https://mySaaS.accounts400.ondemand.com",
 }
 
@@ -51,7 +52,7 @@ func TestDefaultHTTPClient_ClientCredentials(t *testing.T) {
 }
 
 func TestDefaultTLSConfig_shouldFailIfKeyDoesNotMatch(t *testing.T) {
-	mTLSConfig.Certificate = otherKey
+	mTLSConfig.Key = strings.ReplaceAll(otherKey, "TESTING KEY", "PRIVATE KEY")
 	tlsConfig, err := DefaultTLSConfig(mTLSConfig)
 	assert.Error(t, err)
 	assert.Nil(t, tlsConfig)
