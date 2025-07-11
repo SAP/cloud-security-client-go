@@ -254,7 +254,7 @@ This sub-score is based on 1 feature:
 
 
 
-1.  **Info about vulnerabilities in the project:** 1 vulnerability, [details below](#known-vulnerabilities)
+1.  **Info about vulnerabilities in the project:** Not found
 
 
 ### Unpatched vulnerabilities
@@ -269,7 +269,7 @@ This sub-score is based on 1 feature:
 
 
 
-1.  **Info about vulnerabilities in the project:** 1 vulnerability, [details below](#known-vulnerabilities)
+1.  **Info about vulnerabilities in the project:** Not found
 
 
 ### Community commitment
@@ -590,5 +590,4 @@ This sub-score is based on 3 features:
 
 ## Known vulnerabilities
 
-1.  [CVE-2023-50424](https://nvd.nist.gov/vuln/detail/CVE-2023-50424): SAP BTP Security Services Integration Library ([Golang] github.com/sap/cloud-security-client-go) - versions < 0.17.0, allow under certain conditions an escalation of privileges. On successful exploitation, an unauthenticated attacker can obtain arbitrary permissions within the application.
-
+No vulnerabilities found
