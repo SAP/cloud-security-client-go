@@ -1,6 +1,6 @@
 **Rating**: **BAD**
 
-**Score**: **3.45**, max score value is 10.0
+**Score**: **3.83**, max score value is 10.0
 
 **Confidence**: High (9.65, max confidence value is 10.0)
 
@@ -41,7 +41,7 @@ It used the following sub-scores:
         
     1.  **[nohttp tool](#nohttp-tool)**: **0.0** (weight is 0.2)
         
-1.  **[Security awareness](#security-awareness)**: **1.0** (weight is 0.9)
+1.  **[Security awareness](#security-awareness)**: **3.0** (weight is 0.9)
     
 1.  **[Vulnerability discovery and security testing](#vulnerability-discovery-and-security-testing)**: **2.0** (weight is 0.6)
     1.  **[Security testing](#security-testing)**: **4.55** (weight is 1.0)
@@ -93,13 +93,6 @@ More info:
 You can open a pull request to enable CodeQL scans in the project.
 More info:
 1.  [How to enable CodeQL checks](https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/enabling-code-scanning-for-a-repository#enabling-code-scanning-using-actions)
-
-
-You can open a pull request to add a security policy for the project.
-More info:
-1.  [About adding a security policy to a repository on GitHub](https://docs.github.com/en/free-pro-team@latest/github/managing-security-vulnerabilities/adding-a-security-policy-to-your-repository)
-1.  [An example of a security policy](https://github.com/apache/nifi/blob/main/SECURITY.md)
-1.  [Suggest a security policy for the project](https://github.com/SAP/cloud-security-client-go/security/policy)
 
 
 You can open a pull request to enable FindSecBugs for the project.
@@ -186,7 +179,7 @@ This sub-score is based on the following sub-scores:
 
 ### Security awareness
 
-Score: **1.0**, confidence is 10.0 (max), weight is 0.9 (high)
+Score: **3.0**, confidence is 10.0 (max), weight is 0.9 (high)
 
 The score shows how a project is aware of security. If the project has a security policy, then the score adds 2.00. If the project has a security team, then the score adds 3.00. If the project uses verified signed commits, then the score adds 0.50. If the project has a bug bounty program, then the score adds 4.00. If the project signs its artifacts, then the score adds 0.50. If the project uses a security tool or library, then the score adds 1.00. If the project has executable binaries, then the score subtracts 2.00.
 
@@ -197,7 +190,7 @@ This sub-score is based on 18 features:
 
 
 1.  **Does it have a bug bounty program?** No
-1.  **Does it have a security policy?** No
+1.  **Does it have a security policy?** Yes
 1.  **Does it have a security team?** No
 1.  **Does it have executable binaries?** No
 1.  **Does it sign artifacts?** No
