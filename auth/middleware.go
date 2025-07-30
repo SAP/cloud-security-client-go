@@ -42,7 +42,12 @@ type Options struct {
 // TokenFromCtx retrieves the claims of a request which
 // have been injected before via the auth middleware
 func TokenFromCtx(r *http.Request) (Token, bool) {
-	token, ok := r.Context().Value(TokenCtxKey).(Token)
+	return TokenFromContext(r.Context())
+}
+
+// TokenFromContext retrieves the decoded token of a context that got stored there before by the middleware.
+func TokenFromContext(c context.Context) (Token, bool) {
+	token, ok := c.Value(TokenCtxKey).(Token)
 	return token, ok
 }
 
