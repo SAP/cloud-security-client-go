@@ -1,6 +1,6 @@
 **Rating**: **BAD**
 
-**Score**: **3.83**, max score value is 10.0
+**Score**: **3.73**, max score value is 10.0
 
 **Confidence**: High (9.65, max confidence value is 10.0)
 
@@ -75,7 +75,7 @@ It used the following sub-scores:
     
 1.  **[Community commitment](#community-commitment)**: **8.0** (weight is 0.5)
     
-1.  **[Project activity](#project-activity)**: **1.08** (weight is 0.5)
+1.  **[Project activity](#project-activity)**: **0.15** (weight is 0.5)
     
 1.  **[Project popularity](#project-popularity)**: **0.02** (weight is 0.5)
     
@@ -254,7 +254,7 @@ This sub-score is based on 1 feature:
 
 
 
-1.  **Info about vulnerabilities in the project:** 1 vulnerability, [details below](#known-vulnerabilities)
+1.  **Info about vulnerabilities in the project:** Not found
 
 
 ### Unpatched vulnerabilities
@@ -269,7 +269,7 @@ This sub-score is based on 1 feature:
 
 
 
-1.  **Info about vulnerabilities in the project:** 1 vulnerability, [details below](#known-vulnerabilities)
+1.  **Info about vulnerabilities in the project:** Not found
 
 
 ### Community commitment
@@ -291,17 +291,17 @@ This sub-score is based on 3 features:
 
 ### Project activity
 
-Score: **1.08**, confidence is 10.0 (max), weight is 0.5 (medium)
+Score: **0.15**, confidence is 10.0 (max), weight is 0.5 (medium)
 
 The score evaluates how active a project is. It's based on number of commits and contributors in the last 3 months.
 
-7 commits in the last 3 months results to 1.08 points
+1 commits in the last 3 months results to 0.15 points
 
 This sub-score is based on 2 features:
 
 
 
-1.  **Number of commits in the last three months:** 7
+1.  **Number of commits in the last three months:** 1
 1.  **Number of contributors in the last three months:** 1
 
 
@@ -590,5 +590,4 @@ This sub-score is based on 3 features:
 
 ## Known vulnerabilities
 
-1.  [CVE-2023-50424](https://nvd.nist.gov/vuln/detail/CVE-2023-50424): SAP BTP Security Services Integration Library ([Golang] github.com/sap/cloud-security-client-go) - versions < 0.17.0, allow under certain conditions an escalation of privileges. On successful exploitation, an unauthenticated attacker can obtain arbitrary permissions within the application.
-
+No vulnerabilities found
