@@ -1,6 +1,6 @@
 **Rating**: **BAD**
 
-**Score**: **3.71**, max score value is 10.0
+**Score**: **3.81**, max score value is 10.0
 
 **Confidence**: High (9.65, max confidence value is 10.0)
 
@@ -22,6 +22,8 @@ It used the following sub-scores:
             
         1.  **[OWASP Dependency Check score](#owasp-dependency-check-score)**: **N/A** (weight is 1.0)
             
+    1.  **[Fuzzing](#fuzzing)**: **N/A** (weight is 1.0)
+        
     1.  **[Static analysis](#static-analysis)**: **0.0** (weight is 1.0)
         1.  **[How a project uses CodeQL](#how-a-project-uses-codeql)**: **0.0** (weight is 1.0)
             
@@ -35,13 +37,11 @@ It used the following sub-scores:
             
         1.  **[How a project uses MyPy](#how-a-project-uses-mypy)**: **N/A** (weight is 0.2)
             
-    1.  **[Fuzzing](#fuzzing)**: **N/A** (weight is 1.0)
-        
     1.  **[Memory-safety testing](#memory-safety-testing)**: **N/A** (weight is 1.0)
         
     1.  **[nohttp tool](#nohttp-tool)**: **0.0** (weight is 0.2)
         
-1.  **[Security awareness](#security-awareness)**: **3.0** (weight is 0.9)
+1.  **[Security awareness](#security-awareness)**: **3.5** (weight is 0.9)
     
 1.  **[Vulnerability discovery and security testing](#vulnerability-discovery-and-security-testing)**: **2.0** (weight is 0.6)
     1.  **[Security testing](#security-testing)**: **4.55** (weight is 1.0)
@@ -52,6 +52,8 @@ It used the following sub-scores:
                 
             1.  **[OWASP Dependency Check score](#owasp-dependency-check-score)**: **N/A** (weight is 1.0)
                 
+        1.  **[Fuzzing](#fuzzing)**: **N/A** (weight is 1.0)
+            
         1.  **[Static analysis](#static-analysis)**: **0.0** (weight is 1.0)
             1.  **[How a project uses CodeQL](#how-a-project-uses-codeql)**: **0.0** (weight is 1.0)
                 
@@ -65,8 +67,6 @@ It used the following sub-scores:
                 
             1.  **[How a project uses MyPy](#how-a-project-uses-mypy)**: **N/A** (weight is 0.2)
                 
-        1.  **[Fuzzing](#fuzzing)**: **N/A** (weight is 1.0)
-            
         1.  **[Memory-safety testing](#memory-safety-testing)**: **N/A** (weight is 1.0)
             
         1.  **[nohttp tool](#nohttp-tool)**: **0.0** (weight is 0.2)
@@ -156,6 +156,8 @@ This sub-score is based on the following sub-scores:
         
     1.  **[OWASP Dependency Check score](#owasp-dependency-check-score)**: **N/A** (weight is 1.0)
         
+1.  **[Fuzzing](#fuzzing)**: **N/A** (weight is 1.0)
+    
 1.  **[Static analysis](#static-analysis)**: **0.0** (weight is 1.0)
     1.  **[How a project uses CodeQL](#how-a-project-uses-codeql)**: **0.0** (weight is 1.0)
         
@@ -169,8 +171,6 @@ This sub-score is based on the following sub-scores:
         
     1.  **[How a project uses MyPy](#how-a-project-uses-mypy)**: **N/A** (weight is 0.2)
         
-1.  **[Fuzzing](#fuzzing)**: **N/A** (weight is 1.0)
-    
 1.  **[Memory-safety testing](#memory-safety-testing)**: **N/A** (weight is 1.0)
     
 1.  **[nohttp tool](#nohttp-tool)**: **0.0** (weight is 0.2)
@@ -179,7 +179,7 @@ This sub-score is based on the following sub-scores:
 
 ### Security awareness
 
-Score: **3.0**, confidence is 10.0 (max), weight is 0.9 (high)
+Score: **3.5**, confidence is 10.0 (max), weight is 0.9 (high)
 
 The score shows how a project is aware of security. If the project has a security policy, then the score adds 2.00. If the project has a security team, then the score adds 3.00. If the project uses verified signed commits, then the score adds 0.50. If the project has a bug bounty program, then the score adds 4.00. If the project signs its artifacts, then the score adds 0.50. If the project uses a security tool or library, then the score adds 1.00. If the project has executable binaries, then the score subtracts 2.00.
 
@@ -204,7 +204,7 @@ This sub-score is based on 18 features:
 1.  **Does it use Snyk?** No
 1.  **Does it use UndefinedBehaviorSanitizer?** No
 1.  **Does it use nohttp?** No
-1.  **Does it use verified signed commits?** No
+1.  **Does it use verified signed commits?** Yes
 1.  **How is OWASP Dependency Check used?** Not used
 1.  **Is it included to OSS-Fuzz?** No
 
@@ -229,6 +229,8 @@ This sub-score is based on the following sub-score:
             
         1.  **[OWASP Dependency Check score](#owasp-dependency-check-score)**: **N/A** (weight is 1.0)
             
+    1.  **[Fuzzing](#fuzzing)**: **N/A** (weight is 1.0)
+        
     1.  **[Static analysis](#static-analysis)**: **0.0** (weight is 1.0)
         1.  **[How a project uses CodeQL](#how-a-project-uses-codeql)**: **0.0** (weight is 1.0)
             
@@ -242,8 +244,6 @@ This sub-score is based on the following sub-score:
             
         1.  **[How a project uses MyPy](#how-a-project-uses-mypy)**: **N/A** (weight is 0.2)
             
-    1.  **[Fuzzing](#fuzzing)**: **N/A** (weight is 1.0)
-        
     1.  **[Memory-safety testing](#memory-safety-testing)**: **N/A** (weight is 1.0)
         
     1.  **[nohttp tool](#nohttp-tool)**: **0.0** (weight is 0.2)
@@ -357,6 +357,22 @@ This sub-score is based on the following sub-scores:
     
 
 
+### Fuzzing
+
+Score: **N/A**, confidence is 10.0 (max), weight is 1.0 (high)
+
+
+
+
+
+This sub-score is based on 2 features:
+
+
+
+1.  **Is it included to OSS-Fuzz?** No
+1.  **Programming languages:** GO, OTHER
+
+
 ### Static analysis
 
 Score: **0.0**, confidence is 10.0 (max), weight is 1.0 (high)
@@ -381,22 +397,6 @@ This sub-score is based on the following sub-scores:
     
 1.  **[How a project uses MyPy](#how-a-project-uses-mypy)**: **N/A** (weight is 0.2)
     
-
-
-### Fuzzing
-
-Score: **N/A**, confidence is 10.0 (max), weight is 1.0 (high)
-
-
-
-
-
-This sub-score is based on 2 features:
-
-
-
-1.  **Is it included to OSS-Fuzz?** No
-1.  **Programming languages:** GO, OTHER
 
 
 ### Memory-safety testing
