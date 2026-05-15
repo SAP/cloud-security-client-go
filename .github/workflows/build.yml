@@ -20,9 +20,9 @@ jobs:
     name: Go ${{ matrix.go }} ${{ matrix.os }} build
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - name: Setup go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6.4.0
         with:
           go-version: ${{ matrix.go }}
       - name: Get dependencies
