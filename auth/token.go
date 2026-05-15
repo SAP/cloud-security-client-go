@@ -121,6 +121,7 @@ func (t Token) Email() string {
 }
 
 // ZoneID returns "app_tid" claim, if it doesn't exist empty string is returned
+//
 // Deprecated: is replaced by AppTID and will be removed with the next major release
 func (t Token) ZoneID() string {
 	appTID := t.AppTID()

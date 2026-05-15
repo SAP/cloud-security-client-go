@@ -4,21 +4,25 @@ on:
     branches:
       - master
   pull_request: { }
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
-        go: [ '1.23', 'stable' ] # minimum version should be kept in sync with go version in go.mod
+        go: [ '1.25', 'stable' ] # minimum version should be kept in sync with go version in go.mod
       fail-fast: false
 
     name: Go ${{ matrix.go }} ${{ matrix.os }} build
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - name: Setup go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6.4.0
         with:
           go-version: ${{ matrix.go }}
       - name: Get dependencies

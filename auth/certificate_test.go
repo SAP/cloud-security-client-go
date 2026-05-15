@@ -72,7 +72,10 @@ func convertToPEM(t *testing.T, derCert string) string {
 }
 
 func generateDERCert() string {
-	key, _ := rsa.GenerateKey(rand.Reader, 512) //nolint:gosec
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		panic("generateDERCert: failed to generate RSA key: " + err.Error())
+	}
 
 	issuerName := pkix.Name{
 		Organization: []string{"my-issuer-org"},
@@ -89,7 +92,10 @@ func generateDERCert() string {
 		Subject:      issuerName,
 		Issuer:       issuerName,
 	}
-	derBytes, _ := x509.CreateCertificate(rand.Reader, &template, &issTemplate, &key.PublicKey, key)
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &issTemplate, &key.PublicKey, key)
+	if err != nil {
+		panic("generateDERCert: failed to create certificate: " + err.Error())
+	}
 
 	return base64.StdEncoding.EncodeToString(derBytes)
 }

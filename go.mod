@@ -1,6 +1,6 @@
 module github.com/sap/cloud-security-client-go
 
-go 1.23.0 // should be kept in sync with .github/workflows/build.yml
+go 1.25.0 // should be kept in sync with .github/workflows/build.yml
 
 require (
 	github.com/google/uuid v1.6.0
@@ -9,8 +9,8 @@ require (
 	github.com/lestrrat-go/jwx v1.2.31
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pquerna/cachecontrol v0.2.0
-	github.com/stretchr/testify v1.10.0
-	golang.org/x/sync v0.14.0
+	github.com/stretchr/testify v1.11.1
+	golang.org/x/sync v0.20.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

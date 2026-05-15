@@ -6,11 +6,14 @@ on:
       - master
   pull_request: { }
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
     name: "Compliance Check"
     steps: 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6.0.2
     - name: REUSE Compliance Check
-      uses: fsfe/reuse-action@v5
+      uses: fsfe/reuse-action@v6
