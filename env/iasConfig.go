@@ -130,6 +130,7 @@ func readCredentialsFileToJSON(serviceInstancePath string, instanceSecretFiles [
 	for _, instanceSecretFile := range instanceSecretFiles {
 		if !instanceSecretFile.IsDir() && instanceSecretFile.Name() == iasSecretKeyDefault {
 			serviceInstanceCredentialsPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
+			//nolint:gosec // G703: path is built from a trusted K8s service-binding directory
 			credentials, err := os.ReadFile(serviceInstanceCredentialsPath)
 			if err != nil {
 				return nil, fmt.Errorf("cannot read content from '%s': %w", serviceInstanceCredentialsPath, err)
@@ -150,6 +151,7 @@ func readSecretFilesToJSON(serviceInstancePath string, instanceSecretFiles []os.
 		}
 		serviceInstanceSecretPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
 		var secretContent []byte
+		//nolint:gosec // G703: path is built from a trusted K8s service-binding directory
 		secretContent, err := os.ReadFile(serviceInstanceSecretPath)
 		if err != nil {
 			return nil, fmt.Errorf("cannot read secret file '%s' from '%s': %w", instanceSecretFile.Name(), serviceInstanceSecretPath, err)
@@ -190,6 +192,7 @@ func (c DefaultIdentity) GetDomains() []string {
 }
 
 // GetZoneUUID implements the env.Identity interface.
+//
 // Deprecated: is replaced by GetAppTID and will be removed with the next major release
 func (c DefaultIdentity) GetZoneUUID() uuid.UUID {
 	appTid, err := uuid.Parse(c.AppTID)

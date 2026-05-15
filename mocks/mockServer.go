@@ -34,6 +34,13 @@ import (
 //go:embed testdata/privateTestingKey.pem
 var dummyKey string
 
+const testKeyID = "testKey"
+
+// dummyMockToken is a fake JWT used by the mock token endpoint for tests.
+//
+//nolint:gosec // G101: not a real credential, only a fake test fixture
+const dummyMockToken = "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo"
+
 // MockServer serves as a single tenant OIDC mock server for tests.
 // Requests to the MockServer must be done by the mockServers client: MockServer.Server.Client()
 type MockServer struct {
@@ -128,8 +135,8 @@ func (m *MockServer) tokenHandler(w http.ResponseWriter, r *http.Request) {
 	grantType := r.PostFormValue("grant_type")
 	clientID := r.PostFormValue("client_id")
 	if grantType == "client_credentials" && clientID == m.Config.ClientID {
-		_ = json.NewEncoder(w).Encode(tokenResponse{
-			Token: "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo",
+		_ = json.NewEncoder(w).Encode(tokenResponse{ //nolint:gosec
+			Token: dummyMockToken,
 		})
 	} else {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -140,7 +147,7 @@ func (m *MockServer) tokenHandler(w http.ResponseWriter, r *http.Request) {
 func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
 	m.JWKsHitCounter++
 	key := &JSONWebKey{
-		Kid: "testKey",
+		Kid: testKeyID,
 		Kty: "RSA",
 		Alg: "RS256",
 		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(m.RSAKey.E)).Bytes()),
@@ -285,7 +292,7 @@ func (m *MockServer) DefaultHeaders() map[string]interface{} {
 
 	header["typ"] = "JWT"
 	header[headerAlg] = jwa.RS256
-	header[headerKid] = "testKey"
+	header[headerKid] = testKeyID
 
 	return header
 }

@@ -21,7 +21,7 @@ import (
 )
 
 var tokenRequestHandlerHitCounter int
-var dummyToken = "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo" //nolint:gosec
+var dummyToken = "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a9IV7pAx_Zmeo"
 
 var clientSecretConfig = &env.DefaultIdentity{
 	ClientID:     "09932670-9440-445d-be3e-432a97d7e2ef",

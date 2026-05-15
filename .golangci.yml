@@ -70,6 +70,7 @@ linters:
       - linters:
           - funlen
           - goconst
+          - gosec
           - mnd
           - revive
         path: _test\.go
@@ -84,6 +85,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      - ^sample/
 formatters:
   enable:
     - gofmt
