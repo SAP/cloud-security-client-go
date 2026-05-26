@@ -9,9 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path"
-
-	"github.com/google/uuid"
-	"gopkg.in/yaml.v3"
+	"reflect"
 )
 
 const iasServiceName = "identity"
@@ -33,7 +31,6 @@ type Identity interface {
 	GetClientSecret() string            // Returns the client secret. Optional
 	GetURL() string                     // Returns the url to the DefaultIdentity tenant. E.g. https://abcdefgh.accounts.ondemand.com
 	GetDomains() []string               // Returns the domains of the DefaultIdentity service. E.g. ["accounts.ondemand.com"]
-	GetZoneUUID() uuid.UUID             // Deprecated: Returns the zone uuid, will be replaced by GetAppTID Optional
 	GetAppTID() string                  // Returns the app tid uuid and replaces zone uuid in future Optional
 	GetProofTokenURL() string           // Returns the proof token url. Optional
 	GetCertificate() string             // Returns the client certificate. Optional
@@ -46,19 +43,18 @@ type Identity interface {
 
 // DefaultIdentity represents the parsed credentials from the ias binding
 type DefaultIdentity struct {
-	ClientID                string    `json:"clientid"`
-	ClientSecret            string    `json:"clientsecret"`
-	Domains                 []string  `json:"domains"`
-	URL                     string    `json:"url"`
-	ZoneUUID                uuid.UUID `json:"zone_uuid"` // Deprecated: will be replaced by AppTID
-	AppTID                  string    `json:"app_tid"`   // replaces ZoneUUID
-	ProofTokenURL           string    `json:"prooftoken_url"`
-	OsbURL                  string    `json:"osb_url"`
-	Certificate             string    `json:"certificate"`
-	Key                     string    `json:"key"`
-	CertificateExpiresAt    string    `json:"certificate_expires_at"`
-	AuthorizationInstanceID string    `json:"authorization_instance_id"`
-	AuthorizationBundleURL  string    `json:"authorization_bundle_url"`
+	ClientID                string   `json:"clientid"`
+	ClientSecret            string   `json:"clientsecret"`
+	Domains                 []string `json:"domains"`
+	URL                     string   `json:"url"`
+	AppTID                  string   `json:"app_tid"`
+	ProofTokenURL           string   `json:"prooftoken_url"`
+	OsbURL                  string   `json:"osb_url"`
+	Certificate             string   `json:"certificate"`
+	Key                     string   `json:"key"`
+	CertificateExpiresAt    string   `json:"certificate_expires_at"`
+	AuthorizationInstanceID string   `json:"authorization_instance_id"`
+	AuthorizationBundleURL  string   `json:"authorization_bundle_url"`
 }
 
 // ParseIdentityConfig parses the IAS config from the applications environment
@@ -110,65 +106,69 @@ func readServiceBindings(secretPath string) ([]DefaultIdentity, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cannot read service instance directory '%s' for '%s' service instance '%s': %w", serviceInstancePath, iasServiceName, instanceBound.Name(), err)
 		}
-		instanceSecretsJSON, err := readCredentialsFileToJSON(serviceInstancePath, instanceSecretFiles)
-		if instanceSecretsJSON == nil || err != nil {
-			instanceSecretsJSON, err = readSecretFilesToJSON(serviceInstancePath, instanceSecretFiles)
+
+		identity, err := readCredentialsFile(serviceInstancePath, instanceSecretFiles)
+		if identity == nil || err != nil {
+			identity, err = readSecretFiles(serviceInstancePath, instanceSecretFiles)
 			if err != nil {
 				return nil, err
 			}
 		}
-		identity := DefaultIdentity{}
-		if err := json.Unmarshal(instanceSecretsJSON, &identity); err != nil {
-			return nil, fmt.Errorf("cannot unmarshal json content in directory '%s' for '%s' service instance: %w", serviceInstancePath, iasServiceName, err)
-		}
-		identities = append(identities, identity)
+		identities = append(identities, *identity)
 	}
 	return identities, nil
 }
 
-func readCredentialsFileToJSON(serviceInstancePath string, instanceSecretFiles []os.DirEntry) ([]byte, error) {
+func readCredentialsFile(serviceInstancePath string, instanceSecretFiles []os.DirEntry) (*DefaultIdentity, error) {
+	result := DefaultIdentity{}
 	for _, instanceSecretFile := range instanceSecretFiles {
-		if !instanceSecretFile.IsDir() && instanceSecretFile.Name() == iasSecretKeyDefault {
-			serviceInstanceCredentialsPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
-			//nolint:gosec // G703: path is built from a trusted K8s service-binding directory
-			credentials, err := os.ReadFile(serviceInstanceCredentialsPath)
-			if err != nil {
-				return nil, fmt.Errorf("cannot read content from '%s': %w", serviceInstanceCredentialsPath, err)
-			}
-			if json.Valid(credentials) {
-				return credentials, nil
-			}
+		if instanceSecretFile.IsDir() || instanceSecretFile.Name() != iasSecretKeyDefault {
+			continue
 		}
+		serviceInstanceCredentialsPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
+
+		credentials, err := os.ReadFile(serviceInstanceCredentialsPath) //nolint:gosec
+		if err != nil {
+			return nil, fmt.Errorf("cannot read content from '%s': %w", serviceInstanceCredentialsPath, err)
+		}
+		err = json.Unmarshal(credentials, &result)
+		if err != nil {
+			return nil, fmt.Errorf("cannot unmarshal json content from '%s': %w", serviceInstanceCredentialsPath, err)
+		}
+		return &result, nil
 	}
 	return nil, nil
 }
 
-func readSecretFilesToJSON(serviceInstancePath string, instanceSecretFiles []os.DirEntry) ([]byte, error) {
-	instanceCredentialsMap := make(map[string]interface{})
-	for _, instanceSecretFile := range instanceSecretFiles {
-		if instanceSecretFile.IsDir() {
+func readSecretFiles(serviceInstancePath string, instanceSecretFiles []os.DirEntry) (*DefaultIdentity, error) {
+	var result DefaultIdentity
+	resType := reflect.TypeOf(result)
+	for _, resField := range reflect.VisibleFields(resType) {
+		tag := resField.Tag.Get("json")
+		if tag == "" {
 			continue
 		}
-		serviceInstanceSecretPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
-		var secretContent []byte
-		//nolint:gosec // G703: path is built from a trusted K8s service-binding directory
-		secretContent, err := os.ReadFile(serviceInstanceSecretPath)
-		if err != nil {
-			return nil, fmt.Errorf("cannot read secret file '%s' from '%s': %w", instanceSecretFile.Name(), serviceInstanceSecretPath, err)
-		}
-		var v interface{}
-		if err := yaml.Unmarshal(secretContent, &v); err == nil {
-			instanceCredentialsMap[instanceSecretFile.Name()] = v
-		} else {
-			fmt.Printf("cannot unmarshal content of secret file '%s' from '%s': %s", instanceSecretFile.Name(), serviceInstanceSecretPath, err)
-			instanceCredentialsMap[instanceSecretFile.Name()] = string(secretContent)
+		for _, instanceSecretFile := range instanceSecretFiles {
+			if instanceSecretFile.Name() == tag {
+				content, err := os.ReadFile(path.Join(serviceInstancePath, instanceSecretFile.Name())) //nolint:gosec
+				if err != nil {
+					return nil, fmt.Errorf("cannot read content from '%s': %w", instanceSecretFile.Name(), err)
+				}
+				if resField.Type.Kind() != reflect.String {
+					err := json.Unmarshal(content, reflect.ValueOf(&result).Elem().FieldByName(resField.Name).Addr().Interface())
+					if err != nil {
+						return nil, fmt.Errorf("cannot unmarshal json content from '%s': %w", instanceSecretFile.Name(), err)
+					}
+				} else {
+					if !reflect.ValueOf(&result).Elem().FieldByName(resField.Name).CanSet() {
+						continue
+					}
+					reflect.ValueOf(&result).Elem().FieldByName(resField.Name).SetString(string(content))
+				}
+			}
 		}
 	}
-	instanceCredentialsJSON, err := json.Marshal(instanceCredentialsMap)
-	if err != nil {
-		return nil, fmt.Errorf("cannot marshal map into json: %w", err)
-	}
-	return instanceCredentialsJSON, nil
+	return &result, nil
 }
 
 // GetClientID implements the env.Identity interface.
@@ -191,23 +191,9 @@ func (c DefaultIdentity) GetDomains() []string {
 	return c.Domains
 }
 
-// GetZoneUUID implements the env.Identity interface.
-//
-// Deprecated: is replaced by GetAppTID and will be removed with the next major release
-func (c DefaultIdentity) GetZoneUUID() uuid.UUID {
-	appTid, err := uuid.Parse(c.AppTID)
-	if err == nil {
-		return appTid
-	}
-	return c.ZoneUUID
-}
-
 // GetAppTID implements the env.Identity interface and replaces GetZoneUUID in future
 func (c DefaultIdentity) GetAppTID() string {
-	if c.AppTID != "" {
-		return c.AppTID
-	}
-	return c.ZoneUUID.String()
+	return c.AppTID
 }
 
 // GetProofTokenURL implements the env.Identity interface.

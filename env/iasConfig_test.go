@@ -5,6 +5,7 @@
 package env
 
 import (
+	"crypto/tls"
 	"path"
 	"reflect"
 	"testing"
@@ -82,9 +83,6 @@ func TestParseIdentityConfig(t *testing.T) {
 			} else if tt.k8sSecretPath != "" {
 				setK8sTestEnv(t, tt.k8sSecretPath)
 			}
-			if err != nil {
-				t.Error(err)
-			}
 			got, err := ParseIdentityConfig()
 			if err != nil {
 				if !tt.wantErr {
@@ -110,7 +108,6 @@ func TestX509BasedCredentials(t *testing.T) {
 	assert.Equal(t, got.GetClientID(), "cef76757-de57-480f-be92-1d8c1c7abf16")
 	assert.Equal(t, got.GetCertificate(), "theCertificate")
 	assert.Equal(t, got.GetKey(), "thekey")
-	assert.Equal(t, got.GetZoneUUID().String(), "70cd0de3-528a-4655-b56a-5862591def5c")
 	assert.True(t, got.IsCertificateBased())
 }
 
@@ -125,4 +122,14 @@ func setK8sTestEnv(t *testing.T, secretPath string) {
 	if secretPath != "" && secretPath != "ignore" {
 		t.Setenv("IAS_CONFIG_PATH", secretPath)
 	}
+}
+
+func TestK8sSecretWithCert(t *testing.T) {
+	setK8sTestEnv(t, path.Join("testdata", "k8s", "instance-with-cert"))
+	got, err := ParseIdentityConfig()
+	assert.NoError(t, err)
+	assert.Equal(t, got.GetClientID(), "cef76757-de57-480f-be92-1d8c1c7abf16")
+
+	_, err = tls.X509KeyPair([]byte(got.GetCertificate()), []byte(got.GetKey()))
+	assert.NoError(t, err, got.GetCertificate())
 }
