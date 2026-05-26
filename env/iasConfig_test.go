@@ -5,6 +5,7 @@
 package env
 
 import (
+	"crypto/x509"
 	"path"
 	"reflect"
 	"testing"
@@ -125,4 +126,14 @@ func setK8sTestEnv(t *testing.T, secretPath string) {
 	if secretPath != "" && secretPath != "ignore" {
 		t.Setenv("IAS_CONFIG_PATH", secretPath)
 	}
+}
+
+func TestK8sSecretWithCert(t *testing.T) {
+	setK8sTestEnv(t, path.Join("testdata", "k8s", "instance-with-cert"))
+	got, err := ParseIdentityConfig()
+	assert.NoError(t, err)
+	assert.Equal(t, got.GetClientID(), "cef76757-de57-480f-be92-1d8c1c7abf16")
+
+	_, err = x509.ParseCertificate([]byte(got.GetCertificate()))
+	assert.NoError(t, err)
 }
