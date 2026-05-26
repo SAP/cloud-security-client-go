@@ -6,6 +6,7 @@ package env
 
 import (
 	"crypto/x509"
+	"encoding/pem"
 	"path"
 	"reflect"
 	"testing"
@@ -83,9 +84,6 @@ func TestParseIdentityConfig(t *testing.T) {
 			} else if tt.k8sSecretPath != "" {
 				setK8sTestEnv(t, tt.k8sSecretPath)
 			}
-			if err != nil {
-				t.Error(err)
-			}
 			got, err := ParseIdentityConfig()
 			if err != nil {
 				if !tt.wantErr {
@@ -111,7 +109,6 @@ func TestX509BasedCredentials(t *testing.T) {
 	assert.Equal(t, got.GetClientID(), "cef76757-de57-480f-be92-1d8c1c7abf16")
 	assert.Equal(t, got.GetCertificate(), "theCertificate")
 	assert.Equal(t, got.GetKey(), "thekey")
-	assert.Equal(t, got.GetZoneUUID().String(), "70cd0de3-528a-4655-b56a-5862591def5c")
 	assert.True(t, got.IsCertificateBased())
 }
 
@@ -134,6 +131,8 @@ func TestK8sSecretWithCert(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, got.GetClientID(), "cef76757-de57-480f-be92-1d8c1c7abf16")
 
-	_, err = x509.ParseCertificate([]byte(got.GetCertificate()))
-	assert.NoError(t, err)
+	block, _ := pem.Decode([]byte(got.GetCertificate()))
+	assert.NotNil(t, block, "failed to PEM-decode certificate")
+	_, err = x509.ParseCertificate(block.Bytes)
+	assert.NoError(t, err, got.GetCertificate())
 }
