@@ -5,8 +5,7 @@
 package env
 
 import (
-	"crypto/x509"
-	"encoding/pem"
+	"crypto/tls"
 	"path"
 	"reflect"
 	"testing"
@@ -131,8 +130,6 @@ func TestK8sSecretWithCert(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, got.GetClientID(), "cef76757-de57-480f-be92-1d8c1c7abf16")
 
-	block, _ := pem.Decode([]byte(got.GetCertificate()))
-	assert.NotNil(t, block, "failed to PEM-decode certificate")
-	_, err = x509.ParseCertificate(block.Bytes)
+	_, err = tls.X509KeyPair([]byte(got.GetCertificate()), []byte(got.GetKey()))
 	assert.NoError(t, err, got.GetCertificate())
 }
