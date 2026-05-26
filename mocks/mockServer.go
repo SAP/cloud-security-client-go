@@ -135,7 +135,7 @@ func (m *MockServer) tokenHandler(w http.ResponseWriter, r *http.Request) {
 	grantType := r.PostFormValue("grant_type")
 	clientID := r.PostFormValue("client_id")
 	if grantType == "client_credentials" && clientID == m.Config.ClientID {
-		_ = json.NewEncoder(w).Encode(tokenResponse{
+		_ = json.NewEncoder(w).Encode(tokenResponse{ //nolint:gosec
 			Token: dummyMockToken,
 		})
 	} else {

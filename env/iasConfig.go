@@ -127,7 +127,7 @@ func readCredentialsFile(serviceInstancePath string, instanceSecretFiles []os.Di
 		}
 		serviceInstanceCredentialsPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
 
-		credentials, err := os.ReadFile(serviceInstanceCredentialsPath)
+		credentials, err := os.ReadFile(serviceInstanceCredentialsPath) //nolint:gosec
 		if err != nil {
 			return nil, fmt.Errorf("cannot read content from '%s': %w", serviceInstanceCredentialsPath, err)
 		}
@@ -150,7 +150,7 @@ func readSecretFiles(serviceInstancePath string, instanceSecretFiles []os.DirEnt
 		}
 		for _, instanceSecretFile := range instanceSecretFiles {
 			if instanceSecretFile.Name() == tag {
-				content, err := os.ReadFile(path.Join(serviceInstancePath, instanceSecretFile.Name()))
+				content, err := os.ReadFile(path.Join(serviceInstancePath, instanceSecretFile.Name())) //nolint:gosec
 				if err != nil {
 					return nil, fmt.Errorf("cannot read content from '%s': %w", instanceSecretFile.Name(), err)
 				}
