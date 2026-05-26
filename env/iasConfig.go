@@ -122,26 +122,25 @@ func readServiceBindings(secretPath string) ([]DefaultIdentity, error) {
 func readCredentialsFile(serviceInstancePath string, instanceSecretFiles []os.DirEntry) (*DefaultIdentity, error) {
 	result := DefaultIdentity{}
 	for _, instanceSecretFile := range instanceSecretFiles {
-
-		if !instanceSecretFile.IsDir() && instanceSecretFile.Name() == iasSecretKeyDefault {
-			serviceInstanceCredentialsPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
-			//nolint:gosec // G703: path is built from a trusted K8s service-binding directory
-			credentials, err := os.ReadFile(serviceInstanceCredentialsPath)
-			if err != nil {
-				return nil, fmt.Errorf("cannot read content from '%s': %w", serviceInstanceCredentialsPath, err)
-			}
-			err = json.Unmarshal(credentials, &result)
-			if err != nil {
-				return nil, fmt.Errorf("cannot unmarshal json content from '%s': %w", serviceInstanceCredentialsPath, err)
-			}
-			return &result, nil
+		if instanceSecretFile.IsDir() || instanceSecretFile.Name() != iasSecretKeyDefault {
+			continue
 		}
+		serviceInstanceCredentialsPath := path.Join(serviceInstancePath, instanceSecretFile.Name())
+
+		credentials, err := os.ReadFile(serviceInstanceCredentialsPath)
+		if err != nil {
+			return nil, fmt.Errorf("cannot read content from '%s': %w", serviceInstanceCredentialsPath, err)
+		}
+		err = json.Unmarshal(credentials, &result)
+		if err != nil {
+			return nil, fmt.Errorf("cannot unmarshal json content from '%s': %w", serviceInstanceCredentialsPath, err)
+		}
+		return &result, nil
 	}
 	return nil, nil
 }
 
 func readSecretFiles(serviceInstancePath string, instanceSecretFiles []os.DirEntry) (*DefaultIdentity, error) {
-
 	var result DefaultIdentity
 	resType := reflect.TypeOf(result)
 	for _, resField := range reflect.VisibleFields(resType) {
@@ -156,8 +155,14 @@ func readSecretFiles(serviceInstancePath string, instanceSecretFiles []os.DirEnt
 					return nil, fmt.Errorf("cannot read content from '%s': %w", instanceSecretFile.Name(), err)
 				}
 				if resField.Type.Kind() != reflect.String {
-					json.Unmarshal(content, reflect.ValueOf(&result).Elem().FieldByName(resField.Name).Addr().Interface())
+					err := json.Unmarshal(content, reflect.ValueOf(&result).Elem().FieldByName(resField.Name).Addr().Interface())
+					if err != nil {
+						return nil, fmt.Errorf("cannot unmarshal json content from '%s': %w", instanceSecretFile.Name(), err)
+					}
 				} else {
+					if !reflect.ValueOf(&result).Elem().FieldByName(resField.Name).CanSet() {
+						continue
+					}
 					reflect.ValueOf(&result).Elem().FieldByName(resField.Name).SetString(string(content))
 				}
 			}
