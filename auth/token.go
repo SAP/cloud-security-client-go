@@ -25,6 +25,7 @@ const (
 	claimSapGlobalAppTID = "app_tid"
 	claimIasIssuer       = "ias_iss"
 	claimAzp             = "azp"
+	claimAzpAppTID       = "azp_app_tid"
 	claimScimID          = "scim_id"
 	claimGroups          = "groups"
 	claimIasAPIs         = "ias_apis"
@@ -33,6 +34,7 @@ const (
 type Token struct {
 	encodedToken string
 	jwtToken     jwt.Token
+	servicePlans []string
 }
 
 // NewToken creates a Token from an encoded jwt. !!! WARNING !!! No validation done when creating a Token this way. Use only in tests!
@@ -144,6 +146,18 @@ func (t Token) Azp() string {
 	return appTID
 }
 
+// AzpAppTID returns "azp_app_tid" claim, if it doesn't exist empty string is returned.
+func (t Token) AzpAppTID() string {
+	appTID, _ := t.GetClaimAsString(claimAzpAppTID)
+	return appTID
+}
+
+// ServicePlans returns the service plans of the proof-token-authenticated caller.
+// It returns nil when proof token validation was not performed for this token.
+func (t Token) ServicePlans() []string {
+	return append([]string(nil), t.servicePlans...)
+}
+
 // UserUUID returns "user_uuid" claim, if it doesn't exist empty string is returned
 func (t Token) UserUUID() string {
 	v, _ := t.GetClaimAsString(claimSapGlobalUserID)
@@ -238,9 +252,9 @@ func (t Token) getCnfClaimMember(memberName string) string {
 	if errors.Is(err, ErrClaimNotExists) || cnfClaim == nil {
 		return ""
 	}
-	res, ok := cnfClaim[memberName]
-	if ok {
-		return res.(string)
+	res, ok := cnfClaim[memberName].(string)
+	if !ok {
+		return ""
 	}
-	return ""
+	return res
 }

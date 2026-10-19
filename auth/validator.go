@@ -19,7 +19,7 @@ import (
 
 // ParseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature.
 //
-// When X5T validation is enabled, use AuthenticateWithProofOfPossession instead so the
+// When X5T or proof token validation is enabled, use AuthenticateWithProofOfPossession instead so the
 // forwarded client certificate can be validated together with the token.
 func (m *Middleware) ParseAndValidateJWT(rawToken string) (Token, error) {
 	token, _, err := m.parseAndValidateJWT(rawToken, "")
@@ -32,8 +32,9 @@ func (m *Middleware) parseAndValidateJWT(rawToken, clientCertificateHeader strin
 		return Token{}, nil, err
 	}
 
+	proofTokenCheckRequired := m.options.Validation.ProofToken && len(token.Audience()) > 1
 	var cert *Certificate
-	if m.options.Validation.X5T {
+	if m.options.Validation.X5T || proofTokenCheckRequired {
 		cert, err = newCertificate(clientCertificateHeader)
 		if err != nil {
 			return Token{}, nil, err
@@ -55,7 +56,8 @@ func (m *Middleware) parseAndValidateJWT(rawToken, clientCertificateHeader strin
 	}
 
 	// verify signature
-	if err := m.verifySignature(token, keySet); err != nil {
+	servicePlans, err := m.verifySignature(token, keySet, proofTokenCheckRequired, cert)
+	if err != nil {
 		return Token{}, nil, err
 	}
 
@@ -64,37 +66,46 @@ func (m *Middleware) parseAndValidateJWT(rawToken, clientCertificateHeader strin
 			return Token{}, nil, err
 		}
 	}
+	if proofTokenCheckRequired {
+		token.servicePlans = servicePlans
+	}
 
 	return token, cert, nil
 }
 
-func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant) (err error) {
+func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant, proofTokenCheckRequired bool, clientCertificate *Certificate) ([]string, error) {
 	headers, err := getHeaders(t.TokenValue())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	alg := headers.Algorithm()
 
 	// fail early to avoid another parsing of encoded token
 	if alg == "" {
-		return errors.New("alg is missing from jwt header")
+		return nil, errors.New("alg is missing from jwt header")
 	}
 
 	// parse and verify signature
-	tenantOpts := oidcclient.ClientInfo{
-		ClientID: m.identity.GetClientID(),
-		AppTID:   t.AppTID(),
-		Azp:      t.Azp(),
+	jwksRequest := oidcclient.JWKsRequest{
+		ClientInfo: oidcclient.ClientInfo{
+			ClientID: m.identity.GetClientID(),
+			AppTID:   t.AppTID(),
+			Azp:      t.Azp(),
+		},
+		AzpAppTID: t.AzpAppTID(),
 	}
-	jwks, err := keySet.GetJWKs(tenantOpts)
+	if proofTokenCheckRequired {
+		jwksRequest.ClientCertificate = clientCertificate.normalizedPEM()
+	}
+	jwksResponse, err := keySet.GetJWKsForRequest(jwksRequest)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = jwt.ParseString(t.TokenValue(), jwt.WithKeySet(jwks), jwt.UseDefaultKey(true))
+	_, err = jwt.ParseString(t.TokenValue(), jwt.WithKeySet(jwksResponse.KeySet), jwt.UseDefaultKey(true))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return jwksResponse.ServicePlans, nil
 }
 
 func getHeaders(encodedToken string) (jws.Headers, error) {

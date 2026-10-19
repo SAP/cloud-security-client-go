@@ -45,6 +45,9 @@ type ValidationOptions struct {
 	// X5T requires a client certificate from x-forwarded-client-cert and validates its SHA-256 thumbprint against cnf.x5t#S256.
 	// Enable this only when a trusted proxy strips caller-supplied headers and forwards the TLS client certificate.
 	X5T bool
+	// ProofToken requires a client certificate for multi-audience tokens and lets IAS validate the caller during the JWKS request.
+	// Single-audience tokens do not require proof token validation.
+	ProofToken bool
 }
 
 // TokenFromCtx retrieves the claims of a request which
