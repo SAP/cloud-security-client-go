@@ -17,30 +17,55 @@ import (
 	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
-// ParseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
+// ParseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature.
+//
+// When X5T validation is enabled, use AuthenticateWithProofOfPossession instead so the
+// forwarded client certificate can be validated together with the token.
 func (m *Middleware) ParseAndValidateJWT(rawToken string) (Token, error) {
+	token, _, err := m.parseAndValidateJWT(rawToken, "")
+	return token, err
+}
+
+func (m *Middleware) parseAndValidateJWT(rawToken, clientCertificateHeader string) (Token, *Certificate, error) {
 	token, err := NewToken(rawToken)
 	if err != nil {
-		return Token{}, err
+		return Token{}, nil, err
+	}
+
+	var cert *Certificate
+	if m.options.Validation.X5T {
+		cert, err = newCertificate(clientCertificateHeader)
+		if err != nil {
+			return Token{}, nil, err
+		}
+		if cert == nil {
+			return Token{}, nil, ErrNoClientCert
+		}
 	}
 
 	// get keyset
 	keySet, err := m.getOIDCTenant(token.Issuer(), token.CustomIssuer())
 	if err != nil {
-		return Token{}, err
+		return Token{}, nil, err
 	}
 
 	// verify claims
 	if err := m.validateClaims(token, keySet); err != nil {
-		return Token{}, err
+		return Token{}, nil, err
 	}
 
 	// verify signature
 	if err := m.verifySignature(token, keySet); err != nil {
-		return Token{}, err
+		return Token{}, nil, err
 	}
 
-	return token, nil
+	if m.options.Validation.X5T {
+		if err := validateCertificate(cert, token); err != nil {
+			return Token{}, nil, err
+		}
+	}
+
+	return token, cert, nil
 }
 
 func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant) (err error) {
