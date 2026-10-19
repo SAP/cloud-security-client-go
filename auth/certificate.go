@@ -86,10 +86,6 @@ func decodeCertificate(certificate string) ([]byte, error) {
 }
 
 func extractCertificateFromForwardedHeader(header string) string {
-	if !strings.Contains(strings.ToLower(header), "hash=") {
-		return header
-	}
-
 	entries := splitHeaderValue(header, ',')
 	if len(entries) == 0 {
 		return header

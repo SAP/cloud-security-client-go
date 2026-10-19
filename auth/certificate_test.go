@@ -65,6 +65,23 @@ func TestCertificate(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
 	})
+
+	t.Run("GetThumbprint() for XFCC without hash", func(t *testing.T) {
+		certificate := certificatePEM(t, derCertFromFile)
+		xfcc := `By=spiffe://proxy;Subject="CN=consumer";Cert="` + url.PathEscape(certificate) + `"`
+		cert, err := newCertificate(xfcc)
+		require.NoError(t, err)
+		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
+	})
+
+	t.Run("GetThumbprint() uses the last XFCC entry", func(t *testing.T) {
+		firstCertificate := certificatePEM(t, generateDERCert())
+		lastCertificate := certificatePEM(t, derCertFromFile)
+		xfcc := `By=spiffe://first;Cert="` + url.PathEscape(firstCertificate) + `", By=spiffe://last;Cert="` + url.PathEscape(lastCertificate) + `"`
+		cert, err := newCertificate(xfcc)
+		require.NoError(t, err)
+		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
+	})
 }
 
 func generateToken(t *testing.T, claimCnfMemberX5tValue string) Token {
