@@ -33,15 +33,12 @@ func (m *Middleware) parseAndValidateJWT(rawToken, clientCertificateHeader strin
 	}
 
 	proofTokenCheckRequired := m.options.Validation.ProofToken && len(token.Audience()) > 1
-	var cert *Certificate
-	if m.options.Validation.X5T || proofTokenCheckRequired {
-		cert, err = newCertificate(clientCertificateHeader)
-		if err != nil {
-			return Token{}, nil, err
-		}
-		if cert == nil {
-			return Token{}, nil, ErrNoClientCert
-		}
+	cert, err := newCertificate(clientCertificateHeader)
+	if err != nil {
+		return Token{}, nil, err
+	}
+	if (m.options.Validation.X5T || proofTokenCheckRequired) && cert == nil {
+		return Token{}, nil, ErrNoClientCert
 	}
 
 	// get keyset

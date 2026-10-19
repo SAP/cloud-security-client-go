@@ -85,6 +85,18 @@ func TestAuthenticateWithProofOfPossession_ProofTokenValidation(t *testing.T) {
 		assert.Empty(t, mockServer.LastJWKsRequestHeader.Get("x-client_cert"))
 		assert.Equal(t, "consumer-app-tid", mockServer.LastJWKsRequestHeader.Get("x-azp_app_tid"))
 	})
+
+	t.Run("returns an optional certificate for a single-audience token", func(t *testing.T) {
+		singleAudienceToken := signProofToken(t, mockServer, mockServer.Config.ClientID)
+		req := proofTokenRequest(singleAudienceToken, clientCertificateHeader)
+
+		_, cert, err := middleware.AuthenticateWithProofOfPossession(req)
+
+		require.NoError(t, err)
+		require.NotNil(t, cert)
+		assert.Equal(t, clientCertificate.GetThumbprint(), cert.GetThumbprint())
+		assert.Empty(t, mockServer.LastJWKsRequestHeader.Get("x-client_cert"))
+	})
 }
 
 func signProofToken(t *testing.T, mockServer *mocks.MockServer, audiences ...string) string {
