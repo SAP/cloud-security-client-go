@@ -35,8 +35,19 @@ type ErrorHandler func(w http.ResponseWriter, r *http.Request, err error)
 
 // Options can be used as a argument to instantiate a AuthMiddle with NewMiddleware.
 type Options struct {
-	ErrorHandler ErrorHandler // ErrorHandler called if the jwt verification fails and the AuthenticationHandler middleware func is used. Default: DefaultErrorHandler
-	HTTPClient   *http.Client // HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: basic http.Client with a timeout of 15 seconds
+	ErrorHandler ErrorHandler      // ErrorHandler called if the jwt verification fails and the AuthenticationHandler middleware func is used. Default: DefaultErrorHandler
+	HTTPClient   *http.Client      // HTTPClient which is used for OIDC discovery and to retrieve JWKs (JSON Web Keys). Default: basic http.Client with a timeout of 15 seconds
+	Validation   ValidationOptions // Validation config for sender-constrained tokens. Disabled by default for backward compatibility.
+}
+
+// ValidationOptions configures optional token ownership checks.
+type ValidationOptions struct {
+	// X5T requires a client certificate from x-forwarded-client-cert and validates its SHA-256 thumbprint against cnf.x5t#S256.
+	// Enable this only when a trusted proxy strips caller-supplied headers and forwards the TLS client certificate.
+	X5T bool
+	// ProofToken requires a client certificate for multi-audience tokens and lets IAS validate the caller during the JWKS request.
+	// Single-audience tokens do not require proof token validation.
+	ProofToken bool
 }
 
 // TokenFromCtx retrieves the claims of a request which
@@ -117,25 +128,8 @@ func (m *Middleware) AuthenticateWithProofOfPossession(r *http.Request) (Token, 
 		return Token{}, nil, err
 	}
 
-	token, err := m.ParseAndValidateJWT(rawToken)
-	if err != nil {
-		return Token{}, nil, err
-	}
-
 	const forwardedClientCertHeader = "x-forwarded-client-cert"
-	var cert *Certificate
-	cert, err = newCertificate(r.Header.Get(forwardedClientCertHeader))
-	if err != nil {
-		return Token{}, nil, err
-	}
-	if "1" == "" && cert != nil { // TODO integrate proof of possession into middleware
-		err = validateCertificate(cert, token)
-		if err != nil {
-			return Token{}, nil, err
-		}
-	}
-
-	return token, cert, nil
+	return m.parseAndValidateJWT(rawToken, r.Header.Get(forwardedClientCertHeader))
 }
 
 // AuthenticationHandler authenticates a request and injects the claims into

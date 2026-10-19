@@ -175,15 +175,20 @@ func TestOIDCTenant_ReadJWKs(t *testing.T) {
 				providerJSON.JWKsURL = fmt.Sprintf("%s/oauth2/certs", localServerURL)
 			}
 			jwksJSON, _ := jwk.ParseString(jwksJSONString)
+			expiry := time.Now().Add(tt.fields.Duration)
 			tenant := OIDCTenant{
-				jwksExpiry: time.Now().Add(tt.fields.Duration),
-				acceptedClients: map[ClientInfo]bool{
-					{ClientID: "client-id", AppTID: "app-tid", Azp: "azp"}:                         true,
-					{ClientID: "deleted-client-id", AppTID: "deleted-app-tid", Azp: "deleted-azp"}: true,
-					{ClientID: "invalid-client-id", AppTID: "invalid-app-tid", Azp: "invalid-azp"}: false,
+				jwksCache: map[jwksCacheKey]jwksCacheEntry{
+					(JWKsRequest{ClientInfo: ClientInfo{ClientID: "client-id", AppTID: "app-tid", Azp: "azp"}}).cacheKey(): {
+						response: JWKsResponse{KeySet: jwksJSON}, expiry: expiry, accepted: true,
+					},
+					(JWKsRequest{ClientInfo: ClientInfo{ClientID: "deleted-client-id", AppTID: "deleted-app-tid", Azp: "deleted-azp"}}).cacheKey(): {
+						response: JWKsResponse{KeySet: jwksJSON}, expiry: expiry, accepted: true,
+					},
+					(JWKsRequest{ClientInfo: ClientInfo{ClientID: "invalid-client-id", AppTID: "invalid-app-tid", Azp: "invalid-azp"}}).cacheKey(): {
+						expiry: expiry, accepted: false,
+					},
 				},
 				httpClient:   http.DefaultClient,
-				jwks:         jwksJSON,
 				ProviderJSON: providerJSON,
 			}
 			jwks, err := tenant.GetJWKs(tt.fields.Client)

@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"math/big"
+	"net/url"
 	"testing"
 
 	"github.com/lestrrat-go/jwx/jwt"
@@ -50,6 +51,37 @@ func TestCertificate(t *testing.T) {
 		cert, _ := newCertificate(derCertFromFile)
 		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
 	})
+
+	t.Run("GetThumbprint() for PEM forwarded by Cloud Foundry", func(t *testing.T) {
+		cert, err := newCertificate(certificatePEM(t, derCertFromFile))
+		require.NoError(t, err)
+		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
+	})
+
+	t.Run("GetThumbprint() for XFCC forwarded by Envoy", func(t *testing.T) {
+		certificate := certificatePEM(t, derCertFromFile)
+		xfcc := `By=spiffe://proxy;Hash=abc;Cert="` + url.PathEscape(certificate) + `"`
+		cert, err := newCertificate(xfcc)
+		require.NoError(t, err)
+		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
+	})
+
+	t.Run("GetThumbprint() for XFCC without hash", func(t *testing.T) {
+		certificate := certificatePEM(t, derCertFromFile)
+		xfcc := `By=spiffe://proxy;Subject="CN=consumer";Cert="` + url.PathEscape(certificate) + `"`
+		cert, err := newCertificate(xfcc)
+		require.NoError(t, err)
+		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
+	})
+
+	t.Run("GetThumbprint() uses the last XFCC entry", func(t *testing.T) {
+		firstCertificate := certificatePEM(t, generateDERCert())
+		lastCertificate := certificatePEM(t, derCertFromFile)
+		xfcc := `By=spiffe://first;Cert="` + url.PathEscape(firstCertificate) + `", By=spiffe://last;Cert="` + url.PathEscape(lastCertificate) + `"`
+		cert, err := newCertificate(xfcc)
+		require.NoError(t, err)
+		assert.Equal(t, "fU-XoQlhMTpQsz9ArXl6zHIpMGuRO4ExLKdLRTc5VjM", cert.GetThumbprint())
+	})
 }
 
 func generateToken(t *testing.T, claimCnfMemberX5tValue string) Token {
@@ -64,11 +96,14 @@ func generateToken(t *testing.T, claimCnfMemberX5tValue string) Token {
 }
 
 func convertToPEM(t *testing.T, derCert string) string {
+	return base64.StdEncoding.EncodeToString([]byte(certificatePEM(t, derCert)))
+}
+
+func certificatePEM(t *testing.T, derCert string) string {
 	x509Cert, err := newCertificate(derCert)
 	require.NoError(t, err, "failed to create certificate: %v", err)
 
-	bytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: x509Cert.x509Cert.Raw})
-	return base64.StdEncoding.EncodeToString(bytes)
+	return string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: x509Cert.x509Cert.Raw}))
 }
 
 func generateDERCert() string {

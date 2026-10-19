@@ -44,12 +44,15 @@ const dummyMockToken = "eyJhbGciOiJIUzI1NiJ9.e30.ZRrHA1JJJW8opsbCGfG_HACGpVUMN_a
 // MockServer serves as a single tenant OIDC mock server for tests.
 // Requests to the MockServer must be done by the mockServers client: MockServer.Server.Client()
 type MockServer struct {
-	Server              *httptest.Server // Server holds the httptest.Server and its Client.
-	Config              *MockConfig      // Config holds the OIDC config which applications bind to the application.
-	RSAKey              *rsa.PrivateKey  // RSAKey holds the servers private key to sign tokens.
-	WellKnownHitCounter int              // JWKsHitCounter holds the number of requests to the WellKnownHandler.
-	JWKsHitCounter      int              // JWKsHitCounter holds the number of requests to the JWKsHandler.
-	CustomIssuer        string           // CustomIssuer holds a custom domain returned by the discovery endpoint
+	Server                 *httptest.Server // Server holds the httptest.Server and its Client.
+	Config                 *MockConfig      // Config holds the OIDC config which applications bind to the application.
+	RSAKey                 *rsa.PrivateKey  // RSAKey holds the servers private key to sign tokens.
+	WellKnownHitCounter    int              // JWKsHitCounter holds the number of requests to the WellKnownHandler.
+	JWKsHitCounter         int              // JWKsHitCounter holds the number of requests to the JWKsHandler.
+	CustomIssuer           string           // CustomIssuer holds a custom domain returned by the discovery endpoint.
+	ProofTokenCertificate  string           // ProofTokenCertificate is the client certificate accepted for proof token test requests.
+	ProofTokenServicePlans []string         // ProofTokenServicePlans are returned in the IAS service plan response header.
+	LastJWKsRequestHeader  http.Header      // LastJWKsRequestHeader holds the headers from the latest JWKS request.
 }
 
 // InvalidAppTID represents a guid which is rejected by mock server on behalf of IAS tenant
@@ -144,8 +147,20 @@ func (m *MockServer) tokenHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // JWKsHandler is the http handler which answers requests to the JWKS endpoint.
-func (m *MockServer) JWKsHandler(w http.ResponseWriter, _ *http.Request) {
+func (m *MockServer) JWKsHandler(w http.ResponseWriter, r *http.Request) {
 	m.JWKsHitCounter++
+	m.LastJWKsRequestHeader = r.Header.Clone()
+	if m.ProofTokenCertificate != "" && r.Header.Get("x-client_cert") != m.ProofTokenCertificate {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if len(m.ProofTokenServicePlans) > 0 {
+		plans := make([]string, len(m.ProofTokenServicePlans))
+		for i, plan := range m.ProofTokenServicePlans {
+			plans[i] = "\"" + plan + "\""
+		}
+		w.Header().Set("x-osb_plan", strings.Join(plans, ","))
+	}
 	key := &JSONWebKey{
 		Kid: testKeyID,
 		Kty: "RSA",

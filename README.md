@@ -29,6 +29,23 @@ To access service instance configurations from the application, Kubernetes secre
 ### Usage Sample
 [samples/middleware.go](sample/middleware.go)
 
+### Sender-constrained tokens
+
+`Middleware` can validate sender-constrained tokens when it runs behind a trusted proxy that removes caller-supplied `x-forwarded-client-cert` headers and forwards the TLS client certificate.
+
+```go
+middleware := auth.NewMiddleware(identity, auth.Options{
+    Validation: auth.ValidationOptions{
+        X5T:        true,
+        ProofToken: true,
+    },
+})
+```
+
+- `X5T` validates the forwarded client certificate against the JWT's `cnf.x5t#S256` claim.
+- `ProofToken` requires a client certificate for multi-audience App-to-Service tokens. The certificate is sent to IAS with the JWKS request, so IAS validates the caller before returning signing keys. Single-audience tokens do not require a proof token.
+- After successful proof token validation, `Token.ServicePlans()` returns the consumer application service plans supplied by IAS. It returns `nil` when no proof token validation was performed.
+
 ### Testing
 The client library offers an OIDC Mock Server with means to create arbitrary tokens for testing purposes. Examples for the usage of the Mock Server in combination with the OIDC Token Builder can be found in [auth/middleware_test.go](auth/middleware_test.go) 
 

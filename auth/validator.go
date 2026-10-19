@@ -17,59 +17,92 @@ import (
 	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
-// ParseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature
+// ParseAndValidateJWT parses the token into its claims, verifies the claims and verifies the signature.
+//
+// When X5T or proof token validation is enabled, use AuthenticateWithProofOfPossession instead so the
+// forwarded client certificate can be validated together with the token.
 func (m *Middleware) ParseAndValidateJWT(rawToken string) (Token, error) {
+	token, _, err := m.parseAndValidateJWT(rawToken, "")
+	return token, err
+}
+
+func (m *Middleware) parseAndValidateJWT(rawToken, clientCertificateHeader string) (Token, *Certificate, error) {
 	token, err := NewToken(rawToken)
 	if err != nil {
-		return Token{}, err
+		return Token{}, nil, err
+	}
+
+	proofTokenCheckRequired := m.options.Validation.ProofToken && len(token.Audience()) > 1
+	cert, err := newCertificate(clientCertificateHeader)
+	if err != nil {
+		return Token{}, nil, err
+	}
+	if (m.options.Validation.X5T || proofTokenCheckRequired) && cert == nil {
+		return Token{}, nil, ErrNoClientCert
 	}
 
 	// get keyset
 	keySet, err := m.getOIDCTenant(token.Issuer(), token.CustomIssuer())
 	if err != nil {
-		return Token{}, err
+		return Token{}, nil, err
 	}
 
 	// verify claims
 	if err := m.validateClaims(token, keySet); err != nil {
-		return Token{}, err
+		return Token{}, nil, err
 	}
 
 	// verify signature
-	if err := m.verifySignature(token, keySet); err != nil {
-		return Token{}, err
+	servicePlans, err := m.verifySignature(token, keySet, proofTokenCheckRequired, cert)
+	if err != nil {
+		return Token{}, nil, err
 	}
 
-	return token, nil
+	if m.options.Validation.X5T {
+		if err := validateCertificate(cert, token); err != nil {
+			return Token{}, nil, err
+		}
+	}
+	if proofTokenCheckRequired {
+		token.servicePlans = servicePlans
+	}
+
+	return token, cert, nil
 }
 
-func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant) (err error) {
+func (m *Middleware) verifySignature(t Token, keySet *oidcclient.OIDCTenant, proofTokenCheckRequired bool, clientCertificate *Certificate) ([]string, error) {
 	headers, err := getHeaders(t.TokenValue())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	alg := headers.Algorithm()
 
 	// fail early to avoid another parsing of encoded token
 	if alg == "" {
-		return errors.New("alg is missing from jwt header")
+		return nil, errors.New("alg is missing from jwt header")
 	}
 
 	// parse and verify signature
-	tenantOpts := oidcclient.ClientInfo{
-		ClientID: m.identity.GetClientID(),
-		AppTID:   t.AppTID(),
-		Azp:      t.Azp(),
+	jwksRequest := oidcclient.JWKsRequest{
+		ClientInfo: oidcclient.ClientInfo{
+			ClientID: m.identity.GetClientID(),
+			AppTID:   t.AppTID(),
+			Azp:      t.Azp(),
+		},
+		AzpAppTID: t.AzpAppTID(),
 	}
-	jwks, err := keySet.GetJWKs(tenantOpts)
+	if proofTokenCheckRequired {
+		jwksRequest.ClientCertificate = clientCertificate.normalizedPEM()
+	}
+	jwksResponse, err := keySet.GetJWKsForRequest(jwksRequest)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = jwt.ParseString(t.TokenValue(), jwt.WithKeySet(jwks), jwt.UseDefaultKey(true))
+	_, err = jwt.ParseString(t.TokenValue(), jwt.WithKeySet(jwksResponse.KeySet), jwt.UseDefaultKey(true))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return jwksResponse.ServicePlans, nil
 }
 
 func getHeaders(encodedToken string) (jws.Headers, error) {
