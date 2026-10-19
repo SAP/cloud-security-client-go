@@ -15,7 +15,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/sap/cloud-security-client-go/env"
-	"github.com/sap/cloud-security-client-go/httpclient"
 	"github.com/sap/cloud-security-client-go/mocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -174,7 +173,7 @@ func TestClientCredentialsTokenFlow_UsingMockServer_Succeeds(t *testing.T) {
 
 func setupNewTLSServer(t *testing.T, f func(http.ResponseWriter, *http.Request)) *httptest.Server {
 	r := mux.NewRouter()
-	r.Use(verifyUserAgent)
+	r.Use(mocks.VerifyUserAgent)
 	r.HandleFunc("/oauth2/token", f).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
 	r.HandleFunc("/oauth/token", f).Methods(http.MethodPost).Headers("Content-Type", "application/x-www-form-urlencoded")
 
@@ -182,16 +181,6 @@ func setupNewTLSServer(t *testing.T, f func(http.ResponseWriter, *http.Request))
 		tokenRequestHandlerHitCounter = 0
 	})
 	return httptest.NewTLSServer(r)
-}
-
-func verifyUserAgent(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("User-Agent") != httpclient.UserAgent {
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte("wrong user agent, expected: " + httpclient.UserAgent))
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 // tokenHandler is the http handler which serves the /oauth2/token endpoint.

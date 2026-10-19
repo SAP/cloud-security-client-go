@@ -93,7 +93,7 @@ func newOIDCMockServer(customIssuer string) (*MockServer, error) {
 		CustomIssuer: customIssuer,
 	}
 
-	r.Use(verifyUserAgent)
+	r.Use(VerifyUserAgent)
 	r.HandleFunc("/.well-known/openid-configuration", mockServer.WellKnownHandler).Methods(http.MethodGet)
 	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandlerInvalidAppTID).Methods(http.MethodGet).Headers("x-app_tid", InvalidAppTID)
 	r.HandleFunc("/oauth2/certs", mockServer.JWKsHandler).Methods(http.MethodGet)
@@ -102,7 +102,7 @@ func newOIDCMockServer(customIssuer string) (*MockServer, error) {
 	return mockServer, nil
 }
 
-func verifyUserAgent(next http.Handler) http.Handler {
+func VerifyUserAgent(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("User-Agent") != httpclient.UserAgent {
 			w.WriteHeader(http.StatusBadRequest)
