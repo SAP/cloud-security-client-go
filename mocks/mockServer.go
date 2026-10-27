@@ -126,8 +126,9 @@ func (m *MockServer) WellKnownHandler(w http.ResponseWriter, _ *http.Request) {
 		issuer = m.CustomIssuer
 	}
 	wellKnown := oidcclient.ProviderJSON{
-		Issuer:  issuer,
-		JWKsURL: fmt.Sprintf("%s/oauth2/certs", m.Server.URL),
+		Issuer:   issuer,
+		JWKsURL:  fmt.Sprintf("%s/oauth2/certs", m.Server.URL),
+		TokenURL: fmt.Sprintf("%s/oauth2/token", m.Server.URL),
 	}
 	payload, _ := json.Marshal(wellKnown)
 	_, _ = w.Write(payload)

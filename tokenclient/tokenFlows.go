@@ -18,6 +18,8 @@ import (
 
 	"github.com/sap/cloud-security-client-go/env"
 	"github.com/sap/cloud-security-client-go/httpclient"
+	"github.com/sap/cloud-security-client-go/internal/domain"
+	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
 // Options allows configuration http(s) client
@@ -29,15 +31,14 @@ type Options struct {
 type RequestOptions struct {
 	// Request parameters that shall be overwritten or added to the payload
 	Params map[string]string
-	// Token Endpoint overwrites the default used /oauth2/token
-	TokenEndpoint string
 }
 
 // TokenFlows setup once per application.
 type TokenFlows struct {
-	identity env.Identity
-	Options  Options
-	cache    *cache.Cache
+	identity   env.Identity
+	Options    Options
+	cache      *cache.Cache
+	oidcConfig *cache.Cache
 }
 
 type request struct {
@@ -78,7 +79,6 @@ type tokenResponse struct {
 }
 
 const (
-	tokenEndpoint              string = "/oauth2/token" //nolint:gosec
 	grantTypeParameter         string = "grant_type"
 	grantTypeClientCredentials string = "client_credentials"
 	clientIDParameter          string = "client_id"
@@ -92,9 +92,10 @@ const (
 // Note: Setup of default tls config is not supported for windows os. Module crypto/x509 supports SystemCertPool with go 1.18 (https://go-review.googlesource.com/c/go/+/353589/)
 func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) {
 	t := TokenFlows{
-		identity: identity,
-		Options:  options,
-		cache:    cache.New(15*time.Minute, 10*time.Minute),
+		identity:   identity,
+		Options:    options,
+		cache:      cache.New(15*time.Minute, 10*time.Minute),
+		oidcConfig: cache.New(15*time.Minute, 10*time.Minute),
 	}
 	if options.HTTPClient == nil {
 		tlsConfig, err := httpclient.DefaultTLSConfig(identity)
@@ -112,7 +113,9 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 // instead of an end user for accessing resources without principal propagation.
 //
 // ctx carries the request context like the deadline or other values that should be shared across API boundaries.
-// customerTenantURL like "https://custom.accounts400.ondemand.com" gives the host of the customers ias tenant
+// customerTenantURL like "https://custom.accounts400.ondemand.com" gives the host of the customers ias tenant. Its
+// host must belong to one of the trusted domains of the bound identity service. The token endpoint itself is read
+// from the tenant's .well-known/openid-configuration.
 // options allows to provide additional request parameters
 func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL string, options RequestOptions) (string, error) {
 	data := url.Values{}
@@ -124,7 +127,7 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 		data.Set(name, value) // potentially overwrites data which was set before
 	}
 	data.Set(grantTypeParameter, grantTypeClientCredentials)
-	targetURL, err := t.getURL(customerTenantURL, options)
+	targetURL, err := t.getURL(customerTenantURL)
 	if err != nil {
 		return "", err
 	}
@@ -137,19 +140,56 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	return t.getOrRequestToken(request{Request: *r})
 }
 
-func (t *TokenFlows) getURL(customerTenantURL string, options RequestOptions) (string, error) {
+// getURL resolves the token endpoint for the given customer tenant url. The host is validated against the trusted
+// domains of the bound identity service and the actual token endpoint is read from the tenant's OIDC discovery
+// document, rather than being assembled from a caller-supplied path.
+func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
 	customURL, err := url.Parse(customerTenantURL)
-	if err == nil && customURL.Host != "" {
-		endpoint := tokenEndpoint
-		if options.TokenEndpoint != "" {
-			endpoint = options.TokenEndpoint
-		}
-		return "https://" + customURL.Host + endpoint, nil
+	if err != nil {
+		return "", fmt.Errorf("customer tenant url '%v' can't be parsed: %w", customerTenantURL, err)
 	}
-	if !strings.HasPrefix(customerTenantURL, "http") {
-		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: Trying to parse a hostname without a scheme is invalid", customerTenantURL)
+	if customURL.Scheme != "https" {
+		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: scheme must be https", customerTenantURL)
 	}
-	return "", fmt.Errorf("customer tenant url '%v' can't be parsed: %w", customerTenantURL, err)
+	if customURL.User != nil {
+		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: must not contain user information", customerTenantURL)
+	}
+	if customURL.Host == "" {
+		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: missing host", customerTenantURL)
+	}
+	if customURL.Path != "" && customURL.Path != "/" {
+		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: must not contain a path", customerTenantURL)
+	}
+	if customURL.RawQuery != "" || customURL.ForceQuery || customURL.Fragment != "" || strings.Contains(customerTenantURL, "#") {
+		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: must not contain a query or fragment", customerTenantURL)
+	}
+
+	doesMatch, err := domain.Matches(customURL.Host, t.identity.GetDomains())
+	if err != nil {
+		return "", fmt.Errorf("error matching domain: %w", err)
+	}
+	if !doesMatch {
+		return "", fmt.Errorf("customer tenant url '%v' does not match any of the trusted domains", customerTenantURL)
+	}
+
+	return t.tokenEndpointFor(customURL.Host)
+}
+
+// tokenEndpointFor returns the token endpoint discovered via the tenant's .well-known/openid-configuration.
+// Results are cached per host to avoid an additional discovery request on every token request.
+func (t *TokenFlows) tokenEndpointFor(host string) (string, error) {
+	if cached, found := t.oidcConfig.Get(host); found {
+		return cached.(string), nil
+	}
+	tenant, err := oidcclient.NewOIDCTenant(t.Options.HTTPClient, host)
+	if err != nil {
+		return "", fmt.Errorf("error retrieving oidc configuration from customer tenant url 'https://%v': %w", host, err)
+	}
+	if tenant.ProviderJSON.TokenURL == "" {
+		return "", fmt.Errorf("oidc configuration of customer tenant url 'https://%v' does not provide a token_endpoint", host)
+	}
+	t.oidcConfig.SetDefault(host, tenant.ProviderJSON.TokenURL)
+	return tenant.ProviderJSON.TokenURL, nil
 }
 
 func (t *TokenFlows) getOrRequestToken(r request) (string, error) {
