@@ -7,13 +7,14 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"regexp"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/lestrrat-go/jwx/jwt"
 
+	"github.com/sap/cloud-security-client-go/internal/domain"
 	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
@@ -165,9 +166,12 @@ func (m *Middleware) getOIDCTenant(issuer, customIssuer string) (*oidcclient.OID
 
 func (m *Middleware) verifyIssuer(issuer string) (issuerHost string, err error) {
 	// issuer must be a host or https url
-	issuerHost = strings.TrimPrefix(issuer, "https://")
+	issuerHost, err = hostFromIssuer(issuer)
+	if err != nil {
+		return "", fmt.Errorf("token is unverifiable: %v", err)
+	}
 
-	doesMatch, err := matchesDomain(issuerHost, m.identity.GetDomains())
+	doesMatch, err := domain.Matches(issuerHost, m.identity.GetDomains())
 	if err != nil {
 		return "", fmt.Errorf("error matching domain: %v", err)
 	}
@@ -178,30 +182,31 @@ func (m *Middleware) verifyIssuer(issuer string) (issuerHost string, err error) 
 	return issuerHost, nil
 }
 
-func matchesDomain(hostname string, domains []string) (bool, error) {
-	for _, domain := range domains {
-		if !strings.HasSuffix(hostname, domain) {
-			continue
-		}
-		// hostname matches exactly trusted domain
-		if hostname == domain {
-			return true, nil
-		}
-		isValid, regexErr := isValidSubDomain(hostname, domain)
-		if regexErr != nil {
-			return false, regexErr
-		}
-		if isValid {
-			return true, nil
-		}
+// hostFromIssuer extracts and validates the host of the issuer, which may be
+// given as a bare host or as an https url.
+func hostFromIssuer(issuer string) (string, error) {
+	toParse := issuer
+	if !strings.Contains(toParse, "://") {
+		toParse = "https://" + toParse
 	}
-	return false, nil
-}
-
-// isValidSubDomain additionally check subdomain because "my-accounts400.ondemand.com"
-// does match Suffix, but should not be allowed
-// additionally it returns false if hostname contains paths like /foo or ?test=true
-func isValidSubDomain(hostname, domain string) (bool, error) {
-	validSubdomainPattern := "^[a-zA-Z0-9-]{1,63}\\." + regexp.QuoteMeta(domain) + "$"
-	return regexp.MatchString(validSubdomainPattern, hostname)
+	u, err := url.Parse(toParse)
+	if err != nil {
+		return "", fmt.Errorf("issuer '%s' is not a valid url: %w", issuer, err)
+	}
+	if u.Scheme != "https" {
+		return "", fmt.Errorf("issuer '%s' must use the https scheme", issuer)
+	}
+	if u.User != nil {
+		return "", fmt.Errorf("issuer '%s' must not contain user information", issuer)
+	}
+	if u.Host == "" {
+		return "", fmt.Errorf("issuer '%s' has no host", issuer)
+	}
+	if u.Path != "" && u.Path != "/" {
+		return "", fmt.Errorf("issuer '%s' must not contain a path", issuer)
+	}
+	if u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || strings.Contains(issuer, "#") {
+		return "", fmt.Errorf("issuer '%s' must not contain a query or fragment", issuer)
+	}
+	return u.Host, nil
 }

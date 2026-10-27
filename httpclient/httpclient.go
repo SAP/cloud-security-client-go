@@ -65,7 +65,16 @@ func DefaultHTTPClient(tlsConfig *tls.Config) *http.Client {
 			MaxIdleConns:    50,
 		}
 	}
-	return client
+	return WithoutRedirects(client)
+}
+
+// WithoutRedirects copies the client and keeps each request on its selected endpoint.
+func WithoutRedirects(client *http.Client) *http.Client {
+	clientCopy := *client
+	clientCopy.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	return &clientCopy
 }
 
 // NewRequestWithUserAgent creates a request and sets the libs custom user agent
