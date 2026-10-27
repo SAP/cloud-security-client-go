@@ -34,14 +34,13 @@ var mTLSConfig = &env.DefaultIdentity{
 
 // identityFor returns an identity whose trusted domain matches the test server, so the token
 // endpoint can be discovered from it.
-func identityFor(t *testing.T, server *httptest.Server, clientID, clientSecret string) *env.DefaultIdentity {
+func identityFor(t *testing.T, server *httptest.Server, clientID string) *env.DefaultIdentity {
 	t.Helper()
 	u, err := url.Parse(server.URL)
 	assert.NoError(t, err)
 	return &env.DefaultIdentity{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		Domains:      []string{u.Host},
+		ClientID: clientID,
+		Domains:  []string{u.Host},
 	}
 }
 
@@ -54,7 +53,7 @@ func TestNewTokenFlows_setupDefaultHttpsClientFails(t *testing.T) {
 func TestClientCredentialsTokenFlow_FailsWithTimeout(t *testing.T) {
 	server := setupNewTLSServer(t, tokenHandler)
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID, ""), Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID), Options{HTTPClient: server.Client()})
 
 	timeout, cancelFunc := context.WithTimeout(context.Background(), 0*time.Second)
 	defer cancelFunc()
@@ -65,7 +64,7 @@ func TestClientCredentialsTokenFlow_FailsWithTimeout(t *testing.T) {
 func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
 	server := setupNewTLSServer(t, func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("no json")) })
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID, ""), Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID), Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
 	assertError(t, "error parsing response from https://127.0.0.1", err)
@@ -74,7 +73,7 @@ func TestClientCredentialsTokenFlow_FailsNoData(t *testing.T) {
 func TestClientCredentialsTokenFlow_FailsNoJson(t *testing.T) {
 	server := setupNewTLSServer(t, func(w http.ResponseWriter, r *http.Request) {})
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID, ""), Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID), Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
 	assertError(t, "error parsing response from https://127.0.0.1", err)
@@ -83,7 +82,7 @@ func TestClientCredentialsTokenFlow_FailsNoJson(t *testing.T) {
 func TestClientCredentialsTokenFlow_FailsUnexpectedJson(t *testing.T) {
 	server := setupNewTLSServer(t, func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("{\"a\":\"b\"}")) })
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID, ""), Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID), Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
 	assertError(t, "error parsing requested client credentials token: no 'access_token' property provided", err)
@@ -96,7 +95,7 @@ func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
 		tokenRequestHandlerHitCounter++
 	})
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID, ""), Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID), Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
 	assertError(t, "failed with status code '401' and payload: 'unauthenticated client'", err)
@@ -114,7 +113,7 @@ func TestClientCredentialsTokenFlow_FailsWithUnauthenticated(t *testing.T) {
 func TestClientCredentialsTokenFlow_FailsWithCustomerUrlWithoutScheme(t *testing.T) {
 	server := setupNewTLSServer(t, tokenHandler)
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID, ""), Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID), Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), "some-domain.de/with/a/path", RequestOptions{})
 	assertError(t, "customer tenant url 'some-domain.de/with/a/path' is not a valid url", err)
@@ -124,7 +123,7 @@ func TestClientCredentialsTokenFlow_FailsWithCustomerUrlWithoutScheme(t *testing
 func TestClientCredentialsTokenFlow_FailsWithInvalidCustomerUrl(t *testing.T) {
 	server := setupNewTLSServer(t, tokenHandler)
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID, ""), Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID), Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), "https://some-domain.de\abc", RequestOptions{})
 	assertError(t, "customer tenant url 'https://some-domain.de\abc' can't be parsed", err)
@@ -134,7 +133,7 @@ func TestClientCredentialsTokenFlow_FailsWithInvalidCustomerUrl(t *testing.T) {
 func TestClientCredentialsTokenFlow_FailsWithUntrustedCustomerUrl(t *testing.T) {
 	server := setupNewTLSServer(t, tokenHandler)
 	defer server.Close()
-	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID, ""), Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID), Options{HTTPClient: server.Client()})
 
 	_, err := tokenFlows.ClientCredentials(context.TODO(), "https://attacker.accounts400.ondemand.com", RequestOptions{})
 	assertError(t, "does not match any of the trusted domains", err)
@@ -142,7 +141,7 @@ func TestClientCredentialsTokenFlow_FailsWithUntrustedCustomerUrl(t *testing.T) 
 
 func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 	server := setupNewTLSServer(t, tokenHandler)
-	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID, ""), Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID), Options{HTTPClient: server.Client()})
 
 	token, err := tokenFlows.ClientCredentials(context.TODO(), server.URL, RequestOptions{})
 	assertToken(t, dummyToken, token, err)
@@ -150,7 +149,7 @@ func TestClientCredentialsTokenFlow_Succeeds(t *testing.T) {
 
 func TestClientCredentialsTokenFlow_ReadFromCache(t *testing.T) {
 	server := setupNewTLSServer(t, tokenHandler)
-	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID, ""), Options{HTTPClient: server.Client()})
+	tokenFlows, _ := NewTokenFlows(identityFor(t, server, testClientID), Options{HTTPClient: server.Client()})
 
 	assert.Equal(t, 0, tokenRequestHandlerHitCounter)
 	assert.Equal(t, 0, tokenFlows.cache.ItemCount())
