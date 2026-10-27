@@ -81,11 +81,19 @@ func (r JWKsRequest) cacheKey() jwksCacheKey {
 
 // NewOIDCTenant instantiates a new OIDCTenant and performs the OIDC discovery.
 func NewOIDCTenant(httpClient *http.Client, targetIssHost string) (*OIDCTenant, error) {
+	return NewOIDCTenantWithContext(context.Background(), httpClient, targetIssHost)
+}
+
+// NewOIDCTenantWithContext performs OIDC discovery using the caller's context.
+func NewOIDCTenantWithContext(ctx context.Context, client *http.Client, targetIssHost string) (*OIDCTenant, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	ks := &OIDCTenant{
-		httpClient: httpClient,
+		httpClient: httpclient.WithoutRedirects(client),
 		jwksCache:  make(map[jwksCacheKey]jwksCacheEntry),
 	}
-	if err := ks.performDiscovery(targetIssHost); err != nil {
+	if err := ks.performDiscovery(ctx, targetIssHost); err != nil {
 		return nil, err
 	}
 
@@ -218,15 +226,17 @@ func parseServicePlans(header string) []string {
 	return plans
 }
 
-func (ks *OIDCTenant) performDiscovery(baseURL string) error {
+func (ks *OIDCTenant) performDiscovery(ctx context.Context, baseURL string) error {
 	wellKnown := fmt.Sprintf("https://%s/.well-known/openid-configuration", strings.TrimSuffix(baseURL, "/"))
-	req, err := httpclient.NewRequestWithUserAgent(context.TODO(), http.MethodGet, wellKnown, http.NoBody)
+	req, err := httpclient.NewRequestWithUserAgent(ctx, http.MethodGet, wellKnown, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("unable to construct discovery request: %v", err)
 	}
-	resp, err := ks.httpClient.Do(req)
+	client, closeIdleConnections := discoveryClient(ks.httpClient)
+	defer closeIdleConnections()
+	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("unable to perform oidc discovery request: %v", err)
+		return fmt.Errorf("unable to perform oidc discovery request: %w", err)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)

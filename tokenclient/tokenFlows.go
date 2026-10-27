@@ -18,7 +18,6 @@ import (
 
 	"github.com/sap/cloud-security-client-go/env"
 	"github.com/sap/cloud-security-client-go/httpclient"
-	"github.com/sap/cloud-security-client-go/internal/domain"
 	"github.com/sap/cloud-security-client-go/oidcclient"
 )
 
@@ -31,6 +30,8 @@ type Options struct {
 type RequestOptions struct {
 	// Request parameters that shall be overwritten or added to the payload
 	Params map[string]string
+	// TokenEndpoint overrides /oauth2/token with an absolute path on the trusted tenant.
+	TokenEndpoint string
 }
 
 // TokenFlows setup once per application.
@@ -79,6 +80,7 @@ type tokenResponse struct {
 }
 
 const (
+	tokenEndpoint              string = "/oauth2/token" //nolint:gosec
 	grantTypeParameter         string = "grant_type"
 	grantTypeClientCredentials string = "client_credentials"
 	clientIDParameter          string = "client_id"
@@ -114,23 +116,41 @@ func NewTokenFlows(identity env.Identity, options Options) (*TokenFlows, error) 
 //
 // ctx carries the request context like the deadline or other values that should be shared across API boundaries.
 // customerTenantURL like "https://custom.accounts400.ondemand.com" gives the host of the customers ias tenant. Its
-// host must belong to one of the trusted domains of the bound identity service. The token endpoint itself is read
-// from the tenant's .well-known/openid-configuration.
-// options allows to provide additional request parameters
+// host must belong to one of the trusted domains of the bound identity service.
+// options allows additional request parameters and an absolute token endpoint path on that tenant.
 func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL string, options RequestOptions) (string, error) {
+	targetURL, err := t.getURL(customerTenantURL, options)
+	if err != nil {
+		return "", err
+	}
+	return t.clientCredentials(ctx, targetURL, options.Params)
+}
+
+// ClientCredentialsWithDiscovery obtains a client credentials token using the tenant's OIDC token_endpoint.
+// Both the tenant and the discovered endpoint must use HTTPS and belong to the identity's trusted domains.
+// Pass identity.GetURL() as customerTenantURL to use the bound tenant, or a trusted subscriber tenant URL.
+func (t *TokenFlows) ClientCredentialsWithDiscovery(ctx context.Context, customerTenantURL string, params map[string]string) (string, error) {
+	tenantURL, err := t.tenantURL(customerTenantURL)
+	if err != nil {
+		return "", err
+	}
+	targetURL, err := t.tokenEndpointFor(ctx, tenantURL.Host)
+	if err != nil {
+		return "", err
+	}
+	return t.clientCredentials(ctx, targetURL, params)
+}
+
+func (t *TokenFlows) clientCredentials(ctx context.Context, targetURL string, params map[string]string) (string, error) {
 	data := url.Values{}
 	data.Set(clientIDParameter, t.identity.GetClientID())
 	if t.identity.GetClientSecret() != "" {
 		data.Set(clientSecretParameter, t.identity.GetClientSecret())
 	}
-	for name, value := range options.Params {
+	for name, value := range params {
 		data.Set(name, value) // potentially overwrites data which was set before
 	}
 	data.Set(grantTypeParameter, grantTypeClientCredentials)
-	targetURL, err := t.getURL(customerTenantURL)
-	if err != nil {
-		return "", err
-	}
 	r, err := httpclient.NewRequestWithUserAgent(ctx, http.MethodPost, targetURL, strings.NewReader(data.Encode())) // URL-encoded payload
 	if err != nil {
 		return "", fmt.Errorf("error performing client credentials flow: %w", err)
@@ -140,56 +160,26 @@ func (t *TokenFlows) ClientCredentials(ctx context.Context, customerTenantURL st
 	return t.getOrRequestToken(request{Request: *r})
 }
 
-// getURL resolves the token endpoint for the given customer tenant url. The host is validated against the trusted
-// domains of the bound identity service and the actual token endpoint is read from the tenant's OIDC discovery
-// document, rather than being assembled from a caller-supplied path.
-func (t *TokenFlows) getURL(customerTenantURL string) (string, error) {
-	customURL, err := url.Parse(customerTenantURL)
-	if err != nil {
-		return "", fmt.Errorf("customer tenant url '%v' can't be parsed: %w", customerTenantURL, err)
+func (t *TokenFlows) tokenEndpointFor(ctx context.Context, host string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
 	}
-	if customURL.Scheme != "https" {
-		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: scheme must be https", customerTenantURL)
-	}
-	if customURL.User != nil {
-		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: must not contain user information", customerTenantURL)
-	}
-	if customURL.Host == "" {
-		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: missing host", customerTenantURL)
-	}
-	if customURL.Path != "" && customURL.Path != "/" {
-		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: must not contain a path", customerTenantURL)
-	}
-	if customURL.RawQuery != "" || customURL.ForceQuery || customURL.Fragment != "" || strings.Contains(customerTenantURL, "#") {
-		return "", fmt.Errorf("customer tenant url '%v' is not a valid url: must not contain a query or fragment", customerTenantURL)
-	}
-
-	doesMatch, err := domain.Matches(customURL.Host, t.identity.GetDomains())
-	if err != nil {
-		return "", fmt.Errorf("error matching domain: %w", err)
-	}
-	if !doesMatch {
-		return "", fmt.Errorf("customer tenant url '%v' does not match any of the trusted domains", customerTenantURL)
-	}
-
-	return t.tokenEndpointFor(customURL.Host)
-}
-
-// tokenEndpointFor returns the token endpoint discovered via the tenant's .well-known/openid-configuration.
-// Results are cached per host to avoid an additional discovery request on every token request.
-func (t *TokenFlows) tokenEndpointFor(host string) (string, error) {
 	if cached, found := t.oidcConfig.Get(host); found {
 		return cached.(string), nil
 	}
-	tenant, err := oidcclient.NewOIDCTenant(t.Options.HTTPClient, host)
+	tenant, err := oidcclient.NewOIDCTenantWithContext(ctx, t.Options.HTTPClient, host)
 	if err != nil {
 		return "", fmt.Errorf("error retrieving oidc configuration from customer tenant url 'https://%v': %w", host, err)
 	}
 	if tenant.ProviderJSON.TokenURL == "" {
 		return "", fmt.Errorf("oidc configuration of customer tenant url 'https://%v' does not provide a token_endpoint", host)
 	}
-	t.oidcConfig.SetDefault(host, tenant.ProviderJSON.TokenURL)
-	return tenant.ProviderJSON.TokenURL, nil
+	endpoint, err := t.trustedURL(tenant.ProviderJSON.TokenURL, "token_endpoint")
+	if err != nil {
+		return "", err
+	}
+	t.oidcConfig.SetDefault(host, endpoint.String())
+	return endpoint.String(), nil
 }
 
 func (t *TokenFlows) getOrRequestToken(r request) (string, error) {
@@ -236,7 +226,7 @@ func (t *TokenFlows) writeToCache(r request, token string) {
 }
 
 func (t *TokenFlows) performRequest(r request, v interface{}) error {
-	res, err := t.Options.HTTPClient.Do(&r.Request)
+	res, err := httpclient.WithoutRedirects(t.Options.HTTPClient).Do(&r.Request)
 	if err != nil {
 		return fmt.Errorf("request to '%v' failed: %w", r.URL, err)
 	}
